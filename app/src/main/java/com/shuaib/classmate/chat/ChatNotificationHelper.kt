@@ -43,6 +43,9 @@ object ChatNotificationHelper {
         messageText: String,
         timestamp: Long
     ) {
+        if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser == null) {
+            return
+        }
         scope.launch {
             val avatarBitmap: Bitmap? = withContext(Dispatchers.IO) {
                 try {

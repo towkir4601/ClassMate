@@ -90,12 +90,32 @@ class ClassMateApp : Application() {
                         saveOneSignalPlayerId(playerId)
                     }
                 } catch (_: Exception) {}
+                // লগইন করার সময় FCM topic-এ যুক্ত হও + OneSignal-এ লগইন
+                try {
+                    OneSignal.login(uid)
+                } catch (_: Exception) {}
+
+                try {
+                    com.google.firebase.messaging.FirebaseMessaging.getInstance()
+                        .subscribeToTopic("notices")
+                    com.google.firebase.messaging.FirebaseMessaging.getInstance()
+                        .subscribeToTopic("cancellations")
+                    android.util.Log.d("ClassMateApp", "Subscribed to FCM topics")
+                } catch (_: Exception) {}
             } else {
                 // User is logged out: disconnect chat and opt out from OneSignal
                 ChatRepository.close()
                 try {
                     OneSignal.User.pushSubscription.optOut()
                     OneSignal.logout()
+                } catch (_: Exception) {}
+                // লগআউটের সময় FCM topic থেকে বের হয়ে আসো
+                try {
+                    com.google.firebase.messaging.FirebaseMessaging.getInstance()
+                        .unsubscribeFromTopic("notices")
+                    com.google.firebase.messaging.FirebaseMessaging.getInstance()
+                        .unsubscribeFromTopic("cancellations")
+                    android.util.Log.d("ClassMateApp", "Unsubscribed from FCM topics on auth change")
                 } catch (_: Exception) {}
             }
         }

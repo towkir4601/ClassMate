@@ -282,6 +282,15 @@ class ProfileFragment : Fragment() {
         }
         
         com.shuaib.classmate.chat.ChatRepository.close()
+        try {
+            com.google.firebase.messaging.FirebaseMessaging.getInstance()
+                .unsubscribeFromTopic("notices")
+            com.google.firebase.messaging.FirebaseMessaging.getInstance()
+                .unsubscribeFromTopic("cancellations")
+            android.util.Log.d("ProfileFragment", "Unsubscribed from FCM topics")
+        } catch (e: Exception) {
+            android.util.Log.e("ProfileFragment", "FCM unsubscribe failed: ${e.message}")
+        }
         auth.signOut()
         viewLifecycleOwner.lifecycleScope.launch {
             try {
