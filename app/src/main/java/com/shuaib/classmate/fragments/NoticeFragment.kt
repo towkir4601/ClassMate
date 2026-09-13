@@ -71,6 +71,8 @@ class NoticeFragment : Fragment() {
     private var currentUserId = ""
     private var currentUserName = ""
     private var currentUserStudentId = ""
+    private var currentUserBatch = ""
+    private var currentUserRole = "student"
     private val readNoticeCache = mutableSetOf<String>()
     private var selectedFilter = NoticeFilter.ALL
     private var lastFilter: NoticeFilter? = null
@@ -126,6 +128,9 @@ class NoticeFragment : Fragment() {
                     if (doc.exists()) {
                         currentUserName = doc.getString("name") ?: ""
                         currentUserStudentId = doc.getString("studentId") ?: ""
+                        currentUserBatch = doc.getString("batch") ?: ""
+                        currentUserRole = doc.getString("role") ?: "student"
+                        renderFeed() // Re-render after fetching batch
                     }
                 }
         }
@@ -499,6 +504,7 @@ class NoticeFragment : Fragment() {
     }
 
     private fun dismissReminderBanner() {
+        if (_binding == null) return
         val banner = binding.layoutReminderBanner
         if (banner.visibility != android.view.View.VISIBLE) return
         val slideUp = AnimationUtils.loadAnimation(requireContext(), R.anim.slide_up_out)
@@ -792,11 +798,19 @@ class NoticeFragment : Fragment() {
         val uid = auth.currentUser?.uid ?: return
         db.collection("users").document(uid).get()
             .addOnSuccessListener { doc ->
-                if (_binding == null) return@addOnSuccessListener
-                val user = doc.toObject(com.shuaib.classmate.models.User::class.java)
-                isAdmin = user?.canPostNotices() ?: false
-                binding.btnPostNotice.isVisible = isAdmin
-                binding.btnEmptyPost.isVisible = isAdmin && allNotices.isEmpty() && allPolls.isEmpty()
+                try {
+                    val role = doc.getString("role") ?: "student"
+                    val permissions = doc.get("permissions") as? Map<String, Boolean> ?: emptyMap()
+                    
+                    isAdmin = (role == "superadmin" || role == "admin" || role == "teacher" || permissions["canPostNotices"] == true)
+                    binding.btnPostNotice.isVisible = isAdmin
+                    binding.btnEmptyPost.isVisible = isAdmin && allNotices.isEmpty() && allPolls.isEmpty()
+                } catch (e: Exception) {
+                    android.util.Log.e("NoticeFragment", "Error parsing user for admin check", e)
+                    isAdmin = false
+                    binding.btnPostNotice.isVisible = false
+                    binding.btnEmptyPost.isVisible = false
+                }
             }
     }
 

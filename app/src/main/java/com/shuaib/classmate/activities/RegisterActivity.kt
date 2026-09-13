@@ -87,6 +87,7 @@ class RegisterActivity : AppCompatActivity() {
         setupPasswordStrength()
         setupKeyboardActions()
         setupStudentIdFormatting()
+        setupRoleToggle()
         showStep(0, focus = false)
 
         binding.btnRegister.applyClickAnimation { handlePrimaryAction() }
@@ -94,6 +95,38 @@ class RegisterActivity : AppCompatActivity() {
             finish()
             overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
         }
+    }
+
+
+    private fun setupRoleToggle() {
+        val applyRoleVisibility = {
+            val isTeacher = binding.rgRole.checkedRadioButtonId == R.id.rbTeacher
+            val visibility = if (isTeacher) android.view.View.GONE else android.view.View.VISIBLE
+            binding.tilStudentId.visibility = visibility
+            binding.tilBatch.visibility = visibility
+            binding.tilFatherName.visibility = visibility
+            binding.tilMotherName.visibility = visibility
+            binding.tilPresentAddress.visibility = visibility
+            binding.tilPermanentAddress.visibility = visibility
+            binding.tilDistrict.visibility = visibility
+        }
+        binding.rgRole.setOnCheckedChangeListener { _, _ -> applyRoleVisibility() }
+        applyRoleVisibility()
+    }
+
+    private fun setupBatchAutoFill() {
+        binding.etStudentId.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                if (binding.rgRole.checkedRadioButtonId == R.id.rbTeacher) return
+                val idStr = s?.toString()?.trim() ?: ""
+                val prefix = idStr.take(2).toIntOrNull()
+                if (prefix != null) {
+                    binding.etBatch.setText((prefix - 10).toString())
+                }
+            }
+        })
     }
 
     private fun setupAnimations() {
@@ -218,26 +251,61 @@ class RegisterActivity : AppCompatActivity() {
 
     private fun registerUser() {
         if (authInProgress) return
+        val isTeacher = binding.rbTeacher.isChecked
         val name = binding.etName.text.toString().trim()
-        val studentId = StudentIdUtils.normalize(binding.etStudentId.text.toString())
+        val studentId = if (isTeacher) "" else StudentIdUtils.normalize(binding.etStudentId.text.toString())
         val email = binding.etEmail.text.toString().trim()
         val password = binding.etPassword.text.toString()
         val confirmPassword = binding.etConfirmPassword.text.toString()
+        
+        // Additional fields
+        val department = binding.etDepartment.text.toString().trim()
+        val whatsapp = binding.etWhatsApp.text.toString().trim()
+        val phone = binding.etPhone.text.toString().trim()
+        
+        val batch = if (isTeacher) "" else {
+            val prefix = studentId.take(2).toIntOrNull()
+            if (prefix != null) (prefix - 10).toString() else ""
+        }
+        val fatherName = if (isTeacher) "" else binding.etFatherName.text.toString().trim()
+        val motherName = if (isTeacher) "" else binding.etMotherName.text.toString().trim()
+        val presentAddress = if (isTeacher) "" else binding.etPresentAddress.text.toString().trim()
+        val permanentAddress = if (isTeacher) "" else binding.etPermanentAddress.text.toString().trim()
+        val district = if (isTeacher) "" else binding.etDistrict.text.toString().trim()
+        val bloodGroup = binding.etBloodGroup.text.toString().trim()
 
         Log.d("AuthTrace", "1. Signup button clicked")
-        if (!validateForm(name, studentId, email, password, confirmPassword)) {
-            Log.d("AuthTrace", "2. Input validation failed")
+        if (name.isEmpty() || email.isEmpty() || password.isEmpty()) {
+            showError("Please fill all required fields")
             shakeForm()
             return
         }
-        Log.d("AuthTrace", "2. Input validation passed")
+        if (password != confirmPassword) {
+            showError("Passwords do not match")
+            shakeForm()
+            return
+        }
+        if (isTeacher && (department.isEmpty() || phone.isEmpty())) {
+            showError("Department and Phone are required for Teachers")
+            shakeForm()
+            return
+        }
+        if (!isTeacher && studentId.isEmpty()) {
+            showError("Student ID is required")
+            shakeForm()
+            return
+        }
 
-        AuthDebug.d("Email signup start email=${AuthDebug.maskEmail(email)} studentId=$studentId")
+        AuthDebug.d("Email signup start email=${AuthDebug.maskEmail(email)}")
         setLoading(true)
-        createEmailAccount(name, studentId, email, password)
+        createEmailAccount(
+            name, studentId, email, password, isTeacher, department, whatsapp, phone,
+            batch, fatherName, motherName, presentAddress, permanentAddress, district, bloodGroup
+        )
+
     }
 
-    private fun createEmailAccount(name: String, studentId: String, email: String, password: String) {
+    private fun createEmailAccount(name: String, studentId: String, email: String, password: String, isTeacher: Boolean, department: String, whatsapp: String, phone: String, batch: String, fatherName: String, motherName: String, presentAddress: String, permanentAddress: String, district: String, bloodGroup: String) {
         Log.d("AuthTrace", "3. FirebaseAuth createUser started")
         AuthDebug.d("Email signup Firebase createUser start email=${AuthDebug.maskEmail(email)}")
         auth.createUserWithEmailAndPassword(email, password)
@@ -251,8 +319,9 @@ class RegisterActivity : AppCompatActivity() {
                     .build()
 
                 firebaseUser.updateProfile(profileUpdates).addOnCompleteListener {
+                    firebaseUser.sendEmailVerification()
                     ChatRepository.init(this@RegisterActivity, firebaseUser.uid, name, firebaseUser.photoUrl?.toString() ?: "")
-                    saveUserToFirestore(firebaseUser.uid, name, studentId, email, "")
+                    saveUserToFirestore(firebaseUser.uid, name, studentId, email, "", isTeacher, department, whatsapp, phone, batch, fatherName, motherName, presentAddress, permanentAddress, district, bloodGroup)
                 }
             }
             .addOnFailureListener {
@@ -324,6 +393,7 @@ class RegisterActivity : AppCompatActivity() {
         Log.d("AuthTrace", "9. users/{uid} profile create/update started")
         
         fun createGoogleProfile() {
+            val isTeacher = binding.rgRole.checkedRadioButtonId == R.id.rbTeacher
             val userMap = hashMapOf<String, Any>(
                 "uid" to uid,
                 "name" to finalName,
@@ -332,13 +402,23 @@ class RegisterActivity : AppCompatActivity() {
                 "studentId" to "",
                 "department" to "CSE",
                 "photoUrl" to photoUrl,
-                "role" to "student",
+                "role" to if (isTeacher) "teacher" else "student",
+                "approved" to false,
                 "permissions" to User.DEFAULT_PERMISSIONS,
                 "favoriteSubjects" to emptyList<String>(),
                 "favoritePdfIds" to emptyList<String>(),
                 "authProvider" to "google",
                 "createdAt" to FieldValue.serverTimestamp(),
-                "updatedAt" to FieldValue.serverTimestamp()
+                "updatedAt" to FieldValue.serverTimestamp(),
+                "batch" to "",
+                "phone" to "",
+                "whatsappNumber" to "",
+                "fatherName" to "",
+                "motherName" to "",
+                "presentAddress" to "",
+                "permanentAddress" to "",
+                "homeDistrict" to "",
+                "bloodGroup" to ""
             )
 
             AuthDebug.d("Firestore Google profile write start newUser=true uid=$uid")
@@ -348,6 +428,7 @@ class RegisterActivity : AppCompatActivity() {
                     Log.d("FirestoreDebug", "Write success: users/$uid")
                     Log.d("AuthTrace", "10. Profile create/update success")
                     AuthDebug.d("Firestore Google profile save success for new user uid=$uid")
+                    com.shuaib.classmate.utils.NotificationSender.sendRegistrationAlert(finalName, "N/A")
                     finishAuthFlow(uid)
                 }
                 .addOnFailureListener { e ->
@@ -438,22 +519,32 @@ class RegisterActivity : AppCompatActivity() {
             }
     }
 
-    private fun saveUserToFirestore(uid: String, name: String, studentId: String, email: String, photoUrl: String) {
+    private fun saveUserToFirestore(uid: String, name: String, studentId: String, email: String, photoUrl: String, isTeacher: Boolean, department: String, whatsapp: String, phone: String, batch: String, fatherName: String, motherName: String, presentAddress: String, permanentAddress: String, district: String, bloodGroup: String) {
         val userMap = hashMapOf<String, Any>(
             "uid" to uid,
             "name" to name,
             "fullName" to name,
-            "email" to email,
             "studentId" to studentId,
-            "department" to "CSE",
+            "department" to department,
+            "email" to email,
             "photoUrl" to photoUrl,
-            "role" to "student",
+            "role" to if (isTeacher) "teacher" else "student",
+            "approved" to false,
             "permissions" to User.DEFAULT_PERMISSIONS,
             "favoriteSubjects" to emptyList<String>(),
             "favoritePdfIds" to emptyList<String>(),
             "authProvider" to "email",
             "createdAt" to FieldValue.serverTimestamp(),
-            "updatedAt" to FieldValue.serverTimestamp()
+            "updatedAt" to FieldValue.serverTimestamp(),
+            "whatsappNumber" to whatsapp,
+            "phone" to phone,
+            "batch" to batch,
+            "fatherName" to fatherName,
+            "motherName" to motherName,
+            "presentAddress" to presentAddress,
+            "permanentAddress" to permanentAddress,
+            "homeDistrict" to district,
+            "bloodGroup" to bloodGroup
         )
 
         val userRef = FirebaseFirestore.getInstance().document("users/$uid")
@@ -465,36 +556,29 @@ class RegisterActivity : AppCompatActivity() {
                 Log.d("FirestoreDebug", "Write success: users/$uid")
                 Log.d("AuthTrace", "7. Firestore users/{uid} write success")
 
-                if (studentId.isNotBlank() && StudentIdUtils.isValid(studentId)) {
+                if (!isTeacher && studentId.isNotBlank() && StudentIdUtils.isValid(studentId)) {
                     val lookupRef = firestore.collection("student_id_lookup").document(studentId)
                     val lookupMap = hashMapOf<String, Any>(
                         "uid" to uid,
-                        "email" to email
+                        "updatedAt" to FieldValue.serverTimestamp()
                     )
                     logFirestoreWrite("student_id_lookup/$studentId", uid, lookupMap)
-                    lookupRef.set(lookupMap)
-                        .addOnSuccessListener {
-                            Log.d("FirestoreDebug", "Write success: student_id_lookup/$studentId")
-                        }
-                        .addOnFailureListener { e ->
-                            Log.e("FirestoreDebug", "Lookup write failed (non-fatal): ${e.message}")
-                            logFirestoreFailure(e)
-                        }
+                    lookupRef.set(lookupMap).addOnFailureListener { logFirestoreFailure(it) }
                 }
 
+                com.shuaib.classmate.utils.NotificationSender.sendRegistrationAlert(name, if (isTeacher) "Teacher" else studentId)
                 finishAuthFlow(uid)
             }
             .addOnFailureListener { e ->
-                Log.e("FirestoreDebug", "User profile write failed: ${e.message}")
                 logFirestoreFailure(e)
                 Log.d("AuthTrace", "7. Firestore users/{uid} write failure: ${e.message}")
                 AuthDebug.logFirestoreFailure("email_signup_profile_write", e)
-                AuthDebug.e("Email signup Firestore profile failed; deleting orphan auth user.")
-                auth.currentUser?.delete()
                 setLoading(false)
-                showError(e.message ?: "Error saving profile")
+                showError("Could not save profile: ${e.message}")
+                shakeForm()
             }
     }
+
 
     private fun logFirestoreWrite(path: String, uid: String, payload: Map<*, *>) {
         Log.d("FirestoreDebug", "About to write to: $path")
@@ -514,12 +598,15 @@ class RegisterActivity : AppCompatActivity() {
     private fun finishAuthFlow(uid: String) {
         Log.d("AuthTrace", "8. Navigation started")
         ensureRoleDefaults(uid)
-        identifyUserInOneSignal(uid)
+        val isTeacher = binding.rgRole.checkedRadioButtonId == R.id.rbTeacher
+        val batch = if (isTeacher) "" else binding.etBatch.text.toString().trim()
+        identifyUserInOneSignal(uid, batch)
         setLoading(false)
         
-        startActivity(Intent(this, CompleteProfileActivity::class.java))
+        startActivity(android.content.Intent(this, com.shuaib.classmate.activities.CompleteProfileActivity::class.java))
         finishAffinity()
     }
+
 
     private fun ensureRoleDefaults(uid: String) {
         val userRef = FirebaseFirestore.getInstance().document("users/$uid")
@@ -528,49 +615,12 @@ class RegisterActivity : AppCompatActivity() {
                 if (!doc.exists() || !doc.contains("role")) {
                     val roleDefaults = hashMapOf<String, Any>(
                         "role" to "student",
-                        "permissions" to User.DEFAULT_PERMISSIONS,
-                        "updatedAt" to FieldValue.serverTimestamp()
+                        "permissions" to com.shuaib.classmate.models.User.DEFAULT_PERMISSIONS,
+                        "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
                     )
-                    userRef.set(roleDefaults, SetOptions.merge())
-                        .addOnFailureListener { e ->
-                            Log.e("AuthDebug", "Role defaults merge failed: ${e.message}", e)
-                        }
+                    userRef.set(roleDefaults, com.google.firebase.firestore.SetOptions.merge())
                 }
             }
-            .addOnFailureListener { e ->
-                Log.e("AuthDebug", "Role defaults check failed: ${e.message}", e)
-            }
-    }
-
-    private fun validateForm(name: String, studentId: String, email: String, password: String, confirmPassword: String): Boolean {
-        var valid = true
-        binding.tilName.error = null
-        binding.tilStudentId.error = null
-        binding.tilEmail.error = null
-        binding.tilPassword.error = null
-        binding.tilConfirmPassword.error = null
-
-        if (name.length < 2) {
-            binding.tilName.error = "Name must be at least 2 characters"
-            valid = false
-        }
-        if (!StudentIdUtils.isValid(studentId)) {
-            binding.tilStudentId.error = "Enter valid student ID (example: CE25045)"
-            valid = false
-        }
-        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            binding.tilEmail.error = "Enter a valid email"
-            valid = false
-        }
-        if (password.length < 6) {
-            binding.tilPassword.error = "Password must be at least 6 characters"
-            valid = false
-        }
-        if (password != confirmPassword) {
-            binding.tilConfirmPassword.error = "Passwords do not match"
-            valid = false
-        }
-        return valid
     }
 
     private fun validateProfileStep(): Boolean {
@@ -579,13 +629,15 @@ class RegisterActivity : AppCompatActivity() {
         binding.tilStudentId.error = null
 
         val name = binding.etName.text.toString().trim()
-        val studentId = StudentIdUtils.normalize(binding.etStudentId.text.toString())
+        val studentId = com.shuaib.classmate.utils.StudentIdUtils.normalize(binding.etStudentId.text.toString())
+        val isTeacher = binding.rgRole.checkedRadioButtonId == R.id.rbTeacher
+        
         if (name.length < 2) {
             binding.tilName.error = "Name must be at least 2 characters"
             valid = false
         }
-        if (!StudentIdUtils.isValid(studentId)) {
-            binding.tilStudentId.error = "Enter valid student ID (example: CE25045)"
+        if (!isTeacher && !com.shuaib.classmate.utils.StudentIdUtils.isValid(studentId)) {
+            binding.tilStudentId.error = "Enter valid student ID"
             valid = false
         }
         if (!valid) shakeForm()
@@ -644,13 +696,18 @@ class RegisterActivity : AppCompatActivity() {
         return studentId.takeWhile { it.isLetter() }.ifBlank { "CSE" }
     }
 
-    private fun identifyUserInOneSignal(uid: String) {
-        OneSignal.login(uid)
-        OneSignal.User.addTag("role", "student")
-        OneSignal.User.addTag("uid", uid)
+    private fun identifyUserInOneSignal(uid: String, batch: String) {
         try {
+            OneSignal.login(uid)
+            OneSignal.User.addTag("role", "student")
+            OneSignal.User.addTag("uid", uid)
+            if (batch.isNotBlank()) {
+                OneSignal.User.addTag("batch", batch)
+            }
             OneSignal.User.pushSubscription.optIn()
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+            Log.w("RegisterActivity", "OneSignal not configured, skipping push setup")
+        }
     }
 
     override fun onDestroy() {

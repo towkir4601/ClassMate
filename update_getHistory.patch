@@ -1,0 +1,21 @@
+--- app/src/main/java/com/shuaib/classmate/chat/ChatRepository.kt
++++ app/src/main/java/com/shuaib/classmate/chat/ChatRepository.kt
+@@ -107,6 +107,17 @@
+                     if (msgs.isNotEmpty()) {
+                         _incomingMessage.value = msgs.first()
+                     }
++
++                    val batch = firestore.batch()
++                    var batchCount = 0
++                    msgs.forEach { msg ->
++                        if (msg.senderId != userId && !msg.seenBy.contains(userId)) {
++                            val ref = firestore.collection("chat_rooms").document(roomId).collection("messages").document(msg.id)
++                            batch.update(ref, "seenBy", com.google.firebase.firestore.FieldValue.arrayUnion(userId))
++                            batchCount++
++                        }
++                    }
++                    if (batchCount > 0) batch.commit()
++
+                     scope.launch { _historyLoaded.emit(roomId) }
+                 }
+             }

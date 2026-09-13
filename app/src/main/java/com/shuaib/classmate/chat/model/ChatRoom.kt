@@ -11,6 +11,7 @@ data class ChatRoom(
     val otherUserAvatar: String = "",
     val lastMessage: String = "",
     val lastMessageTime: Long = 0L,
+    val lastSenderId: String = "",
     val unreadCount: Int = 0,
     val memberCount: Int = 24,
     val avatarUrl: String = ""

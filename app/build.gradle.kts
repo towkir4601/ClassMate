@@ -42,7 +42,7 @@ android {
         buildConfigField("String", "TELEGRAM_CHANNEL_ID", "\"${getLocalProperty("TELEGRAM_CHANNEL_ID")}\"")
         buildConfigField("String", "GEMINI_API_KEY", "\"${getLocalProperty("GEMINI_API_KEY")}\"")
         buildConfigField("String", "GROQ_API_KEY", "\"${getLocalProperty("GROQ_API_KEY")}\"")
-        buildConfigField("String", "GEMINI_MODEL", "\"gemini-2.5-flash\"")
+        buildConfigField("String", "GEMINI_MODEL", "\"gemini-1.5-flash\"")
         buildConfigField("String", "GROQ_MODEL", "\"llama-3.3-70b-versatile\"")
     }
 
@@ -110,6 +110,11 @@ dependencies {
     // Lifecycle
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
+
+    // Retrofit & Gson for network requests
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.google.code.gson:gson:2.10.1")
 
     // UI essentials
     implementation(libs.androidx.core.ktx)

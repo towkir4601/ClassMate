@@ -11,6 +11,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
+        android:id="@+id/tvHeaderTitle"
         android:text="Friends"
         android:textColor="@color/cm_text_primary"
         android:textSize="24sp"
@@ -65,6 +66,14 @@
                 android:layout_height="wrap_content"
                 android:text="All"
                 android:checked="true" />
+                
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipMyMatches"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="My Matches ✨"
+                app:closeIconVisible="false" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipBlood"
@@ -80,6 +89,14 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Home District"
+                app:closeIconVisible="false" />
+                
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipBatch"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Batch"
                 app:closeIconVisible="false" />
 
         </com.google.android.material.chip.ChipGroup>

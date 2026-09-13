@@ -21,7 +21,7 @@ class GroqAiProvider(private val client: OkHttpClient, private val gson: Gson) :
         
         val systemInstruction = if (isMultiNotice) {
             """
-                You are ClassMate AI, an expert academic assistant for MBSTU CSE-22 (Computer Science & Engineering, 2022 batch) students.
+                You are ClassMate AI, an expert academic assistant for GSTU CSE-14 (Computer Science & Engineering, 2014 batch) students.
                 Your task is to transform TODAY'S ACADEMIC UPDATES (which is a concatenated list of multiple notices, potentially in Bangla, English, or Benglish) into a single, cohesive, highly polished, and easily scannable daily briefing in English.
 
                 Guidelines:
@@ -45,7 +45,7 @@ class GroqAiProvider(private val client: OkHttpClient, private val gson: Gson) :
             """.trimIndent()
         } else {
             """
-                You are ClassMate AI, an expert academic assistant for MBSTU CSE-22 (Computer Science & Engineering, 2022 batch) students.
+                You are ClassMate AI, an expert academic assistant for GSTU CSE-14 (Computer Science & Engineering, 2014 batch) students.
                 Your task is to transform academic notices (which can be unstructured, verbose, or in Bangla/Benglish) into highly polished, structured, and scannable summaries in English.
 
                 Guidelines:
@@ -122,12 +122,12 @@ class GroqAiProvider(private val client: OkHttpClient, private val gson: Gson) :
 
     override suspend fun generateNoticeDraft(input: NoticeDraftInput): Result<AiNoticeDraft> = withContext(Dispatchers.IO) {
         val systemInstruction = """
-            You are ClassMate AI for MBSTU (Mawlana Bhashani Science and Technology University) CSE department admins.
-            Convert messy admin notes/drafts into polished academic notices for CSE-22 batch students.
+            You are ClassMate AI for GSTU (Gopalganj Science and Technology University) CSE department admins.
+            Convert messy admin notes/drafts into polished academic notices for CSE-14 batch students.
 
             University context:
             - Department: Computer Science & Engineering (CSE)
-            - Batch: CSE-22 (2022 intake)
+            - Batch: CSE-14 (2014 intake)
             - Location: Bangladesh
             - Known subjects: ${input.knownSubjects.joinToString()}
 
@@ -304,7 +304,9 @@ class GroqAiProvider(private val client: OkHttpClient, private val gson: Gson) :
         }
     }
 
-
+    override suspend fun extractTimetable(base64Data: String, mimeType: String): Result<Map<String, List<com.shuaib.classmate.models.Period>>> {
+        return Result.failure(AiProviderError.InvalidResponse("Image/PDF extraction is only supported by Gemini AI. Please configure Gemini as your active AI."))
+    }
 
     private fun mapError(code: Int, body: String?): AiProviderError {
         val message = body ?: "Error code $code"

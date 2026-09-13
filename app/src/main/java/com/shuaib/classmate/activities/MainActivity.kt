@@ -116,6 +116,24 @@ class MainActivity : AppCompatActivity() {
         }
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        
+        // Show Crash Log if available
+        val crashPrefs = getSharedPreferences("crash_logs", MODE_PRIVATE)
+        val lastCrash = crashPrefs.getString("last_crash", null)
+        if (lastCrash != null) {
+            crashPrefs.edit().remove("last_crash").apply()
+            AlertDialog.Builder(this)
+                .setTitle("Crash Detected")
+                .setMessage("A crash occurred previously:\n\n$lastCrash")
+                .setPositiveButton("Copy") { _, _ ->
+                    val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Crash Log", lastCrash))
+                    android.widget.Toast.makeText(this, "Copied to clipboard", android.widget.Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Close", null)
+                .show()
+        }
+
         applySystemBars()
         binding.starfield.isVisible = ThemeColors.isDark(this)
 
@@ -249,6 +267,10 @@ class MainActivity : AppCompatActivity() {
             }
 
             val tabId = TAB_DESTINATION_MAP[destinationId] ?: childParentTabId
+            if (!binding.navHostFragment.isVisible) {
+                binding.mainViewPager.isVisible = false
+                binding.navHostFragment.isVisible = true
+            }
             updateBottomNavSelection(tabId ?: destinationId)
             updateBottomChromeVisibility(destinationId)
             applySystemBars()
@@ -300,7 +322,7 @@ class MainActivity : AppCompatActivity() {
             return when (mainTabs[position]) {
                 R.id.nav_timetable -> TimetableFragment()
                 R.id.nav_notices -> NoticeFragment()
-                R.id.nav_chat -> com.shuaib.classmate.chat.ChatFragment()
+                R.id.nav_chat -> com.shuaib.classmate.chat.ChatTabsFragment()
                 R.id.nav_pdf -> PdfLibraryFragment()
                 R.id.nav_profile -> ProfileFragment()
                 else -> TimetableFragment()
@@ -321,8 +343,25 @@ class MainActivity : AppCompatActivity() {
         firestore.collection("users").document(uid).get()
             .addOnSuccessListener { doc ->
                 if (!doc.exists()) return@addOnSuccessListener
-                val user = doc.toObject(User::class.java)
-                isAdmin = user?.isAdmin() ?: false
+                
+                try {
+                    // Manual parsing to prevent crashes if Firestore field types (like approved) are wrong
+                    val role = doc.getString("role") ?: "student"
+                    val permissions = doc.get("permissions") as? Map<String, Boolean> ?: emptyMap()
+                    
+                    val r = role.trim().lowercase()
+                    isAdmin = (r == "superadmin" || r == "admin" || permissions.values.any { it == true })
+                    
+                    try {
+                        com.onesignal.OneSignal.User.addTag("role", r)
+                    } catch (e: Exception) {
+                        Log.e("MainActivity", "Error setting OneSignal tag", e)
+                    }
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "Error parsing admin status", e)
+                    isAdmin = false
+                }
+                
                 updateFabVisibility(getCurrentDestinationId())
             }
             .addOnFailureListener {
@@ -596,6 +635,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        setOnlineStatus(true)
         applySystemBars()
         if (!firstResumeHandled) {
             firstResumeHandled = true
@@ -634,6 +674,21 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e("MainActivity", "Failed to set system bar appearance: ${e.message}")
         }
+    }
+
+
+    override fun onPause() {
+        super.onPause()
+        setOnlineStatus(false)
+    }
+
+    private fun setOnlineStatus(isOnline: Boolean) {
+        val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return
+        com.google.firebase.firestore.FirebaseFirestore.getInstance().collection("users").document(uid)
+            .update("isOnline", isOnline)
+            .addOnFailureListener { e ->
+                android.util.Log.e("MainActivity", "Failed to update online status: ${e.message}")
+            }
     }
 
     override fun onDestroy() {
@@ -720,7 +775,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun observeChatUnreadBadge() {
-        // AI Chat tab does not require unread badges from old WebSocket rooms
+        lifecycleScope.launch {
+            com.shuaib.classmate.chat.ChatRepository.rooms.collect { rooms ->
+                val unread = com.shuaib.classmate.chat.ChatUnreadManager.getTotalUnread(rooms, auth.currentUser?.uid ?: "")
+                val badge = binding.bottomNav.getOrCreateBadge(R.id.nav_chat)
+                if (unread > 0) {
+                    badge.isVisible = true
+                    badge.number = unread
+                } else {
+                    badge.isVisible = false
+                }
+            }
+        }
     }
 
     private fun handleNotificationRouting() {

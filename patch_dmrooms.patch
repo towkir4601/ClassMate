@@ -1,0 +1,31 @@
+--- app/src/main/java/com/shuaib/classmate/chat/DmRoomsFragment.kt
++++ app/src/main/java/com/shuaib/classmate/chat/DmRoomsFragment.kt
+@@ -10,6 +10,7 @@
+ import androidx.navigation.fragment.findNavController
+ import androidx.recyclerview.widget.LinearLayoutManager
+ import com.shuaib.classmate.R
++import com.shuaib.classmate.activities.MainActivity
+ import com.shuaib.classmate.databinding.FragmentDmRoomsBinding
+ import kotlinx.coroutines.flow.collectLatest
+ import kotlinx.coroutines.launch
+@@ -30,9 +31,9 @@
+         adapter = ChatListAdapter { item ->
+             if (item is ChatListItem.Room) {
+                 if (item.room.type == "group") {
+-                    findNavController().navigate(R.id.fragment_group_chat)
++                    (parentFragment as? ChatTabsFragment)?.switchToTab(1)
+                 } else {
+-                    findNavController().navigate(
++                    (requireActivity() as MainActivity).openChildDestination(R.id.nav_chat,
+                         R.id.fragment_dm_chat,
+                         bundleOf(
+                             "roomId" to item.room.id,
+@@ -48,7 +49,7 @@
+         binding.rvRooms.adapter = adapter
+ 
+         binding.fabNewChat.setOnClickListener {
+-            findNavController().navigate(R.id.fragment_dm_list)
++            (requireActivity() as MainActivity).openChildDestination(R.id.nav_chat, R.id.fragment_dm_list)
+         }
+ 
+         viewLifecycleOwner.lifecycleScope.launch {

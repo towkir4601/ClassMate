@@ -33,6 +33,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.onesignal.OneSignal
 import com.shuaib.classmate.activities.LoginActivity
+import com.shuaib.classmate.activities.EditProfileActivity
 import com.shuaib.classmate.R
 import com.shuaib.classmate.activities.AdminPanelActivity
 import com.shuaib.classmate.activities.AiSettingsActivity
@@ -79,6 +80,8 @@ class ProfileFragment : Fragment() {
     private var favoriteSubjects = emptyList<Subject>()
     private var favoritePdfIdsSet = emptySet<String>()
     private var pdfCounts = emptyMap<String, Int>()
+    private var lastFetchedSubjects = emptyList<String>()
+    private var lastFetchedPdfIds = emptyList<String>()
     private var isSubjectsExpanded = false
     private var isPdfsExpanded = false
     private var profileListener: ListenerRegistration? = null
@@ -130,12 +133,16 @@ class ProfileFragment : Fragment() {
             showPhotoOptions()
         }
 
-        binding.cardPersonalInfo.applyClickAnimation {
-            currentUser?.let { showEditProfileDialog(it) }
-        }
 
+
+        binding.cardTeacherDirectory.applyClickAnimation {
+            val args = android.os.Bundle().apply { putBoolean("isTeacherMode", true) }
+            (activity as? MainActivity)?.openChildDestination(R.id.nav_profile, R.id.nav_friends, args)
+        }
+        
         binding.cardSeeFriends.applyClickAnimation {
-            (activity as? MainActivity)?.openChildDestination(R.id.nav_profile, R.id.nav_friends)
+            val args = android.os.Bundle().apply { putBoolean("isTeacherMode", false) }
+            (activity as? MainActivity)?.openChildDestination(R.id.nav_profile, R.id.nav_friends, args)
         }
 
         binding.cardAdminPanel.applyClickAnimation {
@@ -176,6 +183,10 @@ class ProfileFragment : Fragment() {
                     Toast.LENGTH_LONG
                 ).show()
             }
+        }
+
+                binding.btnEditProfile.applyClickAnimation {
+            startActivity(Intent(requireContext(), EditProfileActivity::class.java))
         }
 
         binding.btnLogout.applyClickAnimation {
@@ -305,33 +316,7 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    private fun showEditProfileDialog(user: User) {
-        val dialogBinding = DialogEditProfileBinding.inflate(layoutInflater)
-
-        dialogBinding.etEditName.setText(user.name)
-        dialogBinding.etEditStudentId.setText(user.studentId)
-        dialogBinding.etEditPhone.setText(user.phone)
-        dialogBinding.etEditBlood.setText(user.bloodGroup)
-        dialogBinding.etEditDistrict.setText(user.homeDistrict)
-        dialogBinding.etEditAddress.setText(user.address)
-
-        MaterialAlertDialogBuilder(requireContext(), R.style.Theme_ClassMate_Dialog)
-            .setView(dialogBinding.root)
-            .setPositiveButton("Update") { _, _ ->
-                val updatedData = mapOf(
-                    "name" to dialogBinding.etEditName.text.toString().trim(),
-                    "studentId" to dialogBinding.etEditStudentId.text.toString().trim(),
-                    "phone" to dialogBinding.etEditPhone.text.toString().trim(),
-                    "bloodGroup" to dialogBinding.etEditBlood.text.toString().trim(),
-                    "homeDistrict" to dialogBinding.etEditDistrict.text.toString().trim(),
-                    "address" to dialogBinding.etEditAddress.text.toString().trim()
-                )
-                updateUserInFirestore(updatedData)
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-
+    
     private fun updateUserInFirestore(data: Map<String, Any>) {
         val uid = auth.currentUser?.uid ?: return
         firestore.collection("users").document(uid).update(data)
@@ -439,10 +424,7 @@ class ProfileFragment : Fragment() {
     }
 
     private fun setupAiSettings() {
-        binding.cardAiSettings.applyClickAnimation {
-            startActivity(Intent(requireContext(), AiSettingsActivity::class.java))
-            requireActivity().overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
-        }
+        binding.cardAiSettings.isVisible = false
     }
 
     private fun setupSavedResources() {
@@ -488,6 +470,12 @@ class ProfileFragment : Fragment() {
 
         val hasSubjects = favoriteNames.isNotEmpty()
         val hasPdfs = favoritePdfIds.isNotEmpty()
+        
+        val subjectsChanged = favoriteNames != lastFetchedSubjects
+        val pdfsChanged = favoritePdfIds != lastFetchedPdfIds
+        
+        lastFetchedSubjects = favoriteNames
+        lastFetchedPdfIds = favoritePdfIds
 
         if (hasSubjects || hasPdfs) {
             binding.savedResourcesTagSection.visibility = View.VISIBLE
@@ -581,7 +569,7 @@ class ProfileFragment : Fragment() {
                 }
         }
 
-        fetchUserFavorites()
+        currentUser?.let { fetchUserFavorites(it.favoriteSubjects, favoritePdfIdsSet.toList()) }
     }
 
     private fun fetchUserProfile() {
@@ -595,13 +583,37 @@ class ProfileFragment : Fragment() {
                     return@addSnapshotListener
                 }
                 if (document != null && document.exists()) {
-                    val user = document.toObject(User::class.java)
-                    user?.let {
-                        currentUser = it
-                        updateUI(it)
+                    try {
+                        val approvedVal = document.get("approved")
+                        val isApproved = approvedVal == true || approvedVal == "true"
+                        
+                        val user = User(
+                            uid = document.id,
+                            name = document.getString("name") ?: "",
+                            fullName = document.getString("fullName") ?: "",
+                            studentId = document.getString("studentId") ?: "",
+                            department = document.getString("department") ?: "",
+                            email = document.getString("email") ?: "",
+                            phone = document.getString("phone") ?: "",
+                            bloodGroup = document.getString("bloodGroup") ?: "",
+                            homeDistrict = document.getString("homeDistrict") ?: "",
+                            address = document.getString("address") ?: "",
+                            role = document.getString("role") ?: "student",
+                            approved = isApproved,
+                            photoUrl = document.getString("photoUrl") ?: "",
+                            authProvider = document.getString("authProvider") ?: "",
+                            oneSignalPlayerId = document.getString("oneSignalPlayerId") ?: "",
+                            favoriteSubjects = document.get("favoriteSubjects") as? List<String> ?: emptyList(),
+                            favoritePdfIds = document.get("favoritePdfIds") as? List<String> ?: emptyList()
+                        )
+                        
+                        currentUser = user
+                        updateUI(user)
                         _binding?.let { activeBinding ->
-                            loadProfilePicture(it.email, it.photoUrl, activeBinding.ivProfile)
+                            loadProfilePicture(user.email, user.photoUrl, activeBinding.ivProfile)
                         }
+                    } catch (e: Exception) {
+                        android.util.Log.e("ProfileFragment", "Error parsing User object: ${e.message}")
                     }
                 }
             }
@@ -627,7 +639,7 @@ class ProfileFragment : Fragment() {
         binding.tvRoleBadge.text = user.role.uppercase()
         applyRoleBadge(binding.tvRoleBadge, user.role)
 
-        fetchUserFavorites()
+        fetchUserFavorites(user.favoriteSubjects, user.favoritePdfIds)
 
         // Update summary info under Personal Information
         binding.tvUserSubInfo.text = if (!user.studentId.isNullOrEmpty()) {
@@ -645,8 +657,8 @@ class ProfileFragment : Fragment() {
         binding.layoutUserManagement.isVisible = canManageUsers
         binding.dividerUserManagement.isVisible = canManageUsers
 
-        binding.dividerFriendsToggle.isVisible = isSuperAdmin
-        binding.layoutFriendsToggle.isVisible = isSuperAdmin
+        binding.dividerFriendsToggle.isVisible = false
+        binding.layoutFriendsToggle.isVisible = false
 
         updateSeeFriendsVisibility(user)
     }
@@ -662,8 +674,6 @@ class ProfileFragment : Fragment() {
         Glide.with(this)
             .load(url)
             .circleCrop()
-            .diskCacheStrategy(DiskCacheStrategy.NONE)
-            .skipMemoryCache(true)
             .placeholder(R.drawable.ic_default_avatar)
             .into(imageView)
     }
@@ -697,15 +707,8 @@ class ProfileFragment : Fragment() {
         )
     }
 
-    private fun fetchUserFavorites() {
-        val uid = auth.currentUser?.uid ?: return
-        firestore.collection("users").document(uid).get()
-            .addOnSuccessListener { doc ->
-                if (_binding == null || !isAdded) return@addOnSuccessListener
-                val favoriteNames = doc.get("favoriteSubjects") as? List<String> ?: emptyList()
-                val favoritePdfIds = doc.get("favoritePdfIds") as? List<String> ?: emptyList()
-                fetchSavedResources(favoriteNames, favoritePdfIds)
-            }
+    private fun fetchUserFavorites(favoriteNames: List<String>, favoritePdfIds: List<String>) {
+        fetchSavedResources(favoriteNames, favoritePdfIds)
     }
 
     private fun com.google.firebase.firestore.DocumentSnapshot.toPdfFile(): PdfFile {
@@ -752,9 +755,8 @@ class ProfileFragment : Fragment() {
     }
 
     private fun updateSeeFriendsVisibility(user: User) {
-        val showSeeFriends = user.role == "superadmin" || isFriendsPublic
-        binding.cardSeeFriends.isVisible = showSeeFriends
-        binding.dividerSeeFriends.isVisible = showSeeFriends
+        binding.cardSeeFriends.isVisible = true
+        binding.dividerSeeFriends.isVisible = true
     }
 
     override fun onResume() {

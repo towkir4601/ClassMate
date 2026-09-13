@@ -74,6 +74,12 @@
             android:windowSoftInputMode="adjustPan|stateHidden"
             tools:ignore="LockedOrientationActivity" />
 
+        <activity
+            android:name=".activities.PendingApprovalActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity" />
+
         <!-- Main Feature Activities -->
         <activity
             android:name=".activities.MainActivity"
@@ -136,6 +142,11 @@
             android:windowSoftInputMode="adjustResize"
             tools:ignore="LockedOrientationActivity" />
 
+                <activity
+            android:name=".activities.EditProfileActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.ClassMate" />
+            
         <activity
             android:name=".activities.PdfUploadActivity"
             android:exported="false" />
@@ -230,6 +241,9 @@
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
             </intent-filter>
         </receiver>
-
+        <activity
+            android:name=".activities.PdfRendererActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ClassMate"/>
     </application>
 </manifest>

@@ -70,6 +70,7 @@ class PdfLibraryFragment : Fragment() {
     private var favoritePdfIds = emptySet<String>()
     private var pdfCounts = emptyMap<String, Int>()
     private var isAdmin = false
+    private var currentUserBatch = ""
     private var previousStatusBarColor: Int? = null
 
     override fun onCreateView(
@@ -114,14 +115,9 @@ class PdfLibraryFragment : Fragment() {
 
     private fun setupSections() {
         allSubjects = SubjectList.subjects
-        labSubjects = allSubjects.filter { it.name.trim().lowercase().endsWith("lab") }
-        otherSubjects = allSubjects.filter {
-            val name = it.name.trim().lowercase()
-            name.contains("other") || name.contains("viva")
-        }
-        regularSubjects = allSubjects.filter { subject ->
-            subject !in labSubjects && subject !in otherSubjects
-        }
+        labSubjects = allSubjects.filter { it.type == "lab" }
+        otherSubjects = allSubjects.filter { it.type == "other" }
+        regularSubjects = allSubjects.filter { it.type == "regular" }
 
         recentAdapter = RecentPdfAdapter(recentPdfs, isAdmin, favoritePdfIds) { pdf -> handleResourceAction(pdf) }
         recentAdapter.onDeleteClick = { pdf -> showDeleteConfirmation(pdf) }
@@ -180,6 +176,17 @@ class PdfLibraryFragment : Fragment() {
         binding.tvViewAll.applyClickAnimation {
             (activity as? MainActivity)?.openChildDestination(R.id.nav_pdf, R.id.fragment_library_all_files)
         }
+        
+        binding.btnAddRegular.applyClickAnimation {
+            showAddSubjectDialog("regular")
+        }
+        binding.btnAddLab.applyClickAnimation {
+            showAddSubjectDialog("lab")
+        }
+        binding.btnAddOther.applyClickAnimation {
+            showAddSubjectDialog("other")
+        }
+        
         updateLibraryView()
     }
 
@@ -196,16 +203,20 @@ class PdfLibraryFragment : Fragment() {
         if (_binding == null) return
         binding.swipeRefresh.isRefreshing = true
 
-        fetchFavoritePdfIds()
+        com.shuaib.classmate.utils.SubjectList.fetchSubjects {
+            if (_binding == null) return@fetchSubjects
+            setupSections()
+            fetchFavoritePdfIds()
 
-        db.collection("library_files")
-            .whereEqualTo("isDeleted", false)
-            .get()
+            db.collection("library_files")
+                .whereEqualTo("isDeleted", false)
+                .get()
             .addOnSuccessListener { snapshot ->
                 if (_binding == null) return@addOnSuccessListener
 
                 allPdfs = snapshot.documents.map { doc -> doc.toPdfFile() }
                     .filterNot { it.isDeleted }
+                    .filter { isAdmin || it.batch.isEmpty() || it.batch == currentUserBatch }
                     .sortedByDescending { it.timestamp ?: it.createdAt }
 
                 updateLibraryView()
@@ -218,6 +229,7 @@ class PdfLibraryFragment : Fragment() {
                 binding.rvRecent.isVisible = false
                 Toast.makeText(context, "Failed to load library: ${e.message}", Toast.LENGTH_SHORT).show()
             }
+        }
     }
 
     private fun updateLibraryView() {
@@ -238,10 +250,7 @@ class PdfLibraryFragment : Fragment() {
             .filter { it.subject.isNotBlank() && it.subject !in knownSubjectNames }
             .distinctBy { it.subject }
             .map { Subject(it.subject, it.courseCode.ifBlank { "LIB0000" }) }
-        otherSubjects = (allSubjects.filter {
-            val name = it.name.trim().lowercase()
-            name.contains("other") || name.contains("viva")
-        } + dynamicOtherSubjects).distinctBy { it.name }
+        otherSubjects = (allSubjects.filter { it.type == "other" } + dynamicOtherSubjects).distinctBy { it.name }
 
         recentPdfs = filteredPdfs.take(8)
         recentAdapter.updateList(recentPdfs, isAdmin, favoritePdfIds)
@@ -692,15 +701,33 @@ class PdfLibraryFragment : Fragment() {
         db.collection("users").document(uid).get()
             .addOnSuccessListener { doc ->
                 if (_binding == null) return@addOnSuccessListener
-                val user = doc.toObject(com.shuaib.classmate.models.User::class.java)
-                isAdmin = user?.let { it.canUploadPDF() || it.canUploadLibrary() } ?: false
-                binding.btnUploadPdf.isVisible = isAdmin
+                try {
+                    val role = doc.getString("role") ?: "student"
+                    val permissions = doc.get("permissions") as? Map<String, Boolean> ?: emptyMap()
+                    
+                    currentUserBatch = doc.getString("batch") ?: ""
+                    isAdmin = (role == "superadmin" || role == "admin" || permissions["canUploadPDF"] == true || permissions["canUploadLibrary"] == true)
+                    binding.btnUploadPdf.isVisible = isAdmin
+                    binding.btnAddRegular.isVisible = isAdmin
+                    binding.btnAddLab.isVisible = isAdmin
+                    binding.btnAddOther.isVisible = isAdmin
+                } catch (e: Exception) {
+                    android.util.Log.e("PdfLibraryFragment", "Error parsing user for admin check", e)
+                    isAdmin = false
+                    binding.btnUploadPdf.isVisible = false
+                    binding.btnAddRegular.isVisible = false
+                    binding.btnAddLab.isVisible = false
+                    binding.btnAddOther.isVisible = false
+                }
                 loadLibraryData()
             }
             .addOnFailureListener {
                 if (_binding == null) return@addOnFailureListener
                 isAdmin = false
                 binding.btnUploadPdf.isVisible = false
+                binding.btnAddRegular.isVisible = false
+                binding.btnAddLab.isVisible = false
+                binding.btnAddOther.isVisible = false
                 loadLibraryData()
             }
     }
@@ -771,5 +798,33 @@ class PdfLibraryFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private fun showAddSubjectDialog(type: String) {
+        val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_add_subject, null)
+        val etName = dialogView.findViewById<android.widget.EditText>(R.id.etSubjectName)
+        val etCode = dialogView.findViewById<android.widget.EditText>(R.id.etSubjectCode)
+
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Add New Course")
+            .setView(dialogView)
+            .setPositiveButton("Save") { _, _ ->
+                val name = etName.text.toString().trim()
+                val code = etCode.text.toString().trim()
+                if (name.isNotEmpty()) {
+                    val newSubject = hashMapOf(
+                        "name" to name,
+                        "code" to code,
+                        "type" to type
+                    )
+                    db.collection("subjects").add(newSubject)
+                        .addOnSuccessListener {
+                            Toast.makeText(context, "Course added", Toast.LENGTH_SHORT).show()
+                            loadLibraryData()
+                        }
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 }

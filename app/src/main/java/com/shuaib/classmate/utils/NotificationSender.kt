@@ -108,7 +108,7 @@ object NotificationSender {
             message = message,
             type = type,
             extraData = extraData,
-            targetBuilder = { put("include_player_ids", org.json.JSONArray(playerIds)) },
+            targetBuilder = { put("include_subscription_ids", org.json.JSONArray(playerIds)) },
             onSuccess = onSuccess,
             onFailure = onFailure
         )
@@ -122,15 +122,26 @@ object NotificationSender {
         targetUserId: String? = null,
         onFailure: (String) -> Unit = {}
     ) {
-        if (roomId in ChatRepository.activeRooms) return
         val bodyText = messageText.ifBlank { "Photo" }.take(100)
         val data = mapOf("roomId" to roomId, "senderId" to senderId)
-        if (roomId == "group_main") {
-            sendToAll(
-                title = "CODRIX-22",
+        if (roomId.startsWith("group_")) {
+            val batch = roomId.removePrefix("group_batch_")
+            val targetBuilder: org.json.JSONObject.() -> Unit = if (batch.isNotBlank() && batch != roomId.removePrefix("group_")) {
+                {
+                    val filters = org.json.JSONArray().apply {
+                        put(org.json.JSONObject().put("field", "tag").put("key", "batch").put("relation", "=").put("value", batch))
+                    }
+                    put("filters", filters)
+                }
+            } else {
+                { put("included_segments", org.json.JSONArray(listOf("All"))) }
+            }
+            sendOneSignal(
+                title = "Class Group",
                 message = "$senderName: $bodyText",
                 type = "chat_message",
                 extraData = data,
+                targetBuilder = targetBuilder,
                 onFailure = onFailure
             )
             return
@@ -142,28 +153,16 @@ object NotificationSender {
             .document(uid)
             .get()
             .addOnSuccessListener { doc ->
-                val playerId = doc.getString("oneSignalPlayerId")
-                    ?: doc.getString("onesignalPlayerId")
-                    ?: doc.getString("playerId")
-                if (!playerId.isNullOrBlank()) {
-                    sendToPlayers(
-                        playerIds = listOf(playerId),
-                        title = senderName,
-                        message = bodyText,
-                        type = "chat_message",
-                        extraData = data,
-                        onFailure = onFailure
-                    )
-                } else {
-                    sendToExternalUser(
-                        externalUserId = uid,
-                        title = senderName,
-                        message = bodyText,
-                        type = "chat_message",
-                        extraData = data,
-                        onFailure = onFailure
-                    )
-                }
+                // Always use external_id alias because OneSignal.login(uid) is used in the app.
+                // This is much more reliable than the saved oneSignalPlayerId which might be stale or v3 format.
+                sendToExternalUser(
+                    externalUserId = uid,
+                    title = senderName,
+                    message = bodyText,
+                    type = "chat_message",
+                    extraData = data,
+                    onFailure = onFailure
+                )
             }
             .addOnFailureListener { onFailure(it.message ?: "Failed to load target user") }
     }
@@ -183,6 +182,7 @@ object NotificationSender {
             extraData = extraData,
             targetBuilder = {
                 put("include_aliases", JSONObject().put("external_id", org.json.JSONArray().put(externalUserId)))
+                put("target_channel", "push")
             },
             onFailure = onFailure
         )
@@ -226,11 +226,18 @@ object NotificationSender {
                 connection.outputStream.write(body.toByteArray(Charsets.UTF_8))
                 connection.outputStream.flush()
                 val responseCode = connection.responseCode
+                val responseMessage = if (responseCode in 200..299) {
+                    connection.inputStream.bufferedReader().use { it.readText() }
+                } else {
+                    connection.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+                }
+                android.util.Log.e("ONESIGNAL", "Response $responseCode: $responseMessage")
                 withContext(Dispatchers.Main) {
-                    if (responseCode == 200 || responseCode == 201 || responseCode == 204) onSuccess()
-                    else onFailure("HTTP $responseCode")
+                    if (responseCode in 200..299) onSuccess()
+                    else onFailure("HTTP $responseCode: $responseMessage")
                 }
             } catch (e: Exception) {
+                android.util.Log.e("ONESIGNAL", "Exception", e)
                 withContext(Dispatchers.Main) { onFailure(e.message ?: "Unknown error") }
             }
         }
@@ -338,4 +345,27 @@ object NotificationSender {
         onSuccess = onSuccess,
         onFailure = onFailure
     )
+
+    // Registration alert for Admins
+    fun sendRegistrationAlert(
+        userName: String,
+        studentId: String,
+        onFailure: (String) -> Unit = {}
+    ) {
+        sendOneSignal(
+            title = "New Student Registration",
+            message = "$userName ($studentId) registered and is waiting for approval.",
+            type = "admin_alert",
+            extraData = emptyMap(),
+            targetBuilder = {
+                val filters = org.json.JSONArray().apply {
+                    put(JSONObject().put("field", "tag").put("key", "role").put("relation", "=").put("value", "admin"))
+                    put(JSONObject().put("operator", "OR"))
+                    put(JSONObject().put("field", "tag").put("key", "role").put("relation", "=").put("value", "superadmin"))
+                }
+                put("filters", filters)
+            },
+            onFailure = onFailure
+        )
+    }
 }

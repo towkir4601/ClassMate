@@ -64,8 +64,8 @@ class AiSettingsActivity : AppCompatActivity() {
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
         }
 
-        // 2. Gemini Model Spinner (including gemini-3.5-flash)
-        val geminiModels = arrayOf("gemini-2.5-flash", "gemini-3.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro")
+        // 2. Gemini Model Spinner
+        val geminiModels = arrayOf("gemini-3.6-flash", "gemini-2.5-flash", "gemini-3.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro")
         val geminiAdapter = android.widget.ArrayAdapter(
             this,
             android.R.layout.simple_spinner_item,

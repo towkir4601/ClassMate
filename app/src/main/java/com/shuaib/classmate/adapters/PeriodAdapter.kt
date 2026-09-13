@@ -31,6 +31,7 @@ class PeriodAdapter(
     private var periods: List<Period>,
     private var isPausedByCalendarException: Boolean = false,
     private var isViewingToday: Boolean = false,
+    private var isPastDay: Boolean = false,
     private val onPeriodClick: (Period) -> Unit = {},
     private val onPeriodLongClick: (Period) -> Unit = {}
 ) : RecyclerView.Adapter<PeriodAdapter.PeriodViewHolder>() {
@@ -61,7 +62,21 @@ class PeriodAdapter(
         val isLabSession = period.subject.trim().endsWith("lab", ignoreCase = true) || period.subject.trim().endsWith("labs", ignoreCase = true)
 
         b.tvSubject.text = period.subject
-        b.tvTeacher.text = period.teacher
+        
+        if (period.isSubstitute) {
+            b.tvTeacher.text = "Sub: ${period.substituteTeacher}"
+            b.tvTeacher.setTextColor(androidx.core.content.ContextCompat.getColor(context, com.shuaib.classmate.R.color.cm_accent))
+        } else {
+            b.tvTeacher.text = period.teacher
+        }
+        
+        if (period.room.isNotBlank()) {
+            b.layoutRoom.visibility = View.VISIBLE
+            b.tvRoom.text = "Room: ${period.room}"
+        } else {
+            b.layoutRoom.visibility = View.GONE
+        }
+        
         b.tvStartTime.text = formatTo12Hour(period.startTime)
         b.tvEndTime.text = formatTo12Hour(period.endTime)
         b.tvDuration.text = durationLabel(period)
@@ -82,8 +97,16 @@ class PeriodAdapter(
         b.tvSubstituteMsg.isVisible = false
         b.layoutDuration.isVisible = true
         b.vCancelledDivider.isVisible = false
+        
+        if (period.batch.isNotBlank() && period.batch != "all") {
+            b.tvBatchBadge.isVisible = true
+            b.tvBatchBadge.text = "BATCH ${period.batch}"
+        } else {
+            b.tvBatchBadge.isVisible = false
+        }
 
         val isLive = isViewingToday && !isPausedByCalendarException && !period.isCancelled && checkIsLive(period)
+        val isCompleted = !isPausedByCalendarException && !period.isCancelled && !isLive && checkIsCompleted(period)
         if (isLive) {
             b.cardRoot.setBackgroundResource(R.drawable.bg_card_live)
             if (b.cardRoot.animation == null) {
@@ -118,6 +141,23 @@ class PeriodAdapter(
                     b.vCancelledDivider.isVisible = true
                 }
 
+
+
+                isCompleted -> {
+                    val mutedColor = ThemeColors.textMuted(context)
+                    bindStatusColor(context, b, mutedColor)
+                    b.cardRoot.setBackgroundResource(R.drawable.bg_card_paused)
+                    
+                    if (period.isSubstitute) {
+                        b.tvSubstituteMsg.isVisible = true
+                        b.tvSubstituteMsg.text = "Substitute: ${period.substituteTeacher}"
+                    }
+                    
+                    b.tvTypeBadge.text = "COMPLETED"
+                    b.tvTypeBadge.setBackgroundResource(R.drawable.bg_library_badge_green)
+                    b.tvTypeBadge.setTextColor(ThemeColors.success(context))
+                }
+
                 period.isSubstitute -> {
                     bindStatusColor(context, b, ThemeColors.warning(context))
                     b.cardRoot.setBackgroundResource(R.drawable.bg_card_notice_sub)
@@ -127,7 +167,7 @@ class PeriodAdapter(
                     b.tvTypeBadge.setBackgroundResource(R.drawable.bg_badge_purple)
                     b.tvTypeBadge.setTextColor(ThemeColors.warning(context))
                 }
-
+                    
                 else -> {
                     bindStatusColor(context, b, accent)
                     b.cardRoot.setBackgroundResource(R.drawable.bg_card_primary)
@@ -221,6 +261,18 @@ class PeriodAdapter(
         }
     }
 
+    private fun checkIsCompleted(period: Period): Boolean {
+        if (isPastDay) return true
+        if (!isViewingToday) return false
+        return try {
+            val now = LocalTime.now()
+            val end = LocalTime.parse(period.endTime)
+            now.isAfter(end) || now == end
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     private fun rounded(context: Context, radiusDp: Float, color: Int): GradientDrawable {
         val density = context.resources.displayMetrics.density
         return GradientDrawable().apply {
@@ -246,9 +298,10 @@ class PeriodAdapter(
 
     override fun getItemCount(): Int = periods.size
 
-    fun updateList(newList: List<Period>, isToday: Boolean, resetAnimation: Boolean = false) {
+    fun updateList(newList: List<Period>, isToday: Boolean, isPast: Boolean = false, resetAnimation: Boolean = false) {
         periods = newList
         isViewingToday = isToday
+        isPastDay = isPast
         if (resetAnimation) {
             lastAnimatedPosition = -1
         }

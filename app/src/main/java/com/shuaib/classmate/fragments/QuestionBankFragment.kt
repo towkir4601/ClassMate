@@ -99,13 +99,21 @@ class QuestionBankFragment : Fragment() {
         db.collection("users").document(uid).get()
             .addOnSuccessListener { doc ->
                 if (_binding == null) return@addOnSuccessListener
-                val user = doc.toObject(com.shuaib.classmate.models.User::class.java)
-                isAdmin = user?.let { it.canUploadPDF() || it.canUploadLibrary() } ?: false
-                binding.btnUploadQuestion.isVisible = isAdmin
+                try {
+                    val role = doc.getString("role") ?: "student"
+                    val permissions = doc.get("permissions") as? Map<String, Boolean> ?: com.shuaib.classmate.models.User.DEFAULT_PERMISSIONS
+                    isAdmin = (role == "superadmin" || role == "admin" || permissions["canUploadPDF"] == true || permissions["canUploadLibrary"] == true)
+                    binding.btnUploadQuestion.isVisible = isAdmin
+                } catch (e: Exception) {
+                    isAdmin = false
+                    binding.btnUploadQuestion.isVisible = false
+                }
                 loadData()
             }
             .addOnFailureListener {
                 if (_binding == null) return@addOnFailureListener
+                isAdmin = false
+                binding.btnUploadQuestion.isVisible = false
                 loadData()
             }
     }

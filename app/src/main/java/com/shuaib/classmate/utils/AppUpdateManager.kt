@@ -40,7 +40,7 @@ data class AppUpdateInfo(
 object AppUpdateManager {
 
     private const val TAG = "AppUpdateManager"
-    private const val GITHUB_API_URL = "https://api.github.com/repos/shuaibuddowla/ClassMate/releases/latest"
+    private const val GITHUB_API_URL = "https://api.github.com/repos/towkir4601/ClassMate/releases/latest"
     
     // Toggle for testing the update flow (Set to false for production)
     var isMockEnabled = false
@@ -73,7 +73,7 @@ object AppUpdateManager {
                     *Enjoy the updated ClassMate experience!*
                 """.trimIndent(),
                 // Using a small text file from the repo to simulate downloading an APK quickly for testing
-                apkDownloadUrl = "https://raw.githubusercontent.com/shuaibuddowla/ClassMate/main/README.md",
+                apkDownloadUrl = "https://raw.githubusercontent.com/towkir4601/ClassMate/main/README.md",
                 apkSize = 8293L
             )
         }

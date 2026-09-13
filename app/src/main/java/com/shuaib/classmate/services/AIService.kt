@@ -174,10 +174,10 @@ object AIService {
 
 
     private fun buildTeacherContext(): String {
-        // Known teacher-subject mappings, locations, and schedules for MBSTU CSE-22
+        // Known teacher-subject mappings, locations, and schedules for GSTU CSE-14
         // These are the faculty members and typical schedules teaching in this batch
         return """
-            Known course-teacher associations and schedules (CSE-22 batch):
+            Known course-teacher associations and schedules (CSE-14 batch):
             - Electronic Devices and Circuits (CSE1201): Faculty from ECE department (e.g., Hadifur Sir / হাদিফুর স্যার)
             - Structured Programming (CSE1203): Faculty from CSE department (typical class: 9:30 AM)
             - Structured Programming Lab (CSE1204): Faculty from CSE department

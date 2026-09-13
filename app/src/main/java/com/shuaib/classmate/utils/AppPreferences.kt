@@ -64,8 +64,7 @@ class AppPreferences(context: Context) {
             .apply()
     }
 
-    fun isGeminiPrimary(): Boolean =
-        prefs.getBoolean("is_gemini_primary", true)
+    fun isGeminiPrimary(): Boolean = true
 
     fun setGeminiPrimary(enabled: Boolean) {
         prefs.edit()
@@ -73,8 +72,9 @@ class AppPreferences(context: Context) {
             .apply()
     }
 
-    fun getGeminiModel(): String =
-        prefs.getString("gemini_model", "gemini-2.5-flash") ?: "gemini-2.5-flash"
+    fun getGeminiModel(): String {
+        return "gemini-3.5-flash-lite"
+    }
 
     fun setGeminiModel(model: String) {
         prefs.edit()

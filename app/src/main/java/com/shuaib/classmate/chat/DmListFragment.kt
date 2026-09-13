@@ -8,9 +8,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.os.bundleOf
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -24,7 +25,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 class DmListFragment : Fragment() {
-    private val viewModel: ChatViewModel by activityViewModels()
+    private val viewModel: ChatViewModel by viewModels()
     private val repository = ChatRepository
     private var _binding: FragmentDmListBinding? = null
     private val binding get() = _binding!!
@@ -38,6 +39,9 @@ class DmListFragment : Fragment() {
     private var navigatedToPendingDm = false
     private val currentUserId: String
         get() = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
+
+    private var currentFilter = FilterType.ALL
+    private enum class FilterType { ALL, ONLINE, TEACHERS, ADMINS, STUDENTS }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentDmListBinding.inflate(inflater, container, false)
@@ -69,10 +73,37 @@ class DmListFragment : Fragment() {
             override fun afterTextChanged(s: Editable?) = Unit
         })
 
+        setupFilterChips()
+
         collectUsers()
         collectDmCreated()
         collectLoadState()
         repository.getUsers()
+    }
+
+    private fun setupFilterChips() {
+        val chips = mapOf(
+            FilterType.ALL to binding.chipAll,
+            FilterType.ONLINE to binding.chipOnline,
+            FilterType.TEACHERS to binding.chipTeachers,
+            FilterType.ADMINS to binding.chipAdmins,
+            FilterType.STUDENTS to binding.chipStudents
+        )
+
+        chips.forEach { (type, textView) ->
+            textView.setOnClickListener {
+                currentFilter = type
+                // Update UI
+                chips.values.forEach { tv ->
+                    tv.setBackgroundResource(R.drawable.bg_chat_chip_unselected)
+                    tv.setTextColor(ContextCompat.getColor(requireContext(), R.color.cm_text_secondary))
+                }
+                textView.setBackgroundResource(R.drawable.bg_chat_chip_selected_blue)
+                textView.setTextColor(ContextCompat.getColor(requireContext(), R.color.cm_on_primary))
+                
+                submitFilteredUsers(binding.etSearchUsers.text?.toString().orEmpty())
+            }
+        }
     }
 
     private fun collectUsers() {
@@ -99,11 +130,20 @@ class DmListFragment : Fragment() {
     }
 
     private fun submitFilteredUsers(query: String) {
-        val filtered = if (query.isBlank()) {
-            allUsers
-        } else {
-            allUsers.filter { it.name.contains(query, ignoreCase = true) }
+        var filtered = allUsers
+        
+        when (currentFilter) {
+            FilterType.ONLINE -> filtered = filtered.filter { it.isOnline }
+            FilterType.TEACHERS -> filtered = filtered.filter { it.role == "teacher" }
+            FilterType.ADMINS -> filtered = filtered.filter { it.role == "admin" || it.role == "superadmin" }
+            FilterType.STUDENTS -> filtered = filtered.filter { it.role == "student" || it.role.isBlank() }
+            FilterType.ALL -> {}
         }
+
+        if (query.isNotBlank()) {
+            filtered = filtered.filter { it.name.contains(query, ignoreCase = true) }
+        }
+
         if (filtered.isEmpty()) {
             showEmptyState(
                 when {

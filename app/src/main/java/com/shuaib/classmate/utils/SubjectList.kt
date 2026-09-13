@@ -1,29 +1,37 @@
 package com.shuaib.classmate.utils
 
+import com.google.firebase.firestore.FirebaseFirestore
+
 object SubjectList {
-    val subjects = listOf(
-        Subject("Electronic Devices and Circuits", "CSE1201"),
-        Subject("Electronic Devices and Circuits Lab", "CSE1202"),
-        Subject("Structured Programming", "CSE1203"),
-        Subject("Structured Programming Lab", "CSE1204"),
-        Subject("Digital Electronics", "CSE1205"),
-        Subject("Digital Electronics Lab", "CSE1206"),
-        Subject("Physics", "CSE1207"),
-        Subject("Physics Lab", "CSE1208"),
-        Subject("Statistics", "CSE1209"),
-        Subject("Integral Calculus", "CSE1211"),
-        Subject("Engineering Drawing", "CSE1214"),
-        Subject("Viva-Voce", "CSE1215"),
-        Subject("Bhashani Studies", "BHS1201"),
-        Subject("Other Document", "LIB0000"),
-    ).distinctBy { it.name }
+    var subjects: List<Subject> = emptyList()
 
     fun codeFor(subjectName: String): String {
         return subjects.firstOrNull { it.name.equals(subjectName, ignoreCase = true) }?.code.orEmpty()
+    }
+    
+    fun fetchSubjects(onComplete: (() -> Unit)? = null) {
+        val db = FirebaseFirestore.getInstance()
+        db.collection("subjects").get()
+            .addOnSuccessListener { snapshot ->
+                val list = mutableListOf<Subject>()
+                for (doc in snapshot.documents) {
+                    val name = doc.getString("name") ?: continue
+                    val code = doc.getString("code") ?: ""
+                    val type = doc.getString("type") ?: "regular" // regular, lab, other
+                    list.add(Subject(name, code, type, doc.id))
+                }
+                subjects = list.sortedBy { it.name }
+                onComplete?.invoke()
+            }
+            .addOnFailureListener {
+                onComplete?.invoke()
+            }
     }
 }
 
 data class Subject(
     val name: String,
-    val code: String = ""
+    val code: String = "",
+    val type: String = "regular",
+    val id: String = ""
 )

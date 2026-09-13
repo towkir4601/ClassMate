@@ -4,6 +4,8 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -17,7 +19,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -40,7 +42,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 class DmChatFragment : Fragment() {
-    private val viewModel: ChatViewModel by activityViewModels()
+    private val viewModel: ChatViewModel by viewModels()
     private var _binding: FragmentDmChatBinding? = null
     private val binding get() = _binding!!
 
@@ -64,8 +66,10 @@ class DmChatFragment : Fragment() {
     private var otherUserName: String = ""
     private var otherUserId: String = ""
 
-    private val imagePicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { showImagePreview(it) }
+    private val imagePicker = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        if (uris.isNotEmpty()) {
+            showImagePreview(uris)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,6 +86,14 @@ class DmChatFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
+            val imeHeight = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            val navHeight = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            v.setPadding(0, 0, 0, java.lang.Math.max(imeHeight, navHeight))
+            insets
+        }
+
         
         binding.tvChatTitle.text = otherUserName
 
@@ -138,6 +150,8 @@ class DmChatFragment : Fragment() {
         binding.btnSearch.setOnClickListener {
             binding.searchBar.visibility = View.VISIBLE
             binding.etSearchMessages.requestFocus()
+            val imm = requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            imm.showSoftInput(binding.etSearchMessages, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
         }
         
         binding.btnCloseSearch.setOnClickListener {
@@ -424,7 +438,7 @@ class DmChatFragment : Fragment() {
             .show()
     }
 
-    private fun showImagePreview(uri: Uri) {
+    private fun showImagePreview(uris: List<Uri>) {
         val dialog = BottomSheetDialog(requireContext())
         val sheet = layoutInflater.inflate(R.layout.dialog_image_send_preview, null)
         val preview = sheet.findViewById<android.widget.ImageView>(R.id.ivPreviewImage)
@@ -432,38 +446,49 @@ class DmChatFragment : Fragment() {
         val progress = sheet.findViewById<View>(R.id.progressUpload)
         val send = sheet.findViewById<View>(R.id.btnSendImage)
         val cancel = sheet.findViewById<View>(R.id.btnCancel)
-        Glide.with(this).load(uri).centerCrop().into(preview)
+        Glide.with(this).load(uris.first()).centerCrop().into(preview)
+        if (uris.size > 1) {
+            caption.hint = "Caption for first image (Sending ${uris.size} total)"
+        }
         cancel.setOnClickListener { dialog.dismiss() }
         send.setOnClickListener {
             send.isEnabled = false
             cancel.isEnabled = false
             progress.isVisible = true
-            uploadImage(uri, caption.text?.toString().orEmpty(), dialog, progress)
+            uploadImages(uris, caption.text?.toString().orEmpty(), dialog, progress)
         }
         dialog.setContentView(sheet)
         dialog.show()
     }
 
-    private fun uploadImage(uri: Uri, caption: String, dialog: BottomSheetDialog, progress: View) {
+    private fun uploadImages(uris: List<Uri>, firstCaption: String, dialog: BottomSheetDialog, progress: View) {
         binding.imageUploadOverlay.visibility = View.VISIBLE
-        CloudinaryUploader.uploadImage(
-            requireContext(),
-            uri,
-            "classmate/chat",
-            onSuccess = { url, _ ->
-                if (_binding != null) binding.imageUploadOverlay.visibility = View.GONE
-                progress.isVisible = false
-                dialog.dismiss()
-                forceScrollToBottom = true
-                viewModel.sendImage(roomId, url, caption)
-            },
-            onFailure = {
-                if (_binding != null) binding.imageUploadOverlay.visibility = View.GONE
-                progress.isVisible = false
-                dialog.dismiss()
-                view?.let { root -> Snackbar.make(root, "Failed to send image, try again", Snackbar.LENGTH_LONG).show() }
-            }
-        )
+        dialog.dismiss()
+        var completed = 0
+        val total = uris.size
+        uris.forEachIndexed { index, uri ->
+            val caption = if (index == 0) firstCaption else ""
+            CloudinaryUploader.uploadImage(
+                requireContext(),
+                uri,
+                "classmate/chat",
+                onSuccess = { url, _ ->
+                    forceScrollToBottom = true
+                    viewModel.sendImage(roomId, url, caption)
+                    completed++
+                    if (completed == total && _binding != null) {
+                        binding.imageUploadOverlay.visibility = View.GONE
+                    }
+                },
+                onFailure = {
+                    view?.let { root -> Snackbar.make(root, "Failed to send an image", Snackbar.LENGTH_LONG).show() }
+                    completed++
+                    if (completed == total && _binding != null) {
+                        binding.imageUploadOverlay.visibility = View.GONE
+                    }
+                }
+            )
+        }
     }
 
     private fun replySwipeCallback(): ItemTouchHelper.SimpleCallback {

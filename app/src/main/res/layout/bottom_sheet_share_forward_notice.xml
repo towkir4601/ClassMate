@@ -83,9 +83,19 @@
         style="@style/NoticeForwardOptionStyle">
         <ImageView style="@style/NoticeForwardOptionIconStyle" android:src="@drawable/ic_users" app:tint="@color/cm_primary_soft" />
         <LinearLayout style="@style/NoticeForwardOptionTextStyle">
-            <TextView style="@style/NoticeForwardOptionTitleStyle" android:text="CODRIX-22" />
-            <TextView style="@style/NoticeForwardOptionSubtitleStyle" android:text="Forward into the main class room" />
+            <TextView style="@style/NoticeForwardOptionTitleStyle" android:text="Thorffin-14" />
+            <TextView style="@style/NoticeForwardOptionSubtitleStyle" android:text="Forward to Thorffin-14" />
         </LinearLayout>
+        
+        <ImageButton
+            android:id="@+id/btnEditThorffinLink"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_edit"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:visibility="gone"
+            app:tint="@color/cm_primary_soft" />
+
         <ImageView style="@style/NoticeForwardChevronStyle" android:src="@drawable/ic_chevron_right" app:tint="@color/cm_text_secondary" />
     </LinearLayout>
 

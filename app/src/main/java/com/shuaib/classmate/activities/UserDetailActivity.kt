@@ -24,6 +24,36 @@ class UserDetailActivity : AppCompatActivity() {
     private var currentUser = User()
     private var targetUser = User()
 
+    private fun parseUserSafely(doc: com.google.firebase.firestore.DocumentSnapshot): User? {
+        if (!doc.exists()) return null
+        return try {
+            User(
+                uid = doc.id,
+                name = doc.getString("name") ?: "",
+                fullName = doc.getString("fullName") ?: "",
+                studentId = doc.getString("studentId") ?: "",
+                department = doc.getString("department") ?: "",
+                email = doc.getString("email") ?: "",
+                phone = doc.getString("phone") ?: "",
+                bloodGroup = doc.getString("bloodGroup") ?: "",
+                homeDistrict = doc.getString("homeDistrict") ?: "",
+                address = doc.getString("address") ?: "",
+                fatherName = doc.getString("fatherName") ?: "",
+                motherName = doc.getString("motherName") ?: "",
+                role = doc.getString("role") ?: "student",
+                approved = doc.getBoolean("approved") ?: false,
+                photoUrl = doc.getString("photoUrl") ?: "",
+                authProvider = doc.getString("authProvider") ?: "",
+                createdAt = doc.getTimestamp("createdAt"),
+                updatedAt = doc.getTimestamp("updatedAt"),
+                oneSignalPlayerId = doc.getString("oneSignalPlayerId") ?: "",
+                permissions = (doc.get("permissions") as? Map<String, Boolean>) ?: User.DEFAULT_PERMISSIONS
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     private val permissionLabels = linkedMapOf(
         "canCreatePolls" to "Create/manage polls",
         "canEditTimetable" to "Edit class schedule",
@@ -77,7 +107,7 @@ class UserDetailActivity : AppCompatActivity() {
         binding.progressBar.visibility = View.VISIBLE
         firestore.collection("users").document(currentUid).get()
             .addOnSuccessListener { currentDoc ->
-                currentUser = currentDoc.toObject(User::class.java)?.copy(uid = currentDoc.id) ?: User(uid = currentUid)
+                currentUser = parseUserSafely(currentDoc) ?: User(uid = currentUid)
 
                 if (!currentUser.canManageUsers()) {
                     binding.progressBar.visibility = View.GONE
@@ -89,7 +119,7 @@ class UserDetailActivity : AppCompatActivity() {
                 firestore.collection("users").document(targetUid).get()
                     .addOnSuccessListener { targetDoc ->
                         binding.progressBar.visibility = View.GONE
-                        targetUser = targetDoc.toObject(User::class.java)?.copy(uid = targetDoc.id) ?: User(uid = targetUid)
+                        targetUser = parseUserSafely(targetDoc) ?: User(uid = targetUid)
                         bindUser()
                     }
                     .addOnFailureListener { e ->
@@ -123,6 +153,7 @@ class UserDetailActivity : AppCompatActivity() {
         when (targetUser.role) {
             "superadmin" -> binding.radioSuperadmin.isChecked = true
             "admin" -> binding.radioAdmin.isChecked = true
+            "teacher" -> binding.radioTeacher.isChecked = true
             else -> binding.radioStudent.isChecked = true
         }
 
@@ -164,8 +195,11 @@ class UserDetailActivity : AppCompatActivity() {
             // Align permissions automatically with the role to prevent security issues
             val alignedPermissions = when (role) {
                 "superadmin" -> User.DEFAULT_PERMISSIONS.mapValues { true }
-                "admin" -> User.DEFAULT_PERMISSIONS.mapValues { it.key != "canManageUsers" && it.key != "canManageAdmins" }
-                else -> User.DEFAULT_PERMISSIONS.mapValues { false }
+                "admin" -> newPermissions.apply { 
+                    put("canManageUsers", false)
+                    put("canManageAdmins", false)
+                }
+                else -> newPermissions
             }
             updates["permissions"] = alignedPermissions
         }
@@ -192,6 +226,7 @@ class UserDetailActivity : AppCompatActivity() {
         return when (binding.radioGroupRole.checkedRadioButtonId) {
             R.id.radioSuperadmin -> "superadmin"
             R.id.radioAdmin -> "admin"
+            R.id.radioTeacher -> "teacher"
             else -> "student"
         }
     }

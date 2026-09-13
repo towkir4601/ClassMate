@@ -1,0 +1,30 @@
+--- app/src/main/java/com/shuaib/classmate/chat/ChatRepository.kt
++++ app/src/main/java/com/shuaib/classmate/chat/ChatRepository.kt
+@@ -262,9 +262,26 @@
+     fun deleteMessage(messageId: String, roomId: String, isAdmin: Boolean) {
+         firestore.collection("chat_rooms").document(roomId).collection("messages").document(messageId)
+             .update(
+                 "isDeleted", true,
+                 "text", ""
+-            )
++            ).addOnSuccessListener {
++                firestore.collection("chat_rooms").document(roomId).collection("messages")
++                    .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
++                    .limit(1)
++                    .get()
++                    .addOnSuccessListener { snap ->
++                        val lastDoc = snap.documents.firstOrNull()
++                        if (lastDoc != null) {
++                            val isDeleted = lastDoc.getBoolean("isDeleted") ?: false
++                            val text = if (isDeleted) "Message was deleted" else (lastDoc.getString("text") ?: "")
++                            val caption = lastDoc.getString("imageUrl")
++                            val finalText = if (text.isBlank() && !caption.isNullOrBlank()) "Sent an image" else text
++                            firestore.collection("chat_rooms").document(roomId).update(
++                                "lastMessage", finalText
++                            )
++                        }
++                    }
++            }
+     }
+ 
+     fun getUsers() {

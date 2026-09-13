@@ -54,12 +54,30 @@ class ClassMateApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        
+        // Add Global Crash Handler
+        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            try {
+                val stackTrace = Log.getStackTraceString(throwable)
+                val prefs = getSharedPreferences("crash_logs", MODE_PRIVATE)
+                prefs.edit().putString("last_crash", stackTrace).commit()
+            } catch (e: Exception) {
+                // Ignore
+            }
+            defaultHandler?.uncaughtException(thread, throwable)
+        }
+
         NoticeTextFormatter.init(this)
         FirestoreManager.enableOfflinePersistence()
 
         val prefs = AppPreferences(this)
 
         applyThemePreference(prefs)
+
+        // Fetch subjects on app start
+        com.shuaib.classmate.utils.SubjectList.fetchSubjects()
+
         createNotificationChannels()
         initializeServices(prefs)
     }
@@ -165,6 +183,14 @@ class ClassMateApp : Application() {
                     else -> "notices"   // cancellation, substitute, assignment, deadline, exam → notices
                 }
 
+                if (type == "admin_alert") {
+                    val intent = Intent(this@ClassMateApp, com.shuaib.classmate.activities.UserManagementActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    }
+                    startActivity(intent)
+                    return
+                }
+
                 if (type == "chat_message" && !roomId.isNullOrBlank()) {
                     val intent = Intent(this@ClassMateApp, MainActivity::class.java).apply {
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -268,8 +294,10 @@ class ClassMateApp : Application() {
     }
 
     private fun applyThemePreference(prefs: AppPreferences) {
-        prefs.setDarkMode(false)
-        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+        val isDark = prefs.isDarkMode()
+        AppCompatDelegate.setDefaultNightMode(
+            if (isDark) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+        )
     }
 
     private fun syncNotificationPreference(prefs: AppPreferences) {
@@ -311,6 +339,18 @@ class ClassMateApp : Application() {
                 morningBriefRequest
             )
 
+            // Evening Briefing at 8:00 PM for next day's schedule
+            val eveningBriefRequest = PeriodicWorkRequestBuilder<com.shuaib.classmate.workers.EveningBriefWorker>(
+                24, TimeUnit.HOURS
+            ).setInitialDelay(calculateDelayUntil8PM(), TimeUnit.MILLISECONDS)
+            .build()
+
+            workManager.enqueueUniquePeriodicWork(
+                "EveningBriefing",
+                ExistingPeriodicWorkPolicy.KEEP,
+                eveningBriefRequest
+            )
+
             val offlineSyncRequest = OneTimeWorkRequestBuilder<OfflineSyncWorker>()
                 .setConstraints(
                     Constraints.Builder()
@@ -332,6 +372,22 @@ class ClassMateApp : Application() {
         val now = Calendar.getInstance()
         val target = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 8)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+
+        if (target.before(now)) {
+            target.add(Calendar.DAY_OF_YEAR, 1)
+        }
+
+        return target.timeInMillis - now.timeInMillis
+    }
+
+    private fun calculateDelayUntil8PM(): Long {
+        val now = Calendar.getInstance()
+        val target = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 20) // 8:00 PM
             set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)

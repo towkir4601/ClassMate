@@ -4,6 +4,8 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -18,7 +20,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -40,7 +42,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class GroupChatFragment : Fragment() {
-    private val viewModel: ChatViewModel by activityViewModels()
+    private val viewModel: ChatViewModel by viewModels()
     private var _binding: FragmentGroupChatBinding? = null
     private val binding get() = _binding!!
 
@@ -56,8 +58,10 @@ class GroupChatFragment : Fragment() {
     private var activeSearchQuery: String = ""
     private var emptySearchToastShownFor: String? = null
 
-    private val imagePicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { showImagePreview(it) }
+    private val imagePicker = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        if (uris.isNotEmpty()) {
+            showImagePreview(uris)
+        }
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -67,9 +71,17 @@ class GroupChatFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
+            val imeHeight = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            val navHeight = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            v.setPadding(0, 0, 0, java.lang.Math.max(imeHeight, navHeight))
+            insets
+        }
+
 
         binding.ivToolbarAvatar.setImageDrawable(null)
-        binding.ivToolbarAvatar.background = AvatarUtils.circle(GROUP_ROOM_ID)
+        binding.ivToolbarAvatar.background = AvatarUtils.circle(com.shuaib.classmate.chat.ChatRepository.groupRoomId)
 
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
         adapter = ChatAdapter(
@@ -100,7 +112,11 @@ class GroupChatFragment : Fragment() {
         
         ItemTouchHelper(replySwipeCallback()).attachToRecyclerView(binding.rvMessages)
 
-        binding.btnBack.setOnClickListener { findNavController().navigateUp() }
+        if (arguments?.getBoolean("isEmbedded") == true) {
+            binding.btnBack.isVisible = false
+        } else {
+            binding.btnBack.setOnClickListener { findNavController().navigateUp() }
+        }
         binding.btnSend.setOnClickListener { sendCurrentMessage() }
         binding.btnAttach.setOnClickListener { imagePicker.launch("image/*") }
         binding.btnEmoji.setOnClickListener { showEmojiInputPicker() }
@@ -114,6 +130,8 @@ class GroupChatFragment : Fragment() {
         binding.btnSearch.setOnClickListener {
             binding.searchBar.visibility = View.VISIBLE
             binding.etSearchMessages.requestFocus()
+            val imm = requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            imm.showSoftInput(binding.etSearchMessages, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
         }
         
         binding.btnCloseSearch.setOnClickListener {
@@ -137,7 +155,7 @@ class GroupChatFragment : Fragment() {
         
         binding.btnUnpin.setOnClickListener { latestPinned?.let { viewModel.pinMessage(it.id, false) } }
         
-        binding.etMessage.addTextChangedListener(typingWatcher(GROUP_ROOM_ID))
+        binding.etMessage.addTextChangedListener(typingWatcher(com.shuaib.classmate.chat.ChatRepository.groupRoomId))
         binding.etMessage.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEND) {
                 sendCurrentMessage()
@@ -157,18 +175,18 @@ class GroupChatFragment : Fragment() {
         }
 
         checkAdmin(currentUserId)
-        viewModel.openRoom(GROUP_ROOM_ID)
+        viewModel.openRoom(com.shuaib.classmate.chat.ChatRepository.groupRoomId)
         collectChatState()
     }
 
     override fun onResume() {
         super.onResume()
-        ChatRepository.enterRoom(GROUP_ROOM_ID)
+        ChatRepository.enterRoom(com.shuaib.classmate.chat.ChatRepository.groupRoomId)
     }
 
     override fun onPause() {
         super.onPause()
-        ChatRepository.leaveRoom(GROUP_ROOM_ID)
+        ChatRepository.leaveRoom(com.shuaib.classmate.chat.ChatRepository.groupRoomId)
     }
 
     private fun collectChatState() {
@@ -187,7 +205,7 @@ class GroupChatFragment : Fragment() {
                 }
                 launch {
                     viewModel.historyLoaded.collect { roomId ->
-                        if (roomId == GROUP_ROOM_ID) {
+                        if (roomId == com.shuaib.classmate.chat.ChatRepository.groupRoomId) {
                             refreshTimeoutJob?.cancel()
                             binding.swipeRefresh.isRefreshing = false
                         }
@@ -195,7 +213,7 @@ class GroupChatFragment : Fragment() {
                 }
                 launch {
                     viewModel.rooms.collect { rooms ->
-                        val count = rooms.firstOrNull { it.id == GROUP_ROOM_ID }?.memberCount ?: 24
+                        val count = rooms.firstOrNull { it.id == com.shuaib.classmate.chat.ChatRepository.groupRoomId }?.memberCount ?: 24
                         binding.tvOnlineStatus.text = "$count members"
                     }
                 }
@@ -213,7 +231,7 @@ class GroupChatFragment : Fragment() {
                 }
                 launch {
                     viewModel.typingEvent.collect { event ->
-                        if (event.roomId == GROUP_ROOM_ID && event.userId != FirebaseAuth.getInstance().currentUser?.uid) {
+                        if (event.roomId == com.shuaib.classmate.chat.ChatRepository.groupRoomId && event.userId != FirebaseAuth.getInstance().currentUser?.uid) {
                             showTyping("${event.userName} is typing...")
                         }
                     }
@@ -363,7 +381,7 @@ class GroupChatFragment : Fragment() {
             .show()
     }
 
-    private fun showImagePreview(uri: Uri) {
+    private fun showImagePreview(uris: List<Uri>) {
         val dialog = BottomSheetDialog(requireContext())
         val sheet = layoutInflater.inflate(R.layout.dialog_image_send_preview, null)
         val preview = sheet.findViewById<android.widget.ImageView>(R.id.ivPreviewImage)
@@ -371,37 +389,48 @@ class GroupChatFragment : Fragment() {
         val progress = sheet.findViewById<View>(R.id.progressUpload)
         val send = sheet.findViewById<View>(R.id.btnSendImage)
         val cancel = sheet.findViewById<View>(R.id.btnCancel)
-        Glide.with(this).load(uri).centerCrop().into(preview)
+        Glide.with(this).load(uris.first()).centerCrop().into(preview)
+        if (uris.size > 1) {
+            caption.hint = "Caption for first image (Sending ${uris.size} total)"
+        }
         cancel.setOnClickListener { dialog.dismiss() }
         send.setOnClickListener {
             send.isEnabled = false
             cancel.isEnabled = false
             progress.isVisible = true
-            uploadImage(uri, caption.text?.toString().orEmpty(), dialog, progress)
+            uploadImages(uris, caption.text?.toString().orEmpty(), dialog, progress)
         }
         dialog.setContentView(sheet)
         dialog.show()
     }
 
-    private fun uploadImage(uri: Uri, caption: String, dialog: BottomSheetDialog, progress: View) {
+    private fun uploadImages(uris: List<Uri>, firstCaption: String, dialog: BottomSheetDialog, progress: View) {
         binding.imageUploadOverlay.visibility = View.VISIBLE
-        CloudinaryUploader.uploadImage(
-            requireContext(),
-            uri,
-            "classmate/chat",
-            onSuccess = { url, _ ->
-                if (_binding != null) binding.imageUploadOverlay.visibility = View.GONE
-                progress.isVisible = false
-                dialog.dismiss()
-                viewModel.sendImage(GROUP_ROOM_ID, url, caption)
-            },
-            onFailure = {
-                if (_binding != null) binding.imageUploadOverlay.visibility = View.GONE
-                progress.isVisible = false
-                dialog.dismiss()
-                view?.let { root -> Snackbar.make(root, "Failed to send image, try again", Snackbar.LENGTH_LONG).show() }
-            }
-        )
+        dialog.dismiss()
+        var completed = 0
+        val total = uris.size
+        uris.forEachIndexed { index, uri ->
+            val caption = if (index == 0) firstCaption else ""
+            CloudinaryUploader.uploadImage(
+                requireContext(),
+                uri,
+                "classmate/chat",
+                onSuccess = { url, _ ->
+                    viewModel.sendImage(com.shuaib.classmate.chat.ChatRepository.groupRoomId, url, caption)
+                    completed++
+                    if (completed == total && _binding != null) {
+                        binding.imageUploadOverlay.visibility = View.GONE
+                    }
+                },
+                onFailure = {
+                    view?.let { root -> Snackbar.make(root, "Failed to send an image", Snackbar.LENGTH_LONG).show() }
+                    completed++
+                    if (completed == total && _binding != null) {
+                        binding.imageUploadOverlay.visibility = View.GONE
+                    }
+                }
+            )
+        }
     }
 
     private fun replySwipeCallback(): ItemTouchHelper.SimpleCallback {
@@ -471,7 +500,7 @@ class GroupChatFragment : Fragment() {
     }
 
     companion object {
-        private const val GROUP_ROOM_ID = "group_main"
+        
         private const val TYPING_DEBOUNCE_MS = 2_000L
         private const val TYPING_VISIBLE_MS = 3_000L
         private const val SEARCH_EMPTY_FEEDBACK_DELAY_MS = 1_200L

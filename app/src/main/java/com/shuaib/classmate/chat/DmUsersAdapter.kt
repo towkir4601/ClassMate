@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.ImageView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -12,7 +13,6 @@ import com.bumptech.glide.Glide
 import com.shuaib.classmate.R
 import com.shuaib.classmate.chat.model.ChatUser
 import com.shuaib.classmate.utils.ThemeColors
-import de.hdodenhof.circleimageview.CircleImageView
 
 class DmUsersAdapter(
     private val onlineIdsProvider: () -> Set<String>,
@@ -30,14 +30,21 @@ class DmUsersAdapter(
     }
 
     inner class UserViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val avatar: CircleImageView = itemView.findViewById(R.id.ivAvatar)
+        private val avatar: ImageView = itemView.findViewById(R.id.ivAvatar)
         private val avatarLetter: TextView = itemView.findViewById(R.id.tvAvatarLetter)
         private val userName: TextView = itemView.findViewById(R.id.tvUserName)
         private val userStatus: TextView = itemView.findViewById(R.id.tvUserStatus)
         private val onlineDot: View = itemView.findViewById(R.id.viewOnlineDot)
 
         fun bind(user: ChatUser) {
-            userName.text = user.name
+            val roleSuffix = when (user.role) {
+                "teacher" -> " (Teacher)"
+                "admin", "superadmin" -> " (Admin)"
+                else -> ""
+            }
+            val displayName = user.name + roleSuffix
+            userName.text = displayName
+            
             AvatarUtils.bind(avatar, avatarLetter, user.id, user.name, user.avatarUrl)
             val online = user.id in onlineIdsProvider() || user.isOnline
             val statusColor = if (online) ThemeColors.success(itemView.context) else ThemeColors.textMuted(itemView.context)

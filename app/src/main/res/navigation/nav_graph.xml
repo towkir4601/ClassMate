@@ -37,9 +37,9 @@
     <!-- Chat Flow -->
     <fragment
         android:id="@+id/nav_chat"
-        android:name="com.shuaib.classmate.chat.ChatFragment"
-        android:label="Ask AI"
-        tools:layout="@layout/fragment_chat">
+        android:name="com.shuaib.classmate.chat.ChatTabsFragment"
+        android:label="Community"
+        tools:layout="@layout/fragment_chat_tabs">
         <action
             android:id="@+id/action_chat_to_group"
             app:destination="@id/fragment_group_chat"
@@ -66,7 +66,7 @@
     <fragment
         android:id="@+id/fragment_group_chat"
         android:name="com.shuaib.classmate.chat.GroupChatFragment"
-        android:label="CODRIX-22"
+        android:label="Class Group"
         tools:layout="@layout/fragment_group_chat" />
 
     <fragment

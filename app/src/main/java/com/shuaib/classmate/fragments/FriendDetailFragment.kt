@@ -40,8 +40,33 @@ class FriendDetailFragment : Fragment() {
     private fun fetchFriendDetails(userId: String) {
         db.collection("users").document(userId).get()
             .addOnSuccessListener { document ->
-                val user = document.toObject(User::class.java)
-                user?.let { updateUI(it) }
+                if (!document.exists()) return@addOnSuccessListener
+                
+                try {
+                    val user = User(
+                        uid = document.id,
+                        name = document.getString("name") ?: "",
+                        fullName = document.getString("fullName") ?: "",
+                        studentId = document.getString("studentId") ?: "",
+                        department = document.getString("department") ?: "",
+                        email = document.getString("email") ?: "",
+                        phone = document.getString("phone") ?: "",
+                        bloodGroup = document.getString("bloodGroup") ?: "",
+                        homeDistrict = document.getString("homeDistrict") ?: "",
+                        address = document.getString("address") ?: "",
+                        role = document.getString("role") ?: "student",
+                        approved = document.getBoolean("approved") ?: false,
+                        photoUrl = document.getString("photoUrl") ?: "",
+                        authProvider = document.getString("authProvider") ?: "",
+                        createdAt = document.getTimestamp("createdAt"),
+                        updatedAt = document.getTimestamp("updatedAt"),
+                        oneSignalPlayerId = document.getString("oneSignalPlayerId") ?: "",
+                        permissions = (document.get("permissions") as? Map<String, Boolean>) ?: User.DEFAULT_PERMISSIONS
+                    )
+                    updateUI(user)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
     }
 

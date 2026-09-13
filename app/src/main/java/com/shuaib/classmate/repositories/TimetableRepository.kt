@@ -44,9 +44,17 @@ class TimetableRepository private constructor(private val context: Context) {
                 teacher = doc.getString("teacher") ?: "",
                 startTime = doc.getString("startTime") ?: "",
                 endTime = doc.getString("endTime") ?: "",
+                room = doc.getString("room") ?: "",
                 cancelDate = doc.getString("cancelDate") ?: "",
                 substituteTeacher = doc.getString("substituteTeacher") ?: "",
-                substituteDate = doc.getString("substituteDate") ?: ""
+                substituteDate = doc.getString("substituteDate") ?: "",
+                overrideDate = doc.getString("overrideDate") ?: "",
+                overrideRoom = doc.getString("overrideRoom") ?: "",
+                overrideStartTime = doc.getString("overrideStartTime") ?: "",
+                overrideEndTime = doc.getString("overrideEndTime") ?: "",
+                isTemporary = doc.getBoolean("isTemporary") ?: false,
+                temporaryDate = doc.getString("temporaryDate") ?: "",
+                batch = doc.getString("batch") ?: ""
             )
         }
         val entities = periods.map { TimetableEntity.fromPeriod(normalizedDay, it) }

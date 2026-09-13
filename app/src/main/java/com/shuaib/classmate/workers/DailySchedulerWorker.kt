@@ -54,8 +54,8 @@ class DailySchedulerWorker(context: Context, params: WorkerParameters) : Corouti
             val todayDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
             for (period in periods) {
-                // Check if the class is cancelled for today
-                val isCancelledToday = period.isCancelled || period.cancelDate == todayDate
+                // Check if the class is cancelled specifically for today
+                val isCancelledToday = period.cancelDate == todayDate
                 
                 if (!isCancelledToday) {
                     scheduleNotification(period, dayName)

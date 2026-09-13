@@ -156,8 +156,12 @@ class ChatFragment : Fragment(), TextToSpeech.OnInitListener {
         })
 
         // Click Listeners
-        binding.btnBack.applyClickAnimation {
-            (activity as? com.shuaib.classmate.activities.MainActivity)?.showMainTab(com.shuaib.classmate.R.id.nav_timetable)
+        if (arguments?.getBoolean("isEmbedded") == true) {
+            binding.btnBack.isVisible = false
+        } else {
+            binding.btnBack.applyClickAnimation {
+                (activity as? com.shuaib.classmate.activities.MainActivity)?.showMainTab(com.shuaib.classmate.R.id.nav_timetable)
+            }
         }
 
         binding.btnSend.applyClickAnimation {
@@ -391,7 +395,7 @@ class ChatFragment : Fragment(), TextToSpeech.OnInitListener {
             val sb = StringBuilder()
             
             // --- Persona & Identity ---
-            sb.append("You are ClassMate AI, the elite personal academic assistant for MBSTU CSE-22 batch students.\n")
+            sb.append("You are ClassMate AI, the elite personal academic assistant for GSTU CSE-14 batch students.\n")
             sb.append("Your mission is to deliver masterclass responses that are warm, authoritative, scholarly, and extremely organized. You speak like a senior academic representative or Class Representative (CR).\n\n")
             
             sb.append("Current local date and time: $now (Day of week: $dayOfWeek)\n\n")
@@ -633,20 +637,28 @@ class ChatFragment : Fragment(), TextToSpeech.OnInitListener {
             .addOnSuccessListener { doc ->
                 if (_binding == null) return@addOnSuccessListener
                 if (doc.exists()) {
-                    val user = doc.toObject(User::class.java)
-                    val json = org.json.JSONObject(actionJson)
-                    val action = json.optString("action")
-                    
-                    val hasPermission = when (action) {
-                        "POST_NOTICE" -> user?.canPostNotices() ?: false || user?.isAdmin() ?: false
-                        else -> user?.canEditTimetable() ?: false || user?.isAdmin() ?: false
-                    }
-                    
-                    if (hasPermission) {
-                        executeDatabaseAction(actionJson)
-                    } else {
-                        val messageType = if (action == "POST_NOTICE") "post notices" else "modify schedules"
-                        Toast.makeText(requireContext(), "Permission Denied: Only batch admins can $messageType.", Toast.LENGTH_LONG).show()
+                    try {
+                        val role = doc.getString("role") ?: "student"
+                        val permissions = doc.get("permissions") as? Map<String, Boolean> ?: emptyMap()
+                        
+                        val isSuperadmin = (role == "superadmin" || role == "admin")
+                        
+                        val json = org.json.JSONObject(actionJson)
+                        val action = json.optString("action")
+                        
+                        val hasPermission = when (action) {
+                            "POST_NOTICE" -> isSuperadmin || permissions["canPostNotices"] == true
+                            else -> isSuperadmin || permissions["canEditTimetable"] == true
+                        }
+                        
+                        if (hasPermission) {
+                            executeDatabaseAction(actionJson)
+                        } else {
+                            val messageType = if (action == "POST_NOTICE") "post notices" else "modify schedules"
+                            Toast.makeText(requireContext(), "Permission Denied: Only batch admins can $messageType.", Toast.LENGTH_LONG).show()
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("ChatFragment", "Error parsing user for chat action", e)
                     }
                 }
             }

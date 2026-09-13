@@ -1,0 +1,12 @@
+--- app/src/main/java/com/shuaib/classmate/chat/ChatRepository.kt
++++ app/src/main/java/com/shuaib/classmate/chat/ChatRepository.kt
+@@ -262,6 +262,7 @@
+     fun deleteMessage(messageId: String, roomId: String, isAdmin: Boolean) {
+         firestore.collection("chat_rooms").document(roomId).collection("messages").document(messageId)
+             .update(
+                 "isDeleted", true,
+-                "text", ""
++                "text", "",
++                "imageUrl", ""
+             ).addOnSuccessListener {
+                 firestore.collection("chat_rooms").document(roomId).collection("messages")

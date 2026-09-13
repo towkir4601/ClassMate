@@ -31,11 +31,19 @@ class FriendsAdapter(
         holder.binding.apply {
             tvFriendName.text = friend.name
             
-            val details = listOfNotNull(
-                friend.studentId.takeIf { it.isNotBlank() },
-                friend.bloodGroup.takeIf { it.isNotBlank() },
-                friend.homeDistrict.takeIf { it.isNotBlank() }
-            ).joinToString(" • ")
+            val details = if (friend.role == "teacher") {
+                listOfNotNull(
+                    friend.department.takeIf { it.isNotBlank() }?.let { "Dept: $it" },
+                    friend.bloodGroup.takeIf { it.isNotBlank() }
+                ).joinToString(" • ")
+            } else {
+                listOfNotNull(
+                    friend.studentId.takeIf { it.isNotBlank() },
+                    friend.batch.takeIf { it.isNotBlank() }?.let { "Batch: $it" },
+                    friend.bloodGroup.takeIf { it.isNotBlank() },
+                    friend.homeDistrict.takeIf { it.isNotBlank() }
+                ).joinToString(" • ")
+            }
             tvFriendId.text = details
 
             Glide.with(ivFriendProfile.context)

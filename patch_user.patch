@@ -1,0 +1,34 @@
+--- app/src/main/java/com/shuaib/classmate/models/User.kt
++++ app/src/main/java/com/shuaib/classmate/models/User.kt
+@@ -10,13 +10,19 @@
+     val name: String = "",
+     val fullName: String = "",
+     val studentId: String = "",
++    val batch: String = "",
+     val department: String = "",
+     val email: String = "",
+     val phone: String = "",
++    val whatsappNumber: String = "",
+     val bloodGroup: String = "",
+     val homeDistrict: String = "",
+     val address: String = "",
++    val presentAddress: String = "",
++    val permanentAddress: String = "",
++    val fatherName: String = "",
++    val motherName: String = "",
+     val role: String = "student",
+     val approved: Boolean = false,
+     val photoUrl: String = "",
+@@ -34,10 +40,13 @@
+     @com.google.firebase.firestore.Exclude
+     fun hasPermission(permissionKey: String): Boolean {
+         val r = role.trim().lowercase()
+         if (r == "superadmin") return true
++        
++        if (r == "teacher") {
++            if (permissionKey == "canSendClassCancel") return true
++            return permissions[permissionKey] == true
++        }
+         
+         // Admin default permissions
+         if (r == "admin") {

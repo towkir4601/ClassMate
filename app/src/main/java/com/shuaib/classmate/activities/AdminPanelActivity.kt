@@ -43,12 +43,20 @@ class AdminPanelActivity : AppCompatActivity() {
 
         firestore.collection("users").document(uid).get()
             .addOnSuccessListener { document ->
-                val user = document.toObject(User::class.java)
-                user?.let {
-                    val isSuperAdmin = it.role == "superadmin"
+                try {
+                    val role = document.getString("role") ?: "student"
+                    val permissions = document.get("permissions") as? Map<String, Boolean> ?: User.DEFAULT_PERMISSIONS
+                    val user = User(
+                        uid = uid,
+                        role = role,
+                        permissions = permissions
+                    )
+                    val isSuperAdmin = role == "superadmin"
                     binding.btnTestTelegram.visibility = if (isSuperAdmin) View.VISIBLE else View.GONE
-                    setupClickListeners(it)
+                    setupClickListeners(user)
                     animateEntry()
+                } catch (e: Exception) {
+                    Toast.makeText(this, "Error parsing user: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
             .addOnFailureListener { e ->
@@ -74,12 +82,18 @@ class AdminPanelActivity : AppCompatActivity() {
                 overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
             }
 
+        }
+        
+        // Academic Calendar
+        if (user.canManageAcademicCalendar()) {
             binding.cardAcademicCalendar.visibility = View.VISIBLE
             binding.cardAcademicCalendar.applyClickAnimation {
                 startActivity(Intent(this, AcademicCalendarActivity::class.java))
                 overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
             }
-
+        }
+        
+        if (user.canEditTimetable()) {
             binding.cardManageBusSchedule.visibility = View.VISIBLE
             binding.cardManageBusSchedule.applyClickAnimation {
                 startActivity(Intent(this, BusScheduleManagementActivity::class.java))

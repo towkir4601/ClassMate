@@ -40,6 +40,13 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         val body = remoteMessage.notification?.body ?: remoteMessage.data["body"]
         val type = remoteMessage.data["type"] ?: "notice"
 
+        // Prevent duplicate notifications: OneSignal already handles notices/cancellations instantly.
+        val from = remoteMessage.from ?: ""
+        if (from.endsWith("notices") || from.endsWith("cancellations") || type == "notice" || type == "cancellation") {
+            Log.d("FCM", "Skipping FCM message from $from, OneSignal will handle it.")
+            return
+        }
+
         // Only show notification if we actually have content to show
         if (title != null && body != null) {
             sendNotification(title, body, type)

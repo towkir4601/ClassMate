@@ -28,7 +28,7 @@
             android:layout_width="40dp"
             android:layout_height="40dp">
 
-            <de.hdodenhof.circleimageview.CircleImageView
+            <ImageView
                 android:id="@+id/ivToolbarAvatar"
                 android:layout_width="40dp"
                 android:layout_height="40dp" />
@@ -54,7 +54,7 @@
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:text="CODRIX-22"
+                android:text="Class Group"
                 android:textColor="@color/cm_text_primary"
                 android:textSize="17sp"
                 android:textStyle="bold" />
@@ -173,6 +173,7 @@
         android:orientation="horizontal"
         android:paddingHorizontal="12dp"
         android:visibility="gone"
+        android:elevation="8dp"
         app:layout_constraintTop_toTopOf="parent">
 
         <EditText

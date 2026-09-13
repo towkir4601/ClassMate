@@ -1,0 +1,97 @@
+package com.shuaib.classmate.chat
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.core.os.bundleOf
+import androidx.core.view.isVisible
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.shuaib.classmate.R
+import com.shuaib.classmate.activities.MainActivity
+import com.shuaib.classmate.databinding.FragmentDmRoomsBinding
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+
+class DmRoomsFragment : Fragment() {
+    private val viewModel: ChatViewModel by viewModels()
+    private var _binding: FragmentDmRoomsBinding? = null
+    private val binding get() = _binding!!
+    private var adapter: ChatListAdapter? = null
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentDmRoomsBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        adapter = ChatListAdapter { item ->
+            if (item is ChatListItem.Room) {
+                if (item.room.type == "group") {
+                    (parentFragment as? ChatTabsFragment)?.switchToTab(1)
+                } else {
+                    (requireActivity() as MainActivity).openChildDestination(R.id.nav_chat,
+                        R.id.fragment_dm_chat,
+                        bundleOf(
+                            "roomId" to item.room.id,
+                            "otherUserName" to item.room.otherUserName,
+                            "otherUserId" to item.room.otherUserId
+                        )
+                    )
+                }
+            }
+        }
+
+        binding.rvRooms.layoutManager = LinearLayoutManager(requireContext())
+        binding.rvRooms.adapter = adapter
+
+        binding.fabNewChat.setOnClickListener {
+            (requireActivity() as MainActivity).openChildDestination(R.id.nav_chat, R.id.fragment_dm_list)
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.rooms.collectLatest { rooms ->
+                    val dmRooms = rooms.filter { it.type == "direct" }
+                        .sortedByDescending { it.lastTimestamp }
+                    
+                    if (dmRooms.isEmpty()) {
+                        binding.layoutEmptyState.isVisible = true
+                        adapter?.submitList(emptyList())
+                    } else {
+                        binding.layoutEmptyState.isVisible = false
+                        val items = dmRooms.map { room ->
+                            ChatListItem.Room(
+                                room = room,
+                                title = room.otherUserName.ifBlank { "Unknown User" },
+                                subtitle = room.lastMessage.ifBlank { "Started a chat" },
+                                avatarUrl = room.otherUserAvatar,
+                                isGroup = false,
+                                isOnline = viewModel.onlineUsers.value.contains(room.otherUserId),
+                                otherUserId = room.otherUserId
+                            )
+                        }
+                        adapter?.submitList(items)
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+        adapter = null
+    }
+}

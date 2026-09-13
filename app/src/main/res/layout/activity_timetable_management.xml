@@ -24,7 +24,18 @@
             app:title="Timetable Editor"
             app:titleTextColor="@color/cm_text_primary"
             app:navigationIcon="@drawable/ic_chevron_left"
-            app:navigationIconTint="@color/cm_text_primary" />
+            app:navigationIconTint="@color/cm_text_primary">
+            
+            <ImageView
+                android:id="@+id/btnClearAll"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:padding="16dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_delete"
+                app:tint="@color/cm_primary"/>
+        </com.google.android.material.appbar.MaterialToolbar>
 
         <HorizontalScrollView
             android:layout_width="match_parent"

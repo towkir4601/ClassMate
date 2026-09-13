@@ -10,7 +10,6 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.shuaib.classmate.R
-import de.hdodenhof.circleimageview.CircleImageView
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -53,7 +52,7 @@ class ChatListAdapter(
     }
 
     inner class ChatViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val avatar: CircleImageView = itemView.findViewById(R.id.ivChatAvatar)
+        private val avatar: ImageView = itemView.findViewById(R.id.ivChatAvatar)
         private val avatarLetter: TextView = itemView.findViewById(R.id.tvChatAvatarLetter)
         private val groupIcon: ImageView = itemView.findViewById(R.id.ivGroupIcon)
         private val onlineDot: View = itemView.findViewById(R.id.viewOnlineDot)
@@ -78,9 +77,10 @@ class ChatListAdapter(
             onlineDot.isVisible = !item.isGroup && item.isOnline
 
             if (item.isGroup) {
-                avatarLetter.visibility = View.GONE
-                avatar.setImageDrawable(null)
-                avatar.background = AvatarUtils.circle(item.room.id)
+                avatarLetter.visibility = View.VISIBLE
+                avatarLetter.text = ""
+                avatarLetter.background = AvatarUtils.circle(item.room.id)
+                avatar.visibility = View.GONE
                 groupIcon.isVisible = true
             } else {
                 groupIcon.isVisible = false

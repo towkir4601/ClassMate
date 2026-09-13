@@ -1,0 +1,35 @@
+--- app/src/main/java/com/shuaib/classmate/models/User.kt
++++ app/src/main/java/com/shuaib/classmate/models/User.kt
+@@ -36,7 +36,7 @@
+ 
+     @com.google.firebase.firestore.Exclude
+     fun hasPermission(permissionKey: String): Boolean {
+-        val r = role.lowercase()
++        val r = role.trim().lowercase()
+         if (r == "superadmin") return true
+         
+         // Admin default permissions
+@@ -73,14 +73,14 @@
+     
+     @com.google.firebase.firestore.Exclude
+     fun canManageUsers(): Boolean {
+-        val r = role.lowercase()
++        val r = role.trim().lowercase()
+         if (r == "superadmin" || r == "admin") return true
+         return permissions["canManageUsers"] == true
+     }
+     
+     @com.google.firebase.firestore.Exclude
+     fun isApproved(): Boolean {
+-        val r = role.lowercase()
++        val r = role.trim().lowercase()
+         if (r == "superadmin" || r == "admin") return true
+         return approved
+     }
+ 
+     @com.google.firebase.firestore.Exclude
+     fun isAdmin(): Boolean {
+-        val r = role.lowercase()
++        val r = role.trim().lowercase()
+         return r == "superadmin" || r == "admin" || permissions.values.any { it }
+     }

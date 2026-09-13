@@ -44,7 +44,8 @@ data class Notice(
     // Resource specific
     val pdfId: String = "",
     
-    val readCount: Int = 0
+    val readCount: Int = 0,
+    val targetBatch: String = "all"
 ) {
     val displayType: String
         get() = when {

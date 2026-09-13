@@ -20,7 +20,7 @@ class GeminiAiProvider(private val client: OkHttpClient, private val gson: Gson)
         val isMultiNotice = input.subject == "Notice Feed Summary" || input.title == "Today's Updates"
         val prompt = if (isMultiNotice) {
             """
-                You are ClassMate AI, an expert academic assistant for MBSTU CSE-22 (Computer Science & Engineering, 2022 batch) students.
+                You are ClassMate AI, an expert academic assistant for GSTU CSE-14 (Computer Science & Engineering, 2014 batch) students.
                 Your task is to transform TODAY'S ACADEMIC UPDATES (which is a concatenated list of multiple notices, potentially in Bangla, English, or Benglish) into a single, cohesive, highly polished, and easily scannable daily briefing in English.
 
                 Guidelines:
@@ -47,7 +47,7 @@ class GeminiAiProvider(private val client: OkHttpClient, private val gson: Gson)
             """.trimIndent()
         } else {
             """
-                You are ClassMate AI, an expert academic assistant for MBSTU CSE-22 (Computer Science & Engineering, 2022 batch) students.
+                You are ClassMate AI, an expert academic assistant for GSTU CSE-14 (Computer Science & Engineering, 2014 batch) students.
                 Your task is to transform academic notices (which can be unstructured, verbose, or in Bangla/Benglish) into highly polished, structured, and scannable summaries in English.
 
                 Guidelines:
@@ -119,12 +119,12 @@ class GeminiAiProvider(private val client: OkHttpClient, private val gson: Gson)
 
     override suspend fun generateNoticeDraft(input: NoticeDraftInput): Result<AiNoticeDraft> = withContext(Dispatchers.IO) {
         val prompt = """
-            You are ClassMate AI for MBSTU (Mawlana Bhashani Science and Technology University) CSE department admins.
-            Convert messy admin notes/drafts into polished academic notices for CSE-22 batch students.
+            You are ClassMate AI for GSTU (Gopalganj Science and Technology University) CSE department admins.
+            Convert messy admin notes/drafts into polished academic notices for CSE-14 batch students.
 
             University context:
             - Department: Computer Science & Engineering (CSE)
-            - Batch: CSE-22 (2022 intake)
+            - Batch: CSE-14 (2014 intake)
             - Location: Bangladesh
             - Known subjects: ${input.knownSubjects.joinToString()}
 
@@ -242,6 +242,76 @@ class GeminiAiProvider(private val client: OkHttpClient, private val gson: Gson)
         }
     }
 
+    override suspend fun extractTimetable(base64Data: String, mimeType: String): Result<Map<String, List<com.shuaib.classmate.models.Period>>> = withContext(Dispatchers.IO) {
+        val prompt = """
+            You are an expert at extracting academic class routines (timetables).
+            Analyze the provided image/PDF and extract the full weekly class schedule.
+            
+            Guidelines:
+            1. Output EXACTLY a JSON object where the keys are lowercase days of the week ("saturday", "sunday", "monday", "tuesday", "wednesday", "thursday", "friday").
+            2. The value for each day should be an array of class objects.
+            3. Each class object MUST have these EXACT keys: "id", "subject", "teacher", "startTime", "endTime".
+            4. Generate a unique "id" for each class (e.g., "period_sat_1", "period_sat_2").
+            5. "startTime" and "endTime" must be in 12-hour format like "09:00 AM", "01:30 PM".
+            6. If a day has no classes or is a weekend, provide an empty array for that day.
+            7. Extract subject names and teacher initials/names precisely.
+            8. Only output valid JSON, without any markdown formatting like ```json.
+            
+            Example Format:
+            {
+              "saturday": [
+                {
+                  "id": "period_sat_1",
+                  "subject": "CSE-311 (Software Engineering)",
+                  "teacher": "TA",
+                  "startTime": "09:00 AM",
+                  "endTime": "10:30 AM"
+                }
+              ],
+              "sunday": []
+            }
+        """.trimIndent()
+
+        val requestBody = mapOf(
+            "contents" to listOf(
+                mapOf(
+                    "parts" to listOf(
+                        mapOf("text" to prompt),
+                        mapOf(
+                            "inlineData" to mapOf(
+                                "mimeType" to mimeType,
+                                "data" to base64Data
+                            )
+                        )
+                    )
+                )
+            ),
+            "generationConfig" to mapOf(
+                "temperature" to 0.1,
+                "responseMimeType" to "application/json"
+            )
+        )
+
+        executeRequest(requestBody) { responseText ->
+            try {
+                val jsonText = parseTextResponse(responseText)
+                val cleanJson = jsonText.trim()
+                    .removePrefix("```json")
+                    .removePrefix("```")
+                    .removeSuffix("```")
+                    .trim()
+                if (cleanJson.isBlank()) {
+                    Result.failure(AiProviderError.InvalidResponse("Empty response from Gemini"))
+                } else {
+                    val mapType = object : com.google.gson.reflect.TypeToken<Map<String, List<com.shuaib.classmate.models.Period>>>() {}.type
+                    val schedule: Map<String, List<com.shuaib.classmate.models.Period>> = gson.fromJson(cleanJson, mapType)
+                    Result.success(schedule)
+                }
+            } catch (e: Exception) {
+                Result.failure(AiProviderError.InvalidResponse("Failed to parse routine: ${e.message}"))
+            }
+        }
+    }
 
     private fun cleanMarkdownResponse(text: String): String {
         var cleaned = text.trim()

@@ -284,6 +284,7 @@ class LoginActivity : AppCompatActivity() {
                     "studentId" to "",
                     "photoUrl" to (firebaseUser?.photoUrl?.toString() ?: ""),
                     "role" to "student",
+                    "approved" to false,
                     "permissions" to User.DEFAULT_PERMISSIONS,
                     "authProvider" to provider,
                     "createdAt" to FieldValue.serverTimestamp(),
@@ -297,7 +298,7 @@ class LoginActivity : AppCompatActivity() {
                         } else {
                             task.exception?.let { logFirestoreFailure(it) }
                         }
-                        identifyUserAndNavigate(uid, "student")
+                        identifyUserAndNavigate(uid, "student", "")
                     }
                 return@addOnSuccessListener
             }
@@ -314,25 +315,8 @@ class LoginActivity : AppCompatActivity() {
                 profileUpdate["updatedAt"] = FieldValue.serverTimestamp()
             }
 
-            val existingPerms = doc.get("permissions") as? Map<*, *> ?: emptyMap<String, Boolean>()
-            val missingPerms = User.DEFAULT_PERMISSIONS.filter { !existingPerms.containsKey(it.key) }
-
             fun finishNormalization() {
-                if (missingPerms.isNotEmpty()) {
-                    val payload = mapOf("permissions" to missingPerms)
-                    logFirestoreWrite("users/$uid", uid, payload)
-                    userRef.set(payload, SetOptions.merge())
-                        .addOnCompleteListener { task ->
-                            if (task.isSuccessful) {
-                                Log.d("FirestoreDebug", "Write success: users/$uid")
-                            } else {
-                                task.exception?.let { logFirestoreFailure(it) }
-                            }
-                            identifyUserAndNavigate(uid, role)
-                        }
-                } else {
-                    identifyUserAndNavigate(uid, role)
-                }
+                identifyUserAndNavigate(uid, role, existingData["batch"] as? String ?: "")
             }
 
             if (profileUpdate.isNotEmpty()) {
@@ -370,15 +354,51 @@ class LoginActivity : AppCompatActivity() {
         Log.e("FirestoreDebug", "CAUSE: ${e.cause?.message}")
     }
 
-    private fun identifyUserAndNavigate(uid: String, role: String) {
+    private fun identifyUserAndNavigate(uid: String, role: String, batch: String = "") {
         ensureRoleDefaults(uid)
-        OneSignal.login(uid)
-        OneSignal.User.addTag("role", role)
-        OneSignal.User.addTag("uid", uid)
         try {
+            OneSignal.login(uid)
+            OneSignal.User.addTag("role", role)
+            OneSignal.User.addTag("uid", uid)
+            if (batch.isNotBlank()) {
+                OneSignal.User.addTag("batch", batch)
+            }
             OneSignal.User.pushSubscription.optIn()
-        } catch (_: Exception) {}
-        navigateToMain()
+        } catch (_: Exception) {
+            Log.w("LoginActivity", "OneSignal not configured, skipping push setup")
+        }
+
+        // Check if user is approved
+        if (role.trim().lowercase() == "superadmin" || role.trim().lowercase() == "admin") {
+            navigateToMain()
+            return
+        }
+
+        firestore.collection("users").document(uid).get()
+            .addOnSuccessListener { doc ->
+                val approvedVal = doc.get("approved")
+                val approved = when (approvedVal) {
+                    is Boolean -> approvedVal
+                    is String -> approvedVal.toBoolean()
+                    else -> false
+                }
+                
+                val currentUser = FirebaseAuth.getInstance().currentUser
+                val isGoogleAuth = currentUser?.providerData?.any { it.providerId == "google.com" } == true
+                
+                if (approved && (currentUser?.isEmailVerified == true || isGoogleAuth)) {
+                    navigateToMain()
+                } else {
+                    // User not approved or not verified - show pending screen
+                    setLoading(false)
+                    startActivity(Intent(this, PendingApprovalActivity::class.java))
+                    finishAffinity()
+                }
+            }
+            .addOnFailureListener {
+                // If we can't check, let them in (fail open)
+                navigateToMain()
+            }
     }
 
     private fun ensureRoleDefaults(uid: String) {
@@ -455,7 +475,7 @@ class LoginActivity : AppCompatActivity() {
     private fun validateIdentifier(identifier: String): Boolean {
         val value = identifier.trim()
         return if (value.isBlank() || (!Patterns.EMAIL_ADDRESS.matcher(value).matches() && !isStudentId(value))) {
-            binding.tilEmail.error = "Enter a valid email or student ID (example: CE25045)"
+            binding.tilEmail.error = "Enter a valid student ID or Email"
             false
         } else {
             binding.tilEmail.error = null
@@ -517,11 +537,8 @@ class LoginActivity : AppCompatActivity() {
     private fun showForgotPasswordDialog() {
         val dialogBinding = DialogForgotPasswordBinding.inflate(layoutInflater)
         
-        // Pre-fill the email field if the user already typed a valid email format on login screen
         val typedInput = binding.etEmail.text.toString().trim()
-        if (Patterns.EMAIL_ADDRESS.matcher(typedInput).matches()) {
-            dialogBinding.etResetEmail.setText(typedInput)
-        }
+        dialogBinding.etResetEmail.setText(typedInput)
 
         val dialog = MaterialAlertDialogBuilder(this, R.style.Theme_ClassMate_Dialog)
             .setView(dialogBinding.root)
@@ -531,30 +548,50 @@ class LoginActivity : AppCompatActivity() {
 
         dialog.show()
 
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            val email = dialogBinding.etResetEmail.text.toString().trim()
-            if (email.isEmpty()) {
-                dialogBinding.tilResetEmail.error = "Email is required"
-                return@setOnClickListener
-            }
-            if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                dialogBinding.tilResetEmail.error = "Enter a valid email"
-                return@setOnClickListener
-            }
-            dialogBinding.tilResetEmail.error = null
-
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = false
-            
+        fun sendResetEmail(email: String) {
             auth.sendPasswordResetEmail(email)
                 .addOnSuccessListener {
-                    Toast.makeText(this, "Password reset link sent. Check your email.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "Password reset link sent to $email", Toast.LENGTH_LONG).show()
                     dialog.dismiss()
                 }
                 .addOnFailureListener { exception ->
                     dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
-                    val friendlyMsg = AuthErrorMapper.forgotPasswordMessage(exception)
-                    dialogBinding.tilResetEmail.error = friendlyMsg
+                    dialogBinding.tilResetEmail.error = AuthErrorMapper.forgotPasswordMessage(exception)
                 }
+        }
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val input = dialogBinding.etResetEmail.text.toString().trim()
+            if (input.isEmpty()) {
+                dialogBinding.tilResetEmail.error = "Email or Student ID required"
+                return@setOnClickListener
+            }
+
+            dialogBinding.tilResetEmail.error = null
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = false
+
+            if (Patterns.EMAIL_ADDRESS.matcher(input).matches()) {
+                sendResetEmail(input)
+            } else if (isStudentId(input)) {
+                val normalizedId = StudentIdUtils.normalize(input)
+                firestore.collection("student_id_lookup").document(normalizedId).get()
+                    .addOnSuccessListener { snapshot ->
+                        val email = snapshot.getString("email").orEmpty()
+                        if (email.isBlank()) {
+                            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
+                            dialogBinding.tilResetEmail.error = "No account found for this Student ID"
+                        } else {
+                            sendResetEmail(email)
+                        }
+                    }
+                    .addOnFailureListener {
+                        dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
+                        dialogBinding.tilResetEmail.error = "Database error. Try again."
+                    }
+            } else {
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
+                dialogBinding.tilResetEmail.error = "Enter a valid email or student ID"
+            }
         }
     }
 

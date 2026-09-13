@@ -1,0 +1,81 @@
+--- app/src/main/java/com/shuaib/classmate/chat/DmListFragment.kt
++++ app/src/main/java/com/shuaib/classmate/chat/DmListFragment.kt
+@@ -10,6 +10,7 @@
+ import android.view.ViewGroup
+ import android.widget.Toast
+ import androidx.core.os.bundleOf
++import androidx.core.content.ContextCompat
+ import androidx.core.view.isVisible
+ import androidx.fragment.app.Fragment
+ import androidx.fragment.app.activityViewModels
+@@ -38,6 +39,12 @@
+     private var userLoadFinished = false
+     private var navigatedToPendingDm = false
+     private val currentUserId: String
+         get() = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
++
++    private var currentFilter = FilterType.ALL
++    private enum class FilterType { ALL, ONLINE, ADMINS, STUDENTS }
+ 
+     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+         _binding = FragmentDmListBinding.inflate(inflater, container, false)
+@@ -62,6 +69,7 @@
+             }
+             override fun afterTextChanged(s: Editable?) = Unit
+         })
++
++        setupFilterChips()
+ 
+         collectUsers()
+         collectDmCreated()
+@@ -69,6 +77,41 @@
+         repository.getUsers()
+     }
+ 
++    private fun setupFilterChips() {
++        val chips = mapOf(
++            FilterType.ALL to binding.chipAll,
++            FilterType.ONLINE to binding.chipOnline,
++            FilterType.ADMINS to binding.chipAdmins,
++            FilterType.STUDENTS to binding.chipStudents
++        )
++
++        chips.forEach { (type, textView) ->
++            textView.setOnClickListener {
++                currentFilter = type
++                // Update UI
++                chips.values.forEach { tv ->
++                    tv.setBackgroundResource(R.drawable.bg_chat_chip_unselected)
++                    tv.setTextColor(ContextCompat.getColor(requireContext(), R.color.cm_text_secondary))
++                }
++                textView.setBackgroundResource(R.drawable.bg_chat_chip_selected_blue)
++                textView.setTextColor(ContextCompat.getColor(requireContext(), R.color.cm_on_primary))
++                
++                submitFilteredUsers(binding.etSearchUsers.text?.toString().orEmpty())
++            }
++        }
++    }
++
+     private fun collectUsers() {
+@@ -93,10 +136,17 @@
+     private fun submitFilteredUsers(query: String) {
+-        val filtered = if (query.isBlank()) {
+-            allUsers
+-        } else {
+-            allUsers.filter { it.name.contains(query, ignoreCase = true) }
+-        }
++        var filtered = allUsers
++        
++        when (currentFilter) {
++            FilterType.ONLINE -> filtered = filtered.filter { it.isOnline }
++            FilterType.ADMINS -> filtered = filtered.filter { it.role == "admin" || it.role == "superadmin" }
++            FilterType.STUDENTS -> filtered = filtered.filter { it.role == "student" || it.role.isBlank() }
++            FilterType.ALL -> {}
++        }
++
++        if (query.isNotBlank()) {
++            filtered = filtered.filter { it.name.contains(query, ignoreCase = true) }
++        }
++
+         if (filtered.isEmpty()) {
+             showEmptyState(

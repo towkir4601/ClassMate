@@ -53,6 +53,7 @@ class PostNoticeActivity : AppCompatActivity() {
     private var editNoticeId: String? = null
 
     private var isAiPostingMode = false
+    private var currentUserBatch: String = ""
     private var aiPolishedNotice: com.shuaib.classmate.models.AiNoticeDraft? = null
 
     // Attachment fields
@@ -110,6 +111,20 @@ class PostNoticeActivity : AppCompatActivity() {
         setupToolbar()
         setupTypeSelector()
         setupPostingMode()
+        
+        // Check if teacher
+        auth.currentUser?.uid?.let { uid ->
+            db.collection("users").document(uid).get().addOnSuccessListener { doc ->
+                currentUserBatch = doc.getString("batch") ?: ""
+                if (doc.getString("role") == "teacher") {
+                    binding.rbNormal.isVisible = false
+                    binding.rbPoll.isVisible = false
+                    binding.rbVacation.isVisible = false
+                    binding.rgNoticeType.check(R.id.rbCancel)
+                }
+            }
+        }
+        
         binding.rbSub.isVisible = false
         binding.sectionSubTeacher.isVisible = false
         setupSubjectPicker()
@@ -422,19 +437,13 @@ class PostNoticeActivity : AppCompatActivity() {
             "updatedAt" to FieldValue.serverTimestamp(),
             "isPinned" to false,
             "isDeleted" to false,
-            "timestamp" to FieldValue.serverTimestamp()
+            "timestamp" to FieldValue.serverTimestamp(),
+            "targetBatch" to if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch
         )
 
-        db.collection("notices")
-            .add(noticeData)
-            .addOnSuccessListener { docRef ->
-                markPeriodAsCancelled(subject, targetDay, targetDate, whenText, docRef.id)
-            }
-            .addOnFailureListener { e ->
-                binding.progressBar.isVisible = false
-                binding.btnPublish.isEnabled = true
-                Toast.makeText(this, "Failed: ${e.message}", Toast.LENGTH_LONG).show()
-            }
+        val newNoticeRef = db.collection("notices").document()
+        newNoticeRef.set(noticeData)
+        markPeriodAsCancelled(subject, targetDay, targetDate, whenText, newNoticeRef.id)
     }
 
     private fun publishNormalNotice() {
@@ -537,33 +546,31 @@ class PostNoticeActivity : AppCompatActivity() {
             "updatedAt" to FieldValue.serverTimestamp(),
             "isPinned" to false,
             "isDeleted" to false,
-            "timestamp" to FieldValue.serverTimestamp()
+            "timestamp" to FieldValue.serverTimestamp(),
+            "targetBatch" to if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch
         )
 
-        db.collection("notices")
-            .add(noticeData)
-            .addOnSuccessListener { docRef ->
-                WidgetUpdater.refresh(this)
-                NotificationSender.sendNoticeAlert(
-                    title = title,
-                    body = body,
-                    noticeId = docRef.id,
-                    onSuccess = {
-                        binding.progressBar.isVisible = false
-                        Toast.makeText(this, "✅ Notice posted!", Toast.LENGTH_SHORT).show()
-                        finish()
-                    },
-                    onFailure = {
-                        binding.progressBar.isVisible = false
-                        finish()
-                    }
-                )
-            }
-            .addOnFailureListener { e ->
+        val newNoticeRef = db.collection("notices").document()
+        val noticeId = newNoticeRef.id
+        
+        newNoticeRef.set(noticeData)
+        
+        WidgetUpdater.refresh(this)
+        
+        NotificationSender.sendNoticeAlert(
+            title = title,
+            body = body,
+            noticeId = noticeId,
+            onSuccess = {
                 binding.progressBar.isVisible = false
-                binding.btnPublish.isEnabled = true
-                Toast.makeText(this, "Failed: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "✅ Notice posted!", Toast.LENGTH_SHORT).show()
+                finish()
+            },
+            onFailure = {
+                binding.progressBar.isVisible = false
+                finish()
             }
+        )
     }
 
     private fun publishCancellationNotice() {
@@ -578,6 +585,14 @@ class PostNoticeActivity : AppCompatActivity() {
         val targetDayString = if (isToday) DateHelper.todayDayString() else DateHelper.tomorrowDayString()
         val targetDate = if (isToday) DateHelper.today() else DateHelper.tomorrow()
         val whenText = if (isToday) "today" else "tomorrow"
+
+        if (isToday) {
+            val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+            if (hour >= 17) {
+                Toast.makeText(this, "Cannot edit or cancel today's class after 5:00 PM.", Toast.LENGTH_LONG).show()
+                return
+            }
+        }
 
         binding.progressBar.isVisible = true
         binding.btnPublish.isEnabled = false
@@ -604,38 +619,31 @@ class PostNoticeActivity : AppCompatActivity() {
             "updatedAt" to FieldValue.serverTimestamp(),
             "isPinned" to false,
             "isDeleted" to false,
-            "timestamp" to FieldValue.serverTimestamp()
+            "timestamp" to FieldValue.serverTimestamp(),
+            "targetBatch" to if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch
         )
 
-        db.collection("notices")
-            .add(noticeData)
-            .addOnSuccessListener { docRef ->
-                markPeriodAsCancelled(
-                    subject = selectedSubject,
-                    day = targetDayString,
-                    cancelDate = targetDate,
-                    whenText = whenText,
-                    noticeId = docRef.id
-                )
-            }
-            .addOnFailureListener { e ->
-                binding.progressBar.isVisible = false
-                binding.btnPublish.isEnabled = true
-                Toast.makeText(this, "Failed: ${e.message}", Toast.LENGTH_LONG).show()
-            }
+        val newNoticeRef = db.collection("notices").document()
+        newNoticeRef.set(noticeData)
+        markPeriodAsCancelled(
+            subject = selectedSubject,
+            day = targetDayString,
+            cancelDate = targetDate,
+            whenText = whenText,
+            noticeId = newNoticeRef.id
+        )
     }
 
     private fun markPeriodAsCancelled(subject: String, day: String, cancelDate: String, whenText: String, noticeId: String? = null) {
+        sendCancellationNotification(subject, whenText, day, noticeId)
+        
         db.collection("timetable")
             .document(day)
             .collection("periods")
             .whereEqualTo("subject", subject)
             .get()
             .addOnSuccessListener { snapshot ->
-                if (snapshot.isEmpty) {
-                    sendCancellationNotification(subject, whenText, day, noticeId)
-                    return@addOnSuccessListener
-                }
+                if (snapshot.isEmpty) return@addOnSuccessListener
 
                 val batch = db.batch()
                 snapshot.documents.forEach { doc ->
@@ -645,19 +653,9 @@ class PostNoticeActivity : AppCompatActivity() {
                     ))
                 }
 
-                batch.commit()
-                    .addOnSuccessListener {
-                        WidgetUpdater.refresh(this)
-                        sendCancellationNotification(subject, whenText, day, noticeId)
-                    }
-                    .addOnFailureListener { e ->
-                        sendCancellationNotification(subject, whenText, day, noticeId)
-                        Log.e("CANCEL", "Timetable update failed: ${e.message}")
-                    }
-            }
-            .addOnFailureListener { e ->
-                sendCancellationNotification(subject, whenText, day, noticeId)
-                Log.e("CANCEL", "Query failed: ${e.message}")
+                batch.commit().addOnSuccessListener {
+                    WidgetUpdater.refresh(this)
+                }
             }
     }
 
@@ -694,6 +692,14 @@ class PostNoticeActivity : AppCompatActivity() {
         val targetDate = if (isToday) DateHelper.today() else DateHelper.tomorrow()
         val whenText = if (isToday) "today" else "tomorrow"
 
+        if (isToday) {
+            val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+            if (hour >= 17) {
+                Toast.makeText(this, "Cannot edit or cancel today's class after 5:00 PM.", Toast.LENGTH_LONG).show()
+                return
+            }
+        }
+
         binding.progressBar.isVisible = true
         binding.btnPublish.isEnabled = false
 
@@ -720,55 +726,47 @@ class PostNoticeActivity : AppCompatActivity() {
             "updatedAt" to FieldValue.serverTimestamp(),
             "isPinned" to false,
             "isDeleted" to false,
-            "timestamp" to FieldValue.serverTimestamp()
+            "timestamp" to FieldValue.serverTimestamp(),
+            "targetBatch" to if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch
         )
 
-        db.collection("notices")
-            .add(noticeData)
-            .addOnSuccessListener {
-                db.collection("timetable")
-                    .document(targetDayString)
-                    .collection("periods")
-                    .whereEqualTo("subject", selectedSubject)
-                    .get()
-                    .addOnSuccessListener { snapshot ->
-                        val batch = db.batch()
-                        snapshot.documents.forEach { doc ->
-                            batch.update(doc.reference, mapOf(
-                                "isSubstitute" to true,
-                                "substituteTeacher" to subTeacher,
-                                "substituteDate" to targetDate
-                            ))
-                        }
-                        batch.commit()
-                            .addOnSuccessListener {
-                                WidgetUpdater.refresh(this)
-                                NotificationSender.sendSubstituteAlert(
-                                    subject = selectedSubject,
-                                    substituteTeacher = subTeacher,
-                                    whenText = whenText,
-                                    day = targetDayString,
-                                    onSuccess = {
-                                        binding.progressBar.isVisible = false
-                                        Toast.makeText(this, "🔄 Substitute published!", Toast.LENGTH_SHORT).show()
-                                        finish()
-                                    },
-                                    onFailure = {
-                                        binding.progressBar.isVisible = false
-                                        finish()
-                                    }
-                                )
-                            }
-                    }
+        val newNoticeRef = db.collection("notices").document()
+        newNoticeRef.set(noticeData)
+        
+        db.collection("timetable")
+            .document(targetDayString)
+            .collection("periods")
+            .whereEqualTo("subject", selectedSubject)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val batch = db.batch()
+                snapshot.documents.forEach { doc ->
+                    batch.update(doc.reference, mapOf(
+                        "isSubstitute" to true,
+                        "substituteTeacher" to subTeacher,
+                        "substituteDate" to targetDate
+                    ))
+                }
+                batch.commit()
             }
-            .addOnFailureListener { e ->
+            
+        WidgetUpdater.refresh(this)
+        NotificationSender.sendSubstituteAlert(
+            subject = selectedSubject,
+            substituteTeacher = subTeacher,
+            whenText = whenText,
+            day = targetDayString,
+            onSuccess = {
                 binding.progressBar.isVisible = false
-                binding.btnPublish.isEnabled = true
-                Toast.makeText(this, "Failed: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "🔄 Substitute published!", Toast.LENGTH_SHORT).show()
+                finish()
+            },
+            onFailure = {
+                binding.progressBar.isVisible = false
+                finish()
             }
+        )
     }
-
-
 
     private fun getFileName(uri: Uri): String? {
         var name: String? = null
@@ -956,33 +954,28 @@ class PostNoticeActivity : AppCompatActivity() {
                     "updatedAt" to FieldValue.serverTimestamp(),
                     "isPinned" to true,
                     "isDeleted" to false,
-                    "timestamp" to FieldValue.serverTimestamp()
+                    "timestamp" to FieldValue.serverTimestamp(),
+            "targetBatch" to if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch
                 )
 
-                db.collection("notices")
-                    .add(noticeData)
-                    .addOnSuccessListener { docRef ->
-                        WidgetUpdater.refresh(this@PostNoticeActivity)
-                        NotificationSender.sendNoticeAlert(
-                            title = noticeTitle,
-                            body = noticeBody,
-                            noticeId = docRef.id,
-                            onSuccess = {
-                                binding.progressBar.isVisible = false
-                                Toast.makeText(this@PostNoticeActivity, "✅ Vacation notice and exception published!", Toast.LENGTH_SHORT).show()
-                                finish()
-                            },
-                            onFailure = {
-                                binding.progressBar.isVisible = false
-                                finish()
-                            }
-                        )
-                    }
-                    .addOnFailureListener { e ->
+                val newNoticeRef = db.collection("notices").document()
+                newNoticeRef.set(noticeData)
+                
+                WidgetUpdater.refresh(this@PostNoticeActivity)
+                NotificationSender.sendNoticeAlert(
+                    title = noticeTitle,
+                    body = noticeBody,
+                    noticeId = newNoticeRef.id,
+                    onSuccess = {
                         binding.progressBar.isVisible = false
-                        binding.btnPublish.isEnabled = true
-                        Toast.makeText(this@PostNoticeActivity, "Notice creation failed: ${e.message}", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@PostNoticeActivity, "✅ Vacation notice and exception published!", Toast.LENGTH_SHORT).show()
+                        finish()
+                    },
+                    onFailure = {
+                        binding.progressBar.isVisible = false
+                        finish()
                     }
+                )
             } else {
                 binding.progressBar.isVisible = false
                 binding.btnPublish.isEnabled = true

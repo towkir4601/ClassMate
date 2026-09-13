@@ -1,0 +1,28 @@
+--- app/src/main/java/com/shuaib/classmate/models/User.kt
++++ app/src/main/java/com/shuaib/classmate/models/User.kt
+@@ -29,14 +29,25 @@
+     @com.google.firebase.firestore.Exclude
+     fun hasPermission(permissionKey: String): Boolean {
+         val r = role.lowercase()
+         if (r == "superadmin") return true
++        
++        // By default, admins have access to everything EXCEPT Seat Plan, Academic Calendar, and Managing Admins
++        if (r == "admin") {
++            if (permissionKey == "canUploadSeatPlan" || 
++                permissionKey == "canManageAcademicCalendar" || 
++                permissionKey == "canManageAdmins") {
++                return permissions[permissionKey] == true
++            }
++            return true
++        }
++        
+         return permissions[permissionKey] == true
+     }
+ 
+     @com.google.firebase.firestore.Exclude
+     fun canPostNotices(): Boolean = hasPermission("canPostNotices")
+     @com.google.firebase.firestore.Exclude
+     fun canEditTimetable(): Boolean = hasPermission("canEditTimetable")
+     @com.google.firebase.firestore.Exclude
++    fun canManageAcademicCalendar(): Boolean = hasPermission("canManageAcademicCalendar")
+     fun canCreatePolls(): Boolean = hasPermission("canCreatePolls")

@@ -6,4 +6,5 @@ interface AiProvider {
     suspend fun summarizeNotice(input: NoticeSummaryInput): Result<String>
     suspend fun generateNoticeDraft(input: NoticeDraftInput): Result<AiNoticeDraft>
     suspend fun chatWithAi(input: AiChatInput): Result<String>
+    suspend fun extractTimetable(base64Data: String, mimeType: String): Result<Map<String, List<com.shuaib.classmate.models.Period>>>
 }

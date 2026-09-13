@@ -14,13 +14,27 @@ object LibraryUrlOpener {
     private const val TAG = "LibraryOpenDebug"
 
     fun open(context: Context, file: PdfFile) {
+        val fileId = file.fileId
         val url = file.downloadUrl.ifBlank { file.driveUrl.ifBlank { file.telegramUrl } }
+        
+        // If it's a telegram file with a fileId, open it natively using PdfRendererActivity!
+        if (fileId.isNotBlank() && (file.provider == "telegram" || url.contains("t.me"))) {
+            val intent = Intent(context, com.shuaib.classmate.activities.PdfRendererActivity::class.java).apply {
+                putExtra("FILE_ID", fileId)
+                putExtra("FILE_NAME", file.title)
+                putExtra("FALLBACK_URL", url)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+            return
+        }
+
         if (url.isBlank()) {
             Toast.makeText(context, "Resource link not available", Toast.LENGTH_SHORT).show()
             return
         }
 
-        Log.d(TAG, "openUrl resourceId=${file.id} url=$url")
+        Log.d(TAG, "openUrl resourceId=\${file.id} url=\$url")
         Toast.makeText(context, "Opening resource...", Toast.LENGTH_SHORT).show()
 
         val uri = Uri.parse(url)
@@ -32,14 +46,14 @@ object LibraryUrlOpener {
             customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             customTabsIntent.launchUrl(context, uri)
         } catch (e: Exception) {
-            Log.e(TAG, "customTabsFailed resourceId=${file.id} message=${e.message}", e)
+            Log.e(TAG, "customTabsFailed resourceId=\${file.id} message=\${e.message}", e)
             try {
                 val fallback = Intent(Intent.ACTION_VIEW, uri).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 context.startActivity(fallback)
             } catch (fallbackError: Exception) {
-                Log.e(TAG, "browserOpenFailed resourceId=${file.id} message=${fallbackError.message}", fallbackError)
+                Log.e(TAG, "browserOpenFailed resourceId=\${file.id} message=\${fallbackError.message}", fallbackError)
                 Toast.makeText(context, "Unable to open resource link", Toast.LENGTH_LONG).show()
             }
         }

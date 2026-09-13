@@ -58,24 +58,57 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Subject dropdown -->
-        <com.google.android.material.textfield.TextInputLayout
+        <!-- Subject dropdown with Add button -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Select Subject"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+            android:orientation="horizontal"
             android:layout_marginBottom="16dp"
-            app:boxStrokeColor="@color/cm_primary"
-            app:hintTextColor="@color/cm_primary">
+            android:gravity="center_vertical">
 
-            <AutoCompleteTextView
-                android:id="@+id/dropdownSubject"
-                android:layout_width="match_parent"
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:inputType="none"
-                android:textColor="@color/cm_text_primary"/>
+                android:layout_weight="1"
+                android:hint="Select Subject"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                app:boxStrokeColor="@color/cm_primary"
+                app:hintTextColor="@color/cm_primary">
 
-        </com.google.android.material.textfield.TextInputLayout>
+                <AutoCompleteTextView
+                    android:id="@+id/dropdownSubject"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="none"
+                    android:textColor="@color/cm_text_primary"/>
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <ImageView
+                android:id="@+id/btnAddSubject"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="4dp"
+                android:padding="12dp"
+                android:background="@drawable/bg_day_pill_selected"
+                android:src="@drawable/ic_add"
+                app:tint="@color/cm_on_primary"
+                android:contentDescription="Add Subject" />
+
+            <ImageView
+                android:id="@+id/btnDeleteSubject"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="4dp"
+                android:padding="12dp"
+                android:background="@drawable/bg_day_pill_selected"
+                android:src="@drawable/ic_delete"
+                app:tint="@color/cm_primary"
+                android:visibility="gone"
+                android:contentDescription="Delete Subject" />
+        </LinearLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"

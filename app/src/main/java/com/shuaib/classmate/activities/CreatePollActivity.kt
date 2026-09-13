@@ -25,6 +25,7 @@ class CreatePollActivity : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
     private var options = mutableListOf("", "")
     private var currentUserName = ""
+    private var currentUserBatch = ""
     private var pollId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,6 +42,7 @@ class CreatePollActivity : AppCompatActivity() {
         db.collection("users").document(uid).get()
             .addOnSuccessListener { doc ->
                 currentUserName = doc.getString("name") ?: "Admin"
+                currentUserBatch = doc.getString("batch") ?: ""
             }
 
         // Check if editing
@@ -159,13 +161,14 @@ class CreatePollActivity : AppCompatActivity() {
         binding.progressBar.isVisible = true
         binding.btnPublish.isEnabled = false
 
-        val pollData = hashMapOf(
+        val pollData = hashMapOf<String, Any>(
             "question" to question,
             "options" to validOptions,
             "createdBy" to currentUserName,
             "expiresAt" to expiresAt,
             "isActive" to true,
-            "allowMultipleAnswers" to binding.switchMultipleAnswers.isChecked
+            "allowMultipleAnswers" to binding.switchMultipleAnswers.isChecked,
+            "targetBatch" to if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch
         )
 
         val task = if (pollId != null) {

@@ -44,45 +44,14 @@ class ChatViewModel : ViewModel() {
             }
         }
 
-        viewModelScope.launch {
-            repository.incomingMessage.collect { message ->
-                if (message == null) return@collect
-                updateRoomPreview(message)
-                val roomId = currentRoomId ?: return@collect
-                if (message.roomId != roomId) return@collect
-                _messages.value = if (message.isDeleted) {
-                    _messages.value.map { existing ->
-                        if (existing.id == message.id) {
-                            existing.copy(text = "", isDeleted = true)
-                        } else {
-                            existing
-                        }
-                    }
-                } else {
-                    val tempMatch = _messages.value.firstOrNull { existing ->
-                        existing.id.startsWith(TEMP_MESSAGE_PREFIX) &&
-                            existing.roomId == message.roomId &&
-                            existing.senderId == message.senderId &&
-                            existing.text == message.text &&
-                            kotlin.math.abs(message.timestamp - existing.timestamp) <= TEMP_REPLACE_WINDOW_MS
-                    }
-                    if (tempMatch != null) {
-                        _messages.value.map { existing ->
-                            if (existing.id == tempMatch.id) message else existing
-                        }
-                    } else {
-                        val withoutDuplicate = _messages.value.filterNot { it.id == message.id }
-                        (withoutDuplicate + message).sortedBy { it.timestamp }
-                    }
-                }
-            }
-        }
+
 
         viewModelScope.launch {
-            repository.historyMessages.collect { history ->
+            repository.historyMessages.collect { historyMap ->
                 val roomId = currentRoomId ?: return@collect
+                val history = historyMap[roomId] ?: emptyList()
                 val current = _messages.value
-                val merged = (history.filter { it.roomId == roomId } + current)
+                val merged = (history + current)
                     .distinctBy { it.id }
                     .sortedBy { it.timestamp }
                 _messages.value = merged
@@ -108,7 +77,7 @@ class ChatViewModel : ViewModel() {
         val changedRoom = currentRoomId != roomId
         currentRoomId = roomId
         if (changedRoom) {
-            _messages.value = emptyList()
+            _messages.value = repository.historyMessages.value[roomId] ?: emptyList()
         }
         repository.enterRoom(roomId)
         repository.setRoom(roomId)
@@ -125,23 +94,6 @@ class ChatViewModel : ViewModel() {
         val roomId = currentRoomId ?: return
         val trimmed = text.trim()
         if (trimmed.isBlank()) return
-        val currentUser = FirebaseAuth.getInstance().currentUser
-        val timestamp = System.currentTimeMillis()
-        val message = ChatMessage(
-            id = "$TEMP_MESSAGE_PREFIX$text-$timestamp",
-            roomId = roomId,
-            senderId = currentUser?.uid.orEmpty(),
-            senderName = currentUser?.displayName ?: currentUser?.email?.substringBefore("@") ?: "User",
-            senderAvatarUrl = currentUser?.photoUrl?.toString().orEmpty(),
-            text = trimmed,
-            timestamp = timestamp,
-            isDeleted = false,
-            replyToId = replyToId,
-            replyToText = replyToText,
-            replyToSender = replyToSender
-        )
-        _messages.value = (_messages.value + message).sortedBy { it.timestamp }
-        updateRoomPreview(message)
         repository.sendMessage(roomId, trimmed, replyToId, replyToText, replyToSender)
     }
 
@@ -211,21 +163,6 @@ class ChatViewModel : ViewModel() {
 
     fun sendImage(roomId: String, imageUrl: String, caption: String) {
         repository.sendImage(roomId, imageUrl, caption)
-        val currentUser = FirebaseAuth.getInstance().currentUser
-        val timestamp = System.currentTimeMillis()
-        val message = ChatMessage(
-            id = "$TEMP_MESSAGE_PREFIX$imageUrl-$timestamp",
-            roomId = roomId,
-            senderId = currentUser?.uid.orEmpty(),
-            senderName = currentUser?.displayName ?: currentUser?.email?.substringBefore("@") ?: "User",
-            senderAvatarUrl = currentUser?.photoUrl?.toString().orEmpty(),
-            text = caption.trim(),
-            timestamp = timestamp,
-            isDeleted = false,
-            imageUrl = imageUrl
-        )
-        if (currentRoomId == roomId) _messages.value = _messages.value + message
-        updateRoomPreview(message)
     }
 
     fun loadPinnedMessages() {
@@ -250,10 +187,11 @@ class ChatViewModel : ViewModel() {
         _rooms.value = if (updated.any { it.id == message.roomId }) {
             updated
         } else {
+            val isGroup = message.roomId.startsWith("group_")
             current + ChatRoom(
                 id = message.roomId,
-                type = if (message.roomId == "group_main") "group" else "dm",
-                name = if (message.roomId == "group_main") "CODRIX-22" else "",
+                type = if (isGroup) "group" else "dm",
+                name = if (isGroup) "Class Group" else "",
                 member1Id = "",
                 member2Id = "",
                 lastMessage = preview,

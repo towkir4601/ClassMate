@@ -8,7 +8,7 @@ import java.util.Locale
 object DateHelper {
 
     private val dateFormat = SimpleDateFormat(
-        "yyyy-MM-dd", Locale.getDefault()
+        "yyyy-MM-dd", Locale.US
     )
 
     // Get today's date as "yyyy-MM-dd"

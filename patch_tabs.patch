@@ -1,0 +1,13 @@
+--- app/src/main/java/com/shuaib/classmate/chat/ChatTabsFragment.kt
++++ app/src/main/java/com/shuaib/classmate/chat/ChatTabsFragment.kt
+@@ -35,6 +35,10 @@
+         }.attach()
+     }
+ 
++    fun switchToTab(position: Int) {
++        binding.viewPager.currentItem = position
++    }
++
+     override fun onDestroyView() {
+         super.onDestroyView()
+         _binding = null

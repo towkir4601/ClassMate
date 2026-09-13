@@ -232,8 +232,8 @@ class ChatAdapter(
             edited.setTextColor(metaColor)
             ticks.text = if (message.seenBy.isNotEmpty()) "\u2713\u2713" else "\u2713"
             ticks.setTextColor(
-                if (isSent) metaColor
-                else if (message.seenBy.isNotEmpty()) com.shuaib.classmate.utils.ThemeColors.primary(itemView.context)
+                if (message.seenBy.isNotEmpty()) Color.parseColor("#42C2FF") // Light blue for double ticks
+                else if (isSent) metaColor
                 else com.shuaib.classmate.utils.ThemeColors.textSecondary(itemView.context)
             )
             bindReactions(message)

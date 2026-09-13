@@ -249,6 +249,7 @@ service cloud.firestore {
           "address",
           "oneSignalPlayerId",
           "permissions",
+          "isOnline",
           "role",
           "favoriteSubjects",
           "favoritePdfIds"
@@ -341,7 +342,8 @@ service cloud.firestore {
         "updatedAt",
         "timestamp",
         "downloadCount",
-        "isDeleted"
+        "isDeleted",
+        "batch"
       ])
       && request.resource.data.title is string
       && request.resource.data.title.size() > 0
@@ -403,6 +405,7 @@ service cloud.firestore {
 
     function validLibraryCreate() {
       return canUploadPdf()
+        && request.resource.data.uploadedByUid == request.auth.uid
         && validLibraryBaseFields()
         && (
           validLibraryGitHubCreate() ||
@@ -472,7 +475,8 @@ service cloud.firestore {
         "timestamp",
         "createdAt",
         "updatedAt",
-        "isDeleted"
+        "isDeleted",
+        "batch"
       ])
       && request.resource.data.title is string
       && request.resource.data.title.size() > 0
@@ -509,6 +513,7 @@ service cloud.firestore {
 
     function validQbCreate() {
       return canUploadPdf()
+        && request.resource.data.uploadedByUid == request.auth.uid
         && validQbBaseFields()
         && request.resource.data.createdAt == request.time
         && request.resource.data.updatedAt == request.time
@@ -925,7 +930,8 @@ service cloud.firestore {
     }
 
     match /library_files/{fileId} {
-      allow read: if isLoggedIn() && resource.data.isDeleted != true;
+      allow read: if isLoggedIn() && resource.data.isDeleted != true
+         && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.approved == true || isAdmin() || isTeacher());
       allow create: if validLibraryCreate();
       allow update: if isAdmin() || validLibraryDownloadCountUpdate() || validLibrarySoftDeleteUpdate();
       allow delete: if isSuperAdmin();
@@ -978,7 +984,8 @@ service cloud.firestore {
 
     match /question_bank/{paperId} {
       // Any logged-in student can list/read non-deleted papers
-      allow read: if isLoggedIn() && resource.data.isDeleted != true;
+      allow read: if isLoggedIn() && resource.data.isDeleted != true
+         && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.approved == true || isAdmin() || isTeacher());
 
       // Only users with upload permission can create a new question paper
       allow create: if validQbCreate();
@@ -991,6 +998,42 @@ service cloud.firestore {
 
       // Hard delete restricted to superadmins only
       allow delete: if isSuperAdmin();
+    }
+
+    
+    match /chat_rooms/{roomId} {
+      allow read: if isLoggedIn();
+      allow create: if isLoggedIn();
+      allow update: if isLoggedIn() &&
+        (!("id" in request.resource.data) || request.resource.data.id == roomId);
+      allow delete: if isAdmin();
+      
+      match /messages/{messageId} {
+        allow read: if isLoggedIn();
+        allow create: if isLoggedIn()
+          && request.resource.data.senderId == request.auth.uid
+          && (!("text" in request.resource.data) || request.resource.data.text.size() <= 5000)
+          && (!("imageUrl" in request.resource.data) || request.resource.data.imageUrl.size() <= 1000);
+          
+        allow update: if isLoggedIn()
+          && request.resource.data.senderId == resource.data.senderId
+          && (!("text" in request.resource.data.diff(resource.data).affectedKeys()) || resource.data.senderId == request.auth.uid)
+          && (!("text" in request.resource.data) || request.resource.data.text.size() <= 5000)
+          && (!("reactions" in request.resource.data.diff(resource.data).affectedKeys()) || true)
+          && (!("seenBy" in request.resource.data.diff(resource.data).affectedKeys()) || true)
+          && (!("isPinned" in request.resource.data.diff(resource.data).affectedKeys()) || true)
+          && (!("isDeleted" in request.resource.data.diff(resource.data).affectedKeys()) || resource.data.senderId == request.auth.uid);
+          
+        allow delete: if isAdmin() || resource.data.senderId == request.auth.uid;
+      }
+    }
+
+    
+    match /subjects/{subjectId} {
+      allow read: if isLoggedIn();
+      allow create: if canUploadPdf();
+      allow update: if canUploadPdf();
+      allow delete: if isAdmin() || isSuperAdmin();
     }
 
     match /{document=**} {

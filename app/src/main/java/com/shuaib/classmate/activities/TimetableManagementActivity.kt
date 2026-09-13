@@ -28,6 +28,10 @@ import com.shuaib.classmate.utils.SubjectList
 import com.shuaib.classmate.utils.ThemeColors
 import com.shuaib.classmate.utils.WidgetUpdater
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import androidx.activity.result.contract.ActivityResultContracts
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.util.Calendar
@@ -44,6 +48,12 @@ class TimetableManagementActivity : AppCompatActivity() {
     private val dayShort = listOf("SAT", "SUN", "MON", "TUE", "WED", "THU", "FRI")
     private val dayFull = listOf("Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
 
+    private val filePickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            extractRoutineFromUri(uri)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityTimetableManagementBinding.inflate(layoutInflater)
@@ -56,6 +66,35 @@ class TimetableManagementActivity : AppCompatActivity() {
 
         binding.toolbar.setNavigationOnClickListener { 
             finish()
+        }
+
+        binding.btnClearAll.setOnClickListener {
+            MaterialAlertDialogBuilder(this)
+                .setTitle("Delete All Classes?")
+                .setMessage("Are you sure you want to delete ALL classes for all days? This cannot be undone.")
+                .setPositiveButton("Delete All") { _, _ ->
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        try {
+                            for (day in days) {
+                                val docs = firestore.collection("timetable").document(day).collection("periods").get().await()
+                                val batch = firestore.batch()
+                                for (doc in docs) batch.delete(doc.reference)
+                                batch.commit().await()
+                            }
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(this@TimetableManagementActivity, "All classes deleted", Toast.LENGTH_SHORT).show()
+                                fetchTimetable(currentDay)
+                                days.forEach { refreshWidgetAfterTimetableChange(it) }
+                            }
+                        } catch (e: Exception) {
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(this@TimetableManagementActivity, "Error deleting: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
         }
 
         binding.fabAddPeriod.setOnClickListener { showPeriodDialog(null) }
@@ -211,8 +250,22 @@ class TimetableManagementActivity : AppCompatActivity() {
             .get()
             .addOnSuccessListener { documents ->
                 binding.progressBar.visibility = View.GONE
+                
+                val dayIndex = days.indexOf(day.lowercase())
+                val targetDateString = if (dayIndex != -1) getFullDateForIndex(dayIndex) else ""
+
                 val fetchedPeriods = documents.mapNotNull { doc ->
-                    doc.toObject(Period::class.java).copy(id = doc.id)
+                    val period = doc.toObject(Period::class.java).copy(id = doc.id)
+                    if (period.isTemporary && period.temporaryDate.isNotBlank() && period.temporaryDate != targetDateString) {
+                        firestore.collection("timetable").document(day).collection("periods").document(period.id).delete()
+                        null
+                    } else {
+                        if (period.cancelDate == targetDateString) {
+                            period.copy(isCancelled = true)
+                        } else {
+                            period.copy(isCancelled = false)
+                        }
+                    }
                 }.sortedBy { it.startTime }
 
                 periodList.clear()
@@ -225,7 +278,9 @@ class TimetableManagementActivity : AppCompatActivity() {
                     binding.tvEmptyState.visibility = View.GONE
                     binding.rvTimetable.visibility = View.VISIBLE
                     val isToday = day == getTodayName()
-                    periodAdapter.updateList(periodList, isToday)
+                    val todayIndex = days.indexOf(getTodayName())
+                    val isPastDay = days.indexOf(day.lowercase()) < todayIndex
+                    periodAdapter.updateList(periodList, isToday, isPastDay)
                 }
             }
             .addOnFailureListener { e ->
@@ -253,15 +308,43 @@ class TimetableManagementActivity : AppCompatActivity() {
 
         val subjectNames = SubjectList.subjects.map { it.name }
         val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, subjectNames)
-        dialogBinding.dropdownSubject.setAdapter(adapter)
-
-        if (isEdit) {
-            dialogBinding.dropdownSubject.setText("${period?.subject}", false)
-            dialogBinding.etTeacher.setText(period?.teacher)
-            dialogBinding.etStartTime.setText(period?.startTime)
-            dialogBinding.etEndTime.setText(period?.endTime)
+                dialogBinding.dropdownSubject.setAdapter(adapter)
+        
+        if (period != null) {
+            dialogBinding.layoutDaysSelection.visibility = View.GONE
+            dialogBinding.dropdownSubject.setText("${period.subject}", false)
+            dialogBinding.etTeacher.setText(period.teacher)
+            dialogBinding.etRoom.setText(period.room)
+            dialogBinding.etStartTime.setText(period.startTime)
+            dialogBinding.etEndTime.setText(period.endTime)
+            dialogBinding.cbTemporary.isChecked = period.isTemporary
+        } else {
+            dialogBinding.layoutDaysSelection.visibility = View.VISIBLE
+            val chipId = when (currentDay) {
+                "saturday" -> R.id.chipSat
+                "sunday" -> R.id.chipSun
+                "monday" -> R.id.chipMon
+                "tuesday" -> R.id.chipTue
+                "wednesday" -> R.id.chipWed
+                "thursday" -> R.id.chipThu
+                "friday" -> R.id.chipFri
+                else -> R.id.chipSat
+            }
+            dialogBinding.chipGroupDays.check(chipId)
+            
+            dialogBinding.cbTemporary.setOnCheckedChangeListener { _, isChecked ->
+                dialogBinding.layoutDaysSelection.visibility = if (isChecked) View.GONE else View.VISIBLE
+            }
         }
 
+        val batches = mutableListOf("all")
+        for (i in 64 downTo 10) batches.add(i.toString())
+        val batchAdapter = android.widget.ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, batches)
+        dialogBinding.etBatch.setAdapter(batchAdapter)
+        if (period == null) {
+            val currentUserBatch = getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE).getString("current_batch", "all") ?: "all"
+            dialogBinding.etBatch.setText(currentUserBatch, false)
+        }
         dialogBinding.etStartTime.setOnClickListener {
             showTimePicker { time -> dialogBinding.etStartTime.setText(time) }
         }
@@ -276,18 +359,65 @@ class TimetableManagementActivity : AppCompatActivity() {
             .setPositiveButton(if (isEdit) "Update" else "Add") { _, _ ->
                 val selectedSubject = dialogBinding.dropdownSubject.text.toString().trim()
                 val teacher = dialogBinding.etTeacher.text.toString().trim()
+                val room = dialogBinding.etRoom.text.toString().trim()
                 val start = dialogBinding.etStartTime.text.toString()
                 val end = dialogBinding.etEndTime.text.toString()
+                val batch = dialogBinding.etBatch.text.toString().trim()
+                val isTemp = dialogBinding.cbTemporary.isChecked
+                val tempDate = if (isTemp) getFullDateForIndex(days.indexOf(currentDay)) else ""
 
                 if (selectedSubject.isNotEmpty() && teacher.isNotEmpty()) {
-                    val updatedPeriod = Period(
-                        id = period?.id ?: "",
+                    val updatedPeriod = period?.copy(
                         subject = selectedSubject,
                         teacher = teacher,
                         startTime = start,
-                        endTime = end
+                        endTime = end,
+                        room = room,
+                        batch = batch,
+                        isTemporary = isTemp,
+                        temporaryDate = tempDate
+                    ) ?: Period(
+                        id = "",
+                        subject = selectedSubject,
+                        teacher = teacher,
+                        startTime = start,
+                        endTime = end,
+                        room = room,
+                        batch = batch,
+                        isTemporary = isTemp,
+                        temporaryDate = tempDate
                     )
-                    savePeriod(updatedPeriod, isEdit)
+                    
+                    com.shuaib.classmate.utils.NotificationSender.sendNoticeAlert(
+                        title = "Routine Updated",
+                        body = "The class routine has been updated."
+                    )
+                    
+                    if (isEdit) {
+                        savePeriod(updatedPeriod, true)
+                    } else {
+                        val selectedDays = mutableListOf<String>()
+                        if (isTemp) {
+                            selectedDays.add(currentDay)
+                        } else {
+                            val checkedIds = dialogBinding.chipGroupDays.checkedChipIds
+                            for (id in checkedIds) {
+                                when (id) {
+                                    R.id.chipSat -> selectedDays.add("saturday")
+                                    R.id.chipSun -> selectedDays.add("sunday")
+                                    R.id.chipMon -> selectedDays.add("monday")
+                                    R.id.chipTue -> selectedDays.add("tuesday")
+                                    R.id.chipWed -> selectedDays.add("wednesday")
+                                    R.id.chipThu -> selectedDays.add("thursday")
+                                    R.id.chipFri -> selectedDays.add("friday")
+                                }
+                            }
+                            if (selectedDays.isEmpty()) {
+                                selectedDays.add(currentDay)
+                            }
+                        }
+                        savePeriodsForMultipleDays(updatedPeriod, selectedDays)
+                    }
                 } else {
                     Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show()
                 }
@@ -306,21 +436,90 @@ class TimetableManagementActivity : AppCompatActivity() {
         }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false).show()
     }
 
-    private fun savePeriod(period: Period, isEdit: Boolean) {
-        val collection = firestore.collection("timetable").document(currentDay).collection("periods")
-        val task = if (isEdit) {
-            collection.document(period.id).set(period)
-        } else {
-            collection.add(period)
+    private fun timeToMinutes(timeStr: String): Int {
+        return try {
+            val format = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.US)
+            val date = format.parse(timeStr)
+            val calendar = java.util.Calendar.getInstance()
+            calendar.time = date!!
+            calendar.get(java.util.Calendar.HOUR_OF_DAY) * 60 + calendar.get(java.util.Calendar.MINUTE)
+        } catch (e: Exception) {
+            0
         }
+    }
 
-        task.addOnSuccessListener {
-            Toast.makeText(this, if (isEdit) "Period updated" else "Period added", Toast.LENGTH_SHORT).show()
-            fetchTimetable(currentDay)
-            refreshWidgetAfterTimetableChange(currentDay)
+    private fun isOverlapping(start1: String, end1: String, start2: String, end2: String): Boolean {
+        val s1 = timeToMinutes(start1)
+        val e1 = timeToMinutes(end1)
+        val s2 = timeToMinutes(start2)
+        val e2 = timeToMinutes(end2)
+        return (s1 < e2) && (s2 < e1)
+    }
+
+    private fun savePeriod(period: Period, isEdit: Boolean) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val collection = firestore.collection("timetable").document(currentDay).collection("periods")
+                val existingDocs = collection.get().await()
+                val batch = firestore.batch()
+
+                for (doc in existingDocs) {
+                    val existingPeriod = doc.toObject(Period::class.java)
+                    if (isEdit && existingPeriod.id == period.id) continue
+                    if (isOverlapping(period.startTime, period.endTime, existingPeriod.startTime, existingPeriod.endTime)) {
+                        batch.delete(doc.reference)
+                    }
+                }
+
+                val docRef = if (isEdit) collection.document(period.id) else collection.document()
+                val periodToSave = if (isEdit) period else period.copy(id = docRef.id)
+                batch.set(docRef, periodToSave)
+
+                batch.commit().await()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@TimetableManagementActivity, if (isEdit) "Period updated" else "Period added", Toast.LENGTH_SHORT).show()
+                    fetchTimetable(currentDay)
+                    refreshWidgetAfterTimetableChange(currentDay)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@TimetableManagementActivity, "Failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
-        .addOnFailureListener { e ->
-            Toast.makeText(this, "Failed: ${e.message}", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun savePeriodsForMultipleDays(period: Period, daysToSave: List<String>) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val batch = firestore.batch()
+                for (day in daysToSave) {
+                    val collection = firestore.collection("timetable").document(day).collection("periods")
+                    val existingDocs = collection.get().await()
+
+                    for (doc in existingDocs) {
+                        val existingPeriod = doc.toObject(Period::class.java)
+                        if (isOverlapping(period.startTime, period.endTime, existingPeriod.startTime, existingPeriod.endTime)) {
+                            batch.delete(doc.reference)
+                        }
+                    }
+
+                    val newDocRef = collection.document()
+                    val periodToSave = period.copy(id = newDocRef.id)
+                    batch.set(newDocRef, periodToSave)
+                }
+
+                batch.commit().await()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@TimetableManagementActivity, "Periods added successfully", Toast.LENGTH_SHORT).show()
+                    fetchTimetable(currentDay)
+                    daysToSave.forEach { refreshWidgetAfterTimetableChange(it) }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@TimetableManagementActivity, "Failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 
@@ -346,6 +545,87 @@ class TimetableManagementActivity : AppCompatActivity() {
             }
             if (day == DateHelper.todayDayString()) {
                 WidgetUpdater.refresh(this@TimetableManagementActivity, syncTodayTimetable = false)
+            }
+        }
+    }
+
+    private fun getFullDateForIndex(index: Int): String {
+        val today = java.time.LocalDate.now()
+        val todayIndex = getTodayIndex()
+        val targetDate = if (todayIndex == 5 || todayIndex == 6) {
+            val diff = (index - todayIndex + 7) % 7
+            today.plusDays(diff.toLong())
+        } else {
+            val saturday = today.minusDays(todayIndex.toLong())
+            saturday.plusDays(index.toLong())
+        }
+        return targetDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd", java.util.Locale.US))
+    }
+
+    private fun extractRoutineFromUri(uri: android.net.Uri) {
+        lifecycleScope.launch {
+            binding.progressBar.visibility = View.VISIBLE
+            binding.tvEmptyState.text = "Extracting routine with AI...\nPlease wait."
+            binding.tvEmptyState.visibility = View.VISIBLE
+            periodList.clear()
+            periodAdapter.notifyDataSetChanged()
+
+            try {
+                val mimeType = contentResolver.getType(uri) ?: "image/jpeg"
+                val inputStream = contentResolver.openInputStream(uri)
+                val bytes = inputStream?.readBytes()
+                inputStream?.close()
+
+                if (bytes == null) throw Exception("Failed to read file")
+                
+                val base64Data = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+                val okHttpClient = okhttp3.OkHttpClient.Builder()
+                    .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                    .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                    .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                    .build()
+                val aiProvider = com.shuaib.classmate.ai.GeminiAiProvider(okHttpClient, com.google.gson.Gson())
+                val result = aiProvider.extractTimetable(base64Data, mimeType)
+                
+                result.onSuccess { routineMap ->
+                    saveExtractedRoutine(routineMap)
+                }.onFailure { e ->
+                    Toast.makeText(this@TimetableManagementActivity, "Extraction failed: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@TimetableManagementActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+            } finally {
+                binding.progressBar.visibility = View.GONE
+                fetchTimetable(currentDay)
+            }
+        }
+    }
+
+    private suspend fun saveExtractedRoutine(routineMap: Map<String, List<Period>>) {
+        try {
+            val batch = firestore.batch()
+            for (day in days) {
+                val dayRef = firestore.collection("timetable").document(day).collection("periods")
+                val existingDocs = dayRef.get().await()
+                for (doc in existingDocs) {
+                    batch.delete(doc.reference)
+                }
+                
+                val newPeriods = routineMap[day] ?: emptyList()
+                for (period in newPeriods) {
+                    val newDocRef = dayRef.document()
+                    val periodToSave = period.copy(id = newDocRef.id)
+                    batch.set(newDocRef, periodToSave)
+                }
+            }
+            batch.commit().await()
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@TimetableManagementActivity, "Class routine updated automatically!", Toast.LENGTH_LONG).show()
+                refreshWidgetAfterTimetableChange(currentDay)
+            }
+        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@TimetableManagementActivity, "Failed to save routine: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }

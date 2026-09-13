@@ -18,5 +18,5 @@ object AppConstants {
     val GROQ_MODEL: String = BuildConfig.GROQ_MODEL
 
     // Links
-    const val WHATSAPP_GROUP_LINK = "https://chat.whatsapp.com/ENVSddeEDrwGrNntcAOzzr"
+    const val WHATSAPP_GROUP_LINK = "https://chat.whatsapp.com/KgjWmbmzl3K3LyNkAUQqGl"
 }

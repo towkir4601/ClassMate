@@ -110,6 +110,14 @@ class TimetableFragment : Fragment() {
         setupHeroClassClickListeners()
         setupHeroCountdownTimer()
         setupScheduleToggle()
+        
+        binding.swipeRefresh.setOnRefreshListener {
+            timetableViewModel.refreshAll()
+            binding.swipeRefresh.postDelayed({
+                binding.swipeRefresh.isRefreshing = false
+            }, 1000)
+        }
+        
         timetableViewModel.refreshAll()
     }
 
@@ -348,6 +356,22 @@ class TimetableFragment : Fragment() {
         }
     }
 
+    private fun getTargetDateForIndex(index: Int): LocalDate {
+        val today = LocalDate.now()
+        val todayIndex = getTodayIndex()
+        return if (todayIndex == 5 || todayIndex == 6) {
+            val diff = (index - todayIndex + 7) % 7
+            today.plusDays(diff.toLong())
+        } else {
+            val saturday = today.minusDays(todayIndex.toLong())
+            saturday.plusDays(index.toLong())
+        }
+    }
+
+    private fun getFullDateForIndex(index: Int): String {
+        return getTargetDateForIndex(index).format(DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.US))
+    }
+
     // ─────────────────────────────────────────────────────────────
     // Timetable loading (Reactive Flow Collection)
     // ─────────────────────────────────────────────────────────────
@@ -387,10 +411,23 @@ class TimetableFragment : Fragment() {
         }
     }
 
-    private fun renderTimetable(day: String, periods: List<Period>) {
+    private fun renderTimetable(day: String, rawPeriods: List<Period>) {
         if (_binding == null) return
 
         handler.removeCallbacks(showLoadingRunnable)
+        
+        val dayIndex = days.indexOf(day.lowercase())
+        val targetDateString = if (dayIndex != -1) getFullDateForIndex(dayIndex) else ""
+
+        val periods = rawPeriods.filter { period ->
+            !period.isTemporary || period.temporaryDate.isBlank() || period.temporaryDate == targetDateString
+        }.map { period ->
+            if (period.cancelDate == targetDateString) {
+                period.copy(isCancelled = true)
+            } else {
+                period.copy(isCancelled = false)
+            }
+        }
 
         if (shouldPauseSelectedDay()) {
             binding.shimmerView.stopShimmer()
@@ -407,6 +444,11 @@ class TimetableFragment : Fragment() {
         binding.shimmerView.isVisible = false
 
         val isToday = day.lowercase() == days[getTodayIndex()].lowercase()
+        val isPastDay = if (dayIndex != -1) {
+            getTargetDateForIndex(dayIndex).isBefore(LocalDate.now())
+        } else {
+            false
+        }
         todayPeriods = if (isToday) periods else null
 
         if (periods.isEmpty()) {
@@ -457,6 +499,7 @@ class TimetableFragment : Fragment() {
                     periods = periods,
                     isPausedByCalendarException = shouldPauseSelectedDay(),
                     isViewingToday = isToday,
+                    isPastDay = isPastDay,
                     onPeriodClick = { period ->
                         val bundle = bundleOf("subjectName" to period.subject)
                         (activity as? MainActivity)?.openChildDestination(
@@ -466,13 +509,13 @@ class TimetableFragment : Fragment() {
                         )
                     },
                     onPeriodLongClick = { period ->
-                        if (isAdmin) showDeleteDialog(period)
+                        if (isAdmin) showAdminOptionsDialog(period)
                     }
                 )
                 binding.rvPeriods.adapter = periodAdapter
             } else {
                 periodAdapter?.setPausedByCalendarException(shouldPauseSelectedDay())
-                periodAdapter?.updateList(periods, isToday, isDaySwitch)
+                periodAdapter?.updateList(periods, isToday, isPastDay, isDaySwitch)
             }
         }
     }
@@ -557,7 +600,8 @@ class TimetableFragment : Fragment() {
         binding.heroNextClass.isVisible = true
         currentHeroSubject = nextPeriod.subject
         binding.tvHeroSubject.text = nextPeriod.subject
-        binding.tvHeroTeacher.text = nextPeriod.teacher.ifBlank { "Course Teacher" }
+        val batchText = if (nextPeriod.batch.isNotBlank() && nextPeriod.batch != "all") " (Batch ${nextPeriod.batch})" else ""
+        binding.tvHeroTeacher.text = nextPeriod.teacher.ifBlank { "Course Teacher" } + batchText
         binding.tvHeroTime.text = "${formatTo12Hour(nextPeriod.startTime)} → ${formatTo12Hour(nextPeriod.endTime)}"
 
         // Sync expandable UI states
@@ -791,19 +835,80 @@ class TimetableFragment : Fragment() {
     // Admin
     // ─────────────────────────────────────────────────────────────
 
-    private fun showDeleteDialog(period: Period) {
+    private fun showAdminOptionsDialog(period: Period) {
         if (!isAdded) return
+        val options = arrayOf("Update Time/Room for today", "Delete class permanently")
         AlertDialog.Builder(requireContext())
-            .setTitle("Delete Period")
-            .setMessage("Are you sure you want to delete this period?")
-            .setPositiveButton("Delete") { _, _ ->
-                if (selectedDayFlow.value.isNotBlank()) {
-                    db.collection("timetable").document(selectedDayFlow.value)
-                        .collection("periods").document(period.id).delete()
+            .setTitle("Manage Class")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> showOverrideDialog(period)
+                    1 -> {
+                        if (selectedDayFlow.value.isNotBlank()) {
+                            db.collection("timetable").document(selectedDayFlow.value)
+                                .collection("periods").document(period.id).delete()
+                        }
+                    }
                 }
+            }
+            .show()
+    }
+
+    private fun showOverrideDialog(period: Period) {
+        val view = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_override_period, null)
+        val etRoom = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etRoom)
+        val etStart = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etStartTime)
+        val etEnd = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etEndTime)
+        
+        etRoom.setText(period.room)
+        etStart.setText(period.startTime)
+        etEnd.setText(period.endTime)
+        
+        val targetDate = getDateForSelectedDay(selectedDayFlow.value)
+        val targetDateStr = targetDate.toString()
+        
+        etStart.setOnClickListener {
+            showTimePicker { time -> etStart.setText(time) }
+        }
+        
+        etEnd.setOnClickListener {
+            showTimePicker { time -> etEnd.setText(time) }
+        }
+        
+        AlertDialog.Builder(requireContext())
+            .setTitle("Update for ${targetDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}")
+            .setView(view)
+            .setPositiveButton("Save") { _, _ ->
+                val newRoom = etRoom.text.toString().trim()
+                val newStart = etStart.text.toString().trim()
+                val newEnd = etEnd.text.toString().trim()
+                
+                db.collection("timetable").document(selectedDayFlow.value)
+                    .collection("periods").document(period.id)
+                    .update(
+                        "overrideDate", targetDateStr,
+                        "overrideRoom", newRoom,
+                        "overrideStartTime", newStart,
+                        "overrideEndTime", newEnd
+                    ).addOnSuccessListener {
+                        Toast.makeText(requireContext(), "Updated for this date", Toast.LENGTH_SHORT).show()
+                        NotificationRouter.pendingDay = selectedDayFlow.value
+                        com.shuaib.classmate.utils.NotificationSender.sendNoticeAlert(
+                            title = "Class Updated",
+                            body = "${period.subject} room/time updated for ${targetDate.format(DateTimeFormatter.ofPattern("MMM dd"))}."
+                        )
+                    }
             }
             .setNegativeButton("Cancel", null)
             .show()
+    }
+
+    private fun showTimePicker(onTimeSelected: (String) -> Unit) {
+        val calendar = java.util.Calendar.getInstance()
+        android.app.TimePickerDialog(requireContext(), { _, hour, minute ->
+            val time24 = String.format(Locale.US, "%02d:%02d", hour, minute)
+            onTimeSelected(time24)
+        }, calendar.get(java.util.Calendar.HOUR_OF_DAY), calendar.get(java.util.Calendar.MINUTE), false).show()
     }
 
     private fun checkAdminAccess() {
@@ -812,8 +917,15 @@ class TimetableFragment : Fragment() {
         userRoleRegistration = db.collection("users").document(uid)
             .addSnapshotListener { snapshot, error ->
                 if (error != null || _binding == null) return@addSnapshotListener
-                val user = snapshot?.toObject(com.shuaib.classmate.models.User::class.java)
-                isAdmin = user?.canEditTimetable() ?: false
+                try {
+                    val role = snapshot?.getString("role") ?: "student"
+                    val permissions = snapshot?.get("permissions") as? Map<String, Boolean> ?: emptyMap()
+                    
+                    isAdmin = (role == "superadmin" || role == "admin" || permissions["canEditTimetable"] == true)
+                } catch (e: Exception) {
+                    android.util.Log.e("TimetableFragment", "Error parsing user for admin check", e)
+                    isAdmin = false
+                }
             }
     }
 

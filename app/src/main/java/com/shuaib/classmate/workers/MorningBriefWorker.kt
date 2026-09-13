@@ -50,7 +50,7 @@ class MorningBriefWorker(context: Context, params: WorkerParameters) : Coroutine
 
             val todayDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
             val periods = classesSnapshot.toObjects(Period::class.java).filter {
-                !(it.isCancelled && it.cancelDate == todayDate)
+                it.cancelDate != todayDate
             }
 
             // 2. Fetch Today's Assignments

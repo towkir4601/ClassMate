@@ -57,14 +57,69 @@ class ShareForwardNoticeBottomSheet : BottomSheetDialogFragment() {
         binding.tvPreviewMeta.text = "${NoticeUi.formatDate(notice.createdAt)} - ${notice.displaySubject}"
     }
 
+    private fun checkUserRole() {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        FirebaseFirestore.getInstance().collection("users").document(uid).get()
+            .addOnSuccessListener { doc ->
+                if (_binding == null) return@addOnSuccessListener
+                val role = doc.getString("role") ?: "student"
+                if (role == "superadmin") {
+                    binding.btnEditThorffinLink.visibility = View.VISIBLE
+                    binding.btnEditThorffinLink.setOnClickListener {
+                        showEditThorffinLinkDialog()
+                    }
+                }
+            }
+    }
+
+    private fun showEditThorffinLinkDialog() {
+        val input = android.widget.EditText(requireContext()).apply {
+            hint = "https://chat.whatsapp.com/..."
+            setPadding(50, 50, 50, 50)
+        }
+        
+        FirebaseFirestore.getInstance().collection("config").document("thorffin_link").get()
+            .addOnSuccessListener { doc ->
+                if (doc.exists()) {
+                    input.setText(doc.getString("url").orEmpty())
+                }
+            }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Edit Thorffin-14 Link")
+            .setView(input)
+            .setPositiveButton("Save") { _, _ ->
+                val newUrl = input.text.toString().trim()
+                FirebaseFirestore.getInstance().collection("config").document("thorffin_link")
+                    .set(mapOf("url" to newUrl))
+                    .addOnSuccessListener {
+                        Toast.makeText(requireContext(), "Link updated", Toast.LENGTH_SHORT).show()
+                    }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
     private fun setupActions(notice: Notice) {
+        checkUserRole()
+        
         binding.rowClassGroup.setOnClickListener {
-            NoticeForwardManager.forwardToRoom(GROUP_ROOM_ID, notice)
             NoticeShareManager.recordShare(notice.id, "class_group")
             onShareRecorded?.invoke()
-            Toast.makeText(requireContext(), "Forwarded to CODRIX-22", Toast.LENGTH_SHORT).show()
-            openChat(GROUP_ROOM_ID, "group", "CODRIX-22", null)
-            dismiss()
+            FirebaseFirestore.getInstance().collection("config").document("thorffin_link").get()
+                .addOnSuccessListener { doc ->
+                    val url = doc.getString("url").orEmpty()
+                    if (url.isNotBlank()) {
+                        try {
+                            startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)))
+                        } catch (e: Exception) {
+                            Toast.makeText(requireContext(), "Invalid link", Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        Toast.makeText(requireContext(), "Thorffin-14 link is not set yet", Toast.LENGTH_SHORT).show()
+                    }
+                    dismiss()
+                }
         }
         binding.rowSendDm.setOnClickListener { showDmSelector(notice) }
         binding.rowCopyLink.setOnClickListener {
@@ -133,7 +188,7 @@ class ShareForwardNoticeBottomSheet : BottomSheetDialogFragment() {
     companion object {
         const val TAG = "ShareForwardNoticeBottomSheet"
         private const val ARG_NOTICE_ID = "noticeId"
-        private const val GROUP_ROOM_ID = "group_main"
+        
 
         fun newInstance(noticeId: String): ShareForwardNoticeBottomSheet {
             return ShareForwardNoticeBottomSheet().apply {

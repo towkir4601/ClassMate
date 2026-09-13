@@ -1,0 +1,24 @@
+--- app/src/main/java/com/shuaib/classmate/chat/ChatRepository.kt
++++ app/src/main/java/com/shuaib/classmate/chat/ChatRepository.kt
+@@ -107,8 +107,8 @@
+     private val _dmCreated = MutableSharedFlow<ChatRoom>(extraBufferCapacity = 8)
+     val dmCreated: SharedFlow<ChatRoom> = _dmCreated
+ 
+-    private val _historyMessages = MutableStateFlow<List<ChatMessage>>(emptyList())
+-    val historyMessages: StateFlow<List<ChatMessage>> = _historyMessages
++    private val _historyMessages = MutableStateFlow<Map<String, List<ChatMessage>>>(emptyMap())
++    val historyMessages: StateFlow<Map<String, List<ChatMessage>>> = _historyMessages
+ 
+     private val _messageUpdate = MutableSharedFlow<ChatMessage>(extraBufferCapacity = 16)
+     val messageUpdate: SharedFlow<ChatMessage> = _messageUpdate
+@@ -198,7 +198,9 @@
+             .addSnapshotListener { snap, _ ->
+                 if (snap != null) {
+                     val msgs = snap.documents.mapNotNull { parseMessage(it.data) }
+-                    _historyMessages.value = msgs.reversed()
++                    val newMap = _historyMessages.value.toMutableMap()
++                    newMap[roomId] = msgs.reversed()
++                    _historyMessages.value = newMap
+                     
+                     if (msgs.isNotEmpty()) {
+                         _incomingMessage.value = msgs.first()

@@ -20,6 +20,8 @@ import com.shuaib.classmate.storage.GitHubReleaseStorageClient
 import com.shuaib.classmate.utils.NotificationSender
 import com.shuaib.classmate.utils.SubjectList
 import com.shuaib.classmate.utils.TelegramUploader
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 class PdfUploadActivity : AppCompatActivity() {
 
@@ -29,6 +31,7 @@ class PdfUploadActivity : AppCompatActivity() {
     private var selectedFileUri: Uri? = null
     private var selectedFileInfo: SelectedFileInfo? = null
     private var currentUserName = ""
+    private var currentUserBatch = ""
     private enum class UploadMode {
         GITHUB, TELEGRAM, LINK
     }
@@ -72,15 +75,25 @@ class PdfUploadActivity : AppCompatActivity() {
         db.collection("users").document(uid).get()
             .addOnSuccessListener { doc ->
                 currentUserName = doc.getString("name") ?: "Admin"
+                currentUserBatch = doc.getString("batch") ?: ""
             }
 
-        val subjectNames = SubjectList.subjects.map { it.name }
-        binding.dropdownSubject.setAdapter(
-            ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, subjectNames)
-        )
-        binding.dropdownSubject.setOnItemClickListener { _, _, position, _ ->
-            binding.etCourseCode.setText(SubjectList.subjects.getOrNull(position)?.code.orEmpty())
+        setupDropdown()
+
+        binding.btnAddSubject.setOnClickListener {
+            showAddSubjectDialog()
         }
+        binding.btnDeleteSubject.setOnClickListener {
+            showDeleteSubjectDialog()
+        }
+        
+        binding.dropdownSubject.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                binding.btnDeleteSubject.visibility = if (s.isNullOrEmpty()) android.view.View.GONE else android.view.View.VISIBLE
+            }
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
 
         binding.toggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (isChecked) {
@@ -208,7 +221,8 @@ class PdfUploadActivity : AppCompatActivity() {
             "updatedAt" to FieldValue.serverTimestamp(),
             "timestamp" to FieldValue.serverTimestamp(),
             "downloadCount" to 0L,
-            "isDeleted" to false
+            "isDeleted" to false,
+            "batch" to currentUserBatch
         )
 
         db.collection("library_files")
@@ -296,7 +310,8 @@ class PdfUploadActivity : AppCompatActivity() {
             "updatedAt" to FieldValue.serverTimestamp(),
             "timestamp" to FieldValue.serverTimestamp(),
             "downloadCount" to 0L,
-            "isDeleted" to false
+            "isDeleted" to false,
+            "batch" to currentUserBatch
         )
 
         db.collection("library_files")
@@ -337,7 +352,8 @@ class PdfUploadActivity : AppCompatActivity() {
             "updatedAt" to FieldValue.serverTimestamp(),
             "timestamp" to FieldValue.serverTimestamp(),
             "downloadCount" to 0L,
-            "isDeleted" to false
+            "isDeleted" to false,
+            "batch" to currentUserBatch
         )
         db.collection("library_files")
             .add(data)
@@ -384,7 +400,8 @@ class PdfUploadActivity : AppCompatActivity() {
             "subject" to subject,
             "pdfId" to resourceId,
             "isPinned" to false,
-            "isDeleted" to false
+            "isDeleted" to false,
+            "batch" to currentUserBatch
         )
         db.collection("notices").add(noticeData)
         NotificationSender.sendResourceAlert(
@@ -502,6 +519,80 @@ class PdfUploadActivity : AppCompatActivity() {
         val kb = bytes / 1024.0
         val mb = kb / 1024.0
         return if (mb >= 1) String.format("%.1f MB", mb) else String.format("%.0f KB", kb)
+    }
+
+    private fun setupDropdown() {
+        val subjectNames = SubjectList.subjects.map { it.name }
+        binding.dropdownSubject.setAdapter(
+            ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, subjectNames)
+        )
+        binding.dropdownSubject.setOnItemClickListener { _, _, position, _ ->
+            binding.etCourseCode.setText(SubjectList.subjects.getOrNull(position)?.code.orEmpty())
+        }
+    }
+
+    private fun showDeleteSubjectDialog() {
+        val subjectName = binding.dropdownSubject.text.toString().trim()
+        if (subjectName.isEmpty()) return
+        
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Delete Course")
+            .setMessage("Are you sure you want to delete '$subjectName'? This action cannot be undone.")
+            .setPositiveButton("Delete") { _, _ ->
+                val subject = SubjectList.subjects.find { it.name.equals(subjectName, ignoreCase = true) }
+                if (subject != null && subject.id.isNotEmpty()) {
+                    db.collection("subjects").document(subject.id).delete()
+                        .addOnSuccessListener {
+                            Toast.makeText(this, "Course deleted", Toast.LENGTH_SHORT).show()
+                            binding.dropdownSubject.setText("", false)
+                            binding.etCourseCode.setText("")
+                            binding.btnDeleteSubject.visibility = android.view.View.GONE
+                            SubjectList.fetchSubjects {
+                                setupDropdown()
+                            }
+                        }
+                        .addOnFailureListener { e ->
+                            Toast.makeText(this, "Failed to delete: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                } else {
+                    Toast.makeText(this, "Course not found", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showAddSubjectDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_subject, null)
+        val etName = dialogView.findViewById<android.widget.EditText>(R.id.etSubjectName)
+        val etCode = dialogView.findViewById<android.widget.EditText>(R.id.etSubjectCode)
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Add New Course")
+            .setView(dialogView)
+            .setPositiveButton("Save") { _, _ ->
+                val name = etName.text.toString().trim()
+                val code = etCode.text.toString().trim()
+                if (name.isNotEmpty()) {
+                    val newSubject = hashMapOf(
+                        "name" to name,
+                        "code" to code,
+                        "type" to "regular"
+                    )
+                    db.collection("subjects").add(newSubject)
+                        .addOnSuccessListener {
+                            Toast.makeText(this, "Course added", Toast.LENGTH_SHORT).show()
+                            // Refresh SubjectList
+                            SubjectList.fetchSubjects {
+                                setupDropdown()
+                                binding.dropdownSubject.setText(name, false)
+                                binding.etCourseCode.setText(code)
+                            }
+                        }
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private data class UploadInput(

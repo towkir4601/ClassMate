@@ -22,15 +22,52 @@ import com.shuaib.classmate.models.User
 class UserManagementActivity : AppCompatActivity() {
 
     private lateinit var firestore: FirebaseFirestore
-    private lateinit var userAdapter: UserAdapter
+    private lateinit var pendingAdapter: UserAdapter
+    private lateinit var approvedAdapter: UserAdapter
     private lateinit var binding: ActivityUserManagementBinding
-    private val userList = mutableListOf<User>()
+    private val pendingList = mutableListOf<User>()
+    private val approvedList = mutableListOf<User>()
     private var currentUser: User? = null
+
+    private fun parseUserSafely(doc: com.google.firebase.firestore.DocumentSnapshot): User? {
+        if (!doc.exists()) return null
+        return try {
+            User(
+                uid = doc.id,
+                name = doc.getString("name") ?: "",
+                fullName = doc.getString("fullName") ?: "",
+                studentId = doc.getString("studentId") ?: "",
+                department = doc.getString("department") ?: "",
+                email = doc.getString("email") ?: "",
+                phone = doc.getString("phone") ?: "",
+                bloodGroup = doc.getString("bloodGroup") ?: "",
+                homeDistrict = doc.getString("homeDistrict") ?: "",
+                address = doc.getString("address") ?: "",
+                role = doc.getString("role") ?: "student",
+                approved = doc.getBoolean("approved") ?: false,
+                photoUrl = doc.getString("photoUrl") ?: "",
+                authProvider = doc.getString("authProvider") ?: "",
+                createdAt = doc.getTimestamp("createdAt"),
+                updatedAt = doc.getTimestamp("updatedAt"),
+                oneSignalPlayerId = doc.getString("oneSignalPlayerId") ?: "",
+                permissions = (doc.get("permissions") as? Map<String, Boolean>) ?: User.DEFAULT_PERMISSIONS
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityUserManagementBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        
+        val mode = intent.getStringExtra("MODE") ?: "BOTH"
+        if (mode == "PENDING") {
+            binding.toolbar.title = "Pending Approvals"
+        } else if (mode == "APPROVED") {
+            binding.toolbar.title = "Manage Users"
+        }
 
         binding.toolbar.setNavigationOnClickListener {
             finish()
@@ -39,6 +76,7 @@ class UserManagementActivity : AppCompatActivity() {
 
         firestore = FirebaseFirestore.getInstance()
         setupRecyclerView()
+        setupBatchFilter()
         fetchCurrentUser()
     }
 
@@ -48,12 +86,12 @@ class UserManagementActivity : AppCompatActivity() {
         firestore.collection("users").document(currentUid).get()
             .addOnSuccessListener { doc ->
                 binding.progressBar.visibility = View.GONE
-                val user = doc.toObject(User::class.java)?.copy(uid = doc.id)
+                val user = parseUserSafely(doc)
                 currentUser = user
                 if (user != null && user.canManageUsers()) {
                     fetchAllUsers()
                 } else {
-                    Toast.makeText(this, "Access restricted to Super Admins only.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "Access restricted to Admins only.", Toast.LENGTH_LONG).show()
                     finish()
                 }
             }
@@ -65,23 +103,58 @@ class UserManagementActivity : AppCompatActivity() {
             }
     }
 
+
+    private fun setupBatchFilter() {
+        val mode = intent.getStringExtra("MODE") ?: "BOTH"
+        if (mode == "PENDING") {
+            binding.tilBatchFilter.visibility = android.view.View.GONE
+            return
+        }
+        binding.dropdownBatchFilter.setText("All Batches", false)
+        binding.dropdownBatchFilter.setOnItemClickListener { _, _, _, _ ->
+            updateUIVisibility()
+        }
+    }
+
+    private fun updateBatchFilterDropdown() {
+        val allUsers = pendingList + approvedList
+        val availableBatches = allUsers.mapNotNull { it.batch.trim().takeIf { b -> b.isNotBlank() } }
+            .distinct()
+            .sortedByDescending { it.toIntOrNull() ?: 0 }
+            
+        val batches = mutableListOf("All Batches")
+        batches.addAll(availableBatches)
+        
+        val adapter = android.widget.ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, batches)
+        binding.dropdownBatchFilter.setAdapter(adapter)
+    }
+
     private fun setupRecyclerView() {
         val rootDecorView = window.decorView.findViewById<ViewGroup>(android.R.id.content)
-        userAdapter = UserAdapter(userList, rootDecorView) { user ->
+        val onUserClick = { user: User ->
             startActivity(
                 Intent(this, UserDetailActivity::class.java)
                     .putExtra(UserDetailActivity.EXTRA_USER_ID, user.uid)
             )
             overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
         }
-
-        userAdapter.onUserLongClick = { targetUser ->
+        val onUserLongClick = { targetUser: User ->
             showUserManagementOptions(targetUser)
         }
 
-        binding.rvUsers.apply {
+        pendingAdapter = UserAdapter(pendingList, rootDecorView, onUserClick)
+        pendingAdapter.onUserLongClick = onUserLongClick
+        
+        approvedAdapter = UserAdapter(approvedList, rootDecorView, onUserClick)
+        approvedAdapter.onUserLongClick = onUserLongClick
+
+        binding.rvPendingUsers.apply {
             layoutManager = LinearLayoutManager(this@UserManagementActivity)
-            adapter = userAdapter
+            adapter = pendingAdapter
+        }
+        binding.rvApprovedUsers.apply {
+            layoutManager = LinearLayoutManager(this@UserManagementActivity)
+            adapter = approvedAdapter
         }
     }
 
@@ -105,6 +178,15 @@ class UserManagementActivity : AppCompatActivity() {
         val optionsList = mutableListOf<String>()
         val isSuperadmin = currUser.role == "superadmin"
 
+        // Approve/Reject option
+        if (isSuperadmin || currUser.canManageUsers()) {
+            if (targetUser.approved) {
+                optionsList.add("Reject User (Remove Approval)")
+            } else {
+                optionsList.add("Approve User")
+            }
+        }
+
         if (isSuperadmin || currUser.canManageAdmins()) {
             optionsList.add("Change Role")
         }
@@ -125,11 +207,30 @@ class UserManagementActivity : AppCompatActivity() {
             .setTitle("Manage ${targetUser.fullName.ifBlank { targetUser.name }}")
             .setItems(options) { _, which ->
                 when (options[which]) {
+                    "Approve User" -> approveUser(targetUser, true)
+                    "Reject User (Remove Approval)" -> approveUser(targetUser, false)
                     "Change Role" -> showChangeRoleDialog(targetUser)
                     "Delete User" -> showDeleteUserConfirmation(targetUser)
                 }
             }
             .show()
+    }
+
+    private fun approveUser(targetUser: User, approve: Boolean) {
+        binding.progressBar.visibility = View.VISIBLE
+        val action = if (approve) "approved" else "rejected"
+
+        firestore.collection("users").document(targetUser.uid)
+            .update("approved", approve)
+            .addOnSuccessListener {
+                binding.progressBar.visibility = View.GONE
+                Toast.makeText(this, "User ${action} successfully!", Toast.LENGTH_SHORT).show()
+
+            }
+            .addOnFailureListener { e ->
+                binding.progressBar.visibility = View.GONE
+                Toast.makeText(this, "Failed to $action user: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
     }
 
     private fun showChangeRoleDialog(targetUser: User) {
@@ -170,7 +271,12 @@ class UserManagementActivity : AppCompatActivity() {
 
         val newPermissions = when (newRole) {
             "superadmin" -> User.DEFAULT_PERMISSIONS.mapValues { true }.toMutableMap()
-            "admin" -> User.DEFAULT_PERMISSIONS.mapValues { it.key != "canManageUsers" && it.key != "canManageAdmins" }.toMutableMap()
+            "admin" -> User.DEFAULT_PERMISSIONS.mapValues { 
+                it.key != "canManageUsers" && 
+                it.key != "canManageAdmins" && 
+                it.key != "canUploadSeatPlan" && 
+                it.key != "canManageAcademicCalendar" 
+            }.toMutableMap()
             else -> User.DEFAULT_PERMISSIONS.mapValues { false }.toMutableMap()
         }
 
@@ -184,11 +290,7 @@ class UserManagementActivity : AppCompatActivity() {
             .addOnSuccessListener {
                 binding.progressBar.visibility = View.GONE
                 Toast.makeText(this, "Role updated to ${newRole.uppercase()} and permissions updated", Toast.LENGTH_SHORT).show()
-                val idx = userList.indexOfFirst { it.uid == targetUser.uid }
-                if (idx != -1) {
-                    userList[idx] = userList[idx].copy(role = newRole, permissions = newPermissions)
-                    userAdapter.notifyItemChanged(idx)
-                }
+
             }
             .addOnFailureListener { e ->
                 binding.progressBar.visibility = View.GONE
@@ -215,11 +317,7 @@ class UserManagementActivity : AppCompatActivity() {
             .addOnSuccessListener {
                 binding.progressBar.visibility = View.GONE
                 Toast.makeText(this, "User deleted successfully", Toast.LENGTH_SHORT).show()
-                val idx = userList.indexOfFirst { it.uid == targetUser.uid }
-                if (idx != -1) {
-                    userList.removeAt(idx)
-                    userAdapter.notifyItemRemoved(idx)
-                }
+
             }
             .addOnFailureListener { e ->
                 binding.progressBar.visibility = View.GONE
@@ -229,71 +327,65 @@ class UserManagementActivity : AppCompatActivity() {
 
     private fun fetchAllUsers() {
         binding.progressBar.visibility = View.VISIBLE
-
-        // Fetching entire collection. If only 1 shows up, check Firestore Security Rules.
         firestore.collection("users")
-            .get()
-            .addOnSuccessListener { documents ->
+            .addSnapshotListener { snapshot, e ->
                 binding.progressBar.visibility = View.GONE
-                val tempUserList = mutableListOf<User>()
-
-                Log.d("UserManagement", "Total documents fetched: ${documents.size()}")
-
-                for (document in documents) {
-                    try {
-                        val user = document.toObject(User::class.java)?.copy(uid = document.id)
-                        if (user != null) {
-                            tempUserList.add(user)
-                        }
-                    } catch (e: Exception) {
-                        Log.e("UserManagement", "Error parsing user ${document.id}: ${e.message}")
-                        // Fallback: manually map critical fields if toObject fails
-                        try {
-                            val manualUser = User(
-                                uid = document.id,
-                                fullName = document.getString("fullName") ?: document.getString("name") ?: "Unknown",
-                                email = document.getString("email") ?: "",
-                                role = document.getString("role") ?: "student",
-                                studentId = document.getString("studentId") ?: ""
-                            )
-                            tempUserList.add(manualUser)
-                        } catch (e2: Exception) {
-                            Log.e("UserManagement", "Manual fallback failed for ${document.id}")
+                if (e != null) {
+                    Log.w("UserManagement", "Listen failed.", e)
+                    return@addSnapshotListener
+                }
+                pendingList.clear()
+                approvedList.clear()
+                snapshot?.documents?.forEach { doc ->
+                    val user = parseUserSafely(doc)
+                    if (user != null) {
+                        if (user.approved) {
+                            approvedList.add(user)
+                        } else {
+                            pendingList.add(user)
                         }
                     }
                 }
-
-                // Sort in memory: Newest first, then alphabetical
-                tempUserList.sortWith { a, b ->
-                    val timeA = a.createdAt
-                    val timeB = b.createdAt
-
-                    val res = when {
-                        timeA != null && timeB != null -> timeB.compareTo(timeA)
-                        timeA != null -> -1
-                        timeB != null -> 1
-                        else -> 0
-                    }
-
-                    if (res != 0) res
-                    else a.fullName.lowercase().compareTo(b.fullName.lowercase())
-                }
-
-                userList.clear()
-                userList.addAll(tempUserList)
-                userAdapter.updateList(userList)
-
-                if (userList.isEmpty()) {
-                    Toast.makeText(this, "No users found in database", Toast.LENGTH_LONG).show()
-                } else if (userList.size == 1) {
-                    Log.w("UserManagement", "Only 1 user found. Check Firestore Rules if more are expected.")
-                }
+                
+                // Sort both lists, newest first
+                pendingList.sortByDescending { it.createdAt?.seconds ?: 0L }
+                approvedList.sortByDescending { it.createdAt?.seconds ?: 0L }
+                
+                updateBatchFilterDropdown()
+                updateUIVisibility()
             }
-            .addOnFailureListener { e ->
-                binding.progressBar.visibility = View.GONE
-                Toast.makeText(this, "Fetch failed: ${e.message}", Toast.LENGTH_SHORT).show()
-                Log.e("UserManagement", "Firestore fetch error", e)
-            }
+    }
+
+    private fun updateUIVisibility() {
+        val mode = intent.getStringExtra("MODE") ?: "BOTH"
+        val filterBatch = binding.dropdownBatchFilter.text.toString()
+        
+        val filteredPending = if (filterBatch.isNotBlank() && filterBatch != "All Batches") {
+            pendingList.filter { it.batch == filterBatch }
+        } else pendingList
+        
+        val filteredApproved = if (filterBatch.isNotBlank() && filterBatch != "All Batches") {
+            approvedList.filter { it.batch == filterBatch }
+        } else approvedList
+        
+        pendingAdapter.updateList(filteredPending)
+        approvedAdapter.updateList(filteredApproved)
+
+        if (mode == "PENDING" || mode == "BOTH") {
+            binding.tvPendingTitle.visibility = if (filteredPending.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+            binding.rvPendingUsers.visibility = if (filteredPending.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+        } else {
+            binding.tvPendingTitle.visibility = android.view.View.GONE
+            binding.rvPendingUsers.visibility = android.view.View.GONE
+        }
+
+        if (mode == "APPROVED" || mode == "BOTH") {
+            binding.tvApprovedTitle.visibility = if (filteredApproved.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+            binding.rvApprovedUsers.visibility = if (filteredApproved.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+        } else {
+            binding.tvApprovedTitle.visibility = android.view.View.GONE
+            binding.rvApprovedUsers.visibility = android.view.View.GONE
+        }
     }
 
     override fun onBackPressed() {

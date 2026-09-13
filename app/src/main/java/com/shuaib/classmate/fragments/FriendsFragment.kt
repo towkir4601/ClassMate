@@ -35,9 +35,15 @@ class FriendsFragment : Fragment() {
     private var allUsersList = listOf<User>()
     private var isFriendsPublic = false
     private var currentUserRole = "student"
+    private var currentUserBloodGroup = ""
+    private var currentUserDistrict = ""
+    private var currentUserBatch = ""
     private var accessChecked = false   // becomes true once both config + role are fetched
     private var selectedBloodGroup: String? = null
     private var selectedDistrict: String? = null
+    private var selectedBatch: String? = null
+    private var showingMatches = false
+    private var isTeacherMode = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -51,19 +57,24 @@ class FriendsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         db = FirebaseFirestore.getInstance()
 
+        isTeacherMode = arguments?.getBoolean("isTeacherMode") ?: false
+        if (isTeacherMode) {
+            binding.tvHeaderTitle.text = "Teacher Directory"
+            binding.chipBatch?.visibility = android.view.View.GONE
+            binding.chipMyMatches.visibility = android.view.View.GONE
+            binding.tilSearch.hint = "Search name or department..."
+            binding.chipDistrict.text = "Department"
+        } else {
+            binding.tvHeaderTitle.text = "Student Directory"
+        }
+        
         setupRecyclerView()
         setupSearch()
         setupFilters()
 
-        // First, fetch the current user's role, then kick off access checks
         fetchCurrentUserRole()
     }
 
-    /**
-     * Step 1 – Fetch the current user's role from Firestore.
-     * After loading, begin listening to the friends config so the screen
-     * reacts in real-time if an admin toggles the flag while it is open.
-     */
     private fun fetchCurrentUserRole() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: run {
             showLockedState()
@@ -74,7 +85,10 @@ class FriendsFragment : Fragment() {
             .addOnSuccessListener { doc ->
                 if (_binding == null || !isAdded) return@addOnSuccessListener
                 currentUserRole = doc.getString("role") ?: "student"
-                listenToFriendsConfig()      // Step 2
+                currentUserBloodGroup = doc.getString("bloodGroup").orEmpty()
+                currentUserDistrict = doc.getString("homeDistrict").orEmpty()
+                currentUserBatch = doc.getString("batch").orEmpty()
+                listenToFriendsConfig()
             }
             .addOnFailureListener {
                 if (_binding == null || !isAdded) return@addOnFailureListener
@@ -89,21 +103,8 @@ class FriendsFragment : Fragment() {
      * the admin toggles "Make Friends List Public".
      */
     private fun listenToFriendsConfig() {
-        configListener?.remove()
-        configListener = db.collection("config").document("friends")
-            .addSnapshotListener { snapshot, error ->
-                if (_binding == null || !isAdded) return@addSnapshotListener
-                if (error != null) {
-                    android.util.Log.e("FriendsFragment", "Config listen error", error)
-                    // Default to locked on error
-                    isFriendsPublic = false
-                } else {
-                    isFriendsPublic = snapshot?.getBoolean("isPublic") ?: false
-                }
-
-                // (Re-)evaluate access every time the flag changes
-                applyAccessDecision()
-            }
+        isFriendsPublic = true
+        applyAccessDecision()
     }
 
     /**
@@ -111,9 +112,7 @@ class FriendsFragment : Fragment() {
      * Admins and superadmins always have access regardless of the toggle.
      */
     private fun applyAccessDecision() {
-        val hasAccess = isFriendsPublic ||
-                currentUserRole == "superadmin" ||
-                currentUserRole == "admin"
+        val hasAccess = true
 
         if (hasAccess) {
             showNormalState()
@@ -215,7 +214,39 @@ class FriendsFragment : Fragment() {
 
                 if (snapshot != null) {
                     allUsersList = snapshot.documents.mapNotNull { doc ->
-                        doc.toObject(User::class.java)?.copy(uid = doc.id)
+                        try {
+                            val userBatch = doc.getString("batch").orEmpty()
+                            val userRole = doc.getString("role") ?: "student"
+
+                            if (isTeacherMode && userRole != "teacher") {
+                                return@mapNotNull null
+                            }
+                            if (!isTeacherMode && userRole == "teacher") {
+                                return@mapNotNull null
+                            }
+                            
+                            User(
+                                uid = doc.id,
+                                batch = userBatch,
+                                name = doc.getString("name").orEmpty(),
+                                fullName = doc.getString("fullName").orEmpty(),
+                                studentId = doc.getString("studentId").orEmpty(),
+                                department = doc.getString("department").orEmpty(),
+                                email = doc.getString("email").orEmpty(),
+                                phone = doc.getString("phone").orEmpty(),
+                                bloodGroup = doc.getString("bloodGroup").orEmpty(),
+                                homeDistrict = doc.getString("homeDistrict").orEmpty(),
+                                address = doc.getString("address").orEmpty(),
+                                role = doc.getString("role") ?: "student",
+                                approved = doc.getBoolean("approved") ?: false,
+                                photoUrl = doc.getString("photoUrl").orEmpty(),
+                                authProvider = doc.getString("authProvider").orEmpty(),
+                                oneSignalPlayerId = doc.getString("oneSignalPlayerId").orEmpty()
+                            )
+                        } catch (e: Exception) {
+                            android.util.Log.e("FriendsFragment", "Skipping user \${doc.id} due to parse error", e)
+                            null
+                        }
                     }.sortedBy { it.name }
 
                     val query = binding.etSearch.text.toString()
@@ -237,24 +268,46 @@ class FriendsFragment : Fragment() {
     private fun setupFilters() {
         binding.chipGroupFilters.setOnCheckedStateChangeListener { group, checkedIds ->
             if (checkedIds.contains(R.id.chipAll)) {
+                showingMatches = false
                 resetFilters()
             }
         }
 
+        binding.chipMyMatches.setOnClickListener {
+            showingMatches = true
+            selectedBloodGroup = currentUserBloodGroup.takeIf { it.isNotBlank() }
+            selectedDistrict = currentUserDistrict.takeIf { it.isNotBlank() }
+            binding.chipBlood.text = "Blood Group"
+            binding.chipDistrict.text = "Home District"
+            filterList(binding.etSearch.text.toString())
+            if (selectedBloodGroup == null && selectedDistrict == null) {
+                Toast.makeText(context, "Please update your profile with blood group & district first.", Toast.LENGTH_LONG).show()
+            }
+        }
+
         binding.chipBlood.setOnClickListener {
+            showingMatches = false
             showBloodGroupSelector()
         }
 
         binding.chipDistrict.setOnClickListener {
-            showDistrictSelector()
+            showingMatches = false
+            if (isTeacherMode) showDepartmentSelector() else showDistrictSelector()
+        }
+        
+        binding.chipBatch?.setOnClickListener {
+            showingMatches = false
+            showBatchSelector()
         }
     }
 
     private fun resetFilters() {
         selectedBloodGroup = null
         selectedDistrict = null
+        selectedBatch = null
         binding.chipBlood.text = "Blood Group"
-        binding.chipDistrict.text = "Home District"
+        binding.chipDistrict.text = if (isTeacherMode) "Department" else "Home District"
+        binding.chipBatch?.text = "Batch"
         binding.chipAll.isChecked = true
         filterList(binding.etSearch.text.toString())
     }
@@ -267,8 +320,10 @@ class FriendsFragment : Fragment() {
                 val selected = bloodGroups[which]
                 selectedBloodGroup = selected
                 selectedDistrict = null
+                selectedBatch = null
                 binding.chipBlood.text = "Blood: $selected"
                 binding.chipDistrict.text = "Home District"
+                binding.chipBatch?.text = "Batch"
                 binding.chipBlood.isChecked = true
                 filterList(binding.etSearch.text.toString())
             }
@@ -307,17 +362,97 @@ class FriendsFragment : Fragment() {
             .show()
     }
 
+    private fun showDepartmentSelector() {
+        val depts = allUsersList.map { it.department.trim() }
+            .filter { it.isNotBlank() }
+            .distinct()
+            .sorted()
+            
+        if (depts.isEmpty()) {
+            android.widget.Toast.makeText(context, "No departments found", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Select Department")
+            .setItems(depts.toTypedArray()) { _, which ->
+                val selected = depts[which]
+                selectedDistrict = selected // Reuse selectedDistrict variable for department
+                selectedBloodGroup = null
+                selectedBatch = null
+                binding.chipDistrict.text = "Dept: $selected"
+                binding.chipBlood.text = "Blood Group"
+                binding.chipBatch?.text = "Batch"
+                binding.chipDistrict.isChecked = true
+                filterList(binding.etSearch.text.toString())
+            }
+            .setNeutralButton("Clear Filter") { _, _ ->
+                resetFilters()
+            }
+            .show()
+    }
+
+    private fun showBatchSelector() {
+        val batches = allUsersList.map { it.batch.trim() }
+            .filter { it.isNotBlank() }
+            .distinct()
+            .sorted()
+            
+        if (batches.isEmpty()) {
+            android.widget.Toast.makeText(context, "No batches found", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Select Batch")
+            .setItems(batches.toTypedArray()) { _, which ->
+                val selected = batches[which]
+                selectedBatch = selected
+                selectedBloodGroup = null
+                selectedDistrict = null
+                binding.chipBatch?.text = "Batch: $selected"
+                binding.chipBlood.text = "Blood Group"
+                binding.chipDistrict.text = "Home District"
+                binding.chipBatch?.isChecked = true
+                filterList(binding.etSearch.text.toString())
+            }
+            .setNeutralButton("Clear Filter") { _, _ ->
+                resetFilters()
+            }
+            .show()
+    }
+
     private fun filterList(query: String) {
         var filtered = allUsersList
 
-        // Apply Blood Group Filter
-        selectedBloodGroup?.let { blood ->
-            filtered = filtered.filter { it.bloodGroup.equals(blood, ignoreCase = true) }
-        }
-
-        // Apply District Filter
-        selectedDistrict?.let { district ->
-            filtered = filtered.filter { it.homeDistrict.equals(district, ignoreCase = true) }
+        if (showingMatches) {
+            val hasBlood = !currentUserBloodGroup.isNullOrBlank()
+            val hasDistrict = !currentUserDistrict.isNullOrBlank()
+            
+            filtered = filtered.filter { user ->
+                // Don't match self
+                if (user.uid == FirebaseAuth.getInstance().currentUser?.uid) return@filter false
+                
+                val matchBlood = hasBlood && user.bloodGroup.equals(currentUserBloodGroup, ignoreCase = true)
+                val matchDistrict = hasDistrict && user.homeDistrict.equals(currentUserDistrict, ignoreCase = true)
+                
+                matchBlood || matchDistrict
+            }
+        } else {
+            // Apply normal AND filtering
+            selectedBloodGroup?.let { blood ->
+                filtered = filtered.filter { it.bloodGroup.equals(blood, ignoreCase = true) }
+            }
+            selectedDistrict?.let { district ->
+                if (isTeacherMode) {
+                    filtered = filtered.filter { it.department.equals(district, ignoreCase = true) }
+                } else {
+                    filtered = filtered.filter { it.homeDistrict.equals(district, ignoreCase = true) }
+                }
+            }
+            selectedBatch?.let { batch ->
+                filtered = filtered.filter { it.batch.equals(batch, ignoreCase = true) }
+            }
         }
 
         // Apply Text Query Filter
@@ -328,6 +463,7 @@ class FriendsFragment : Fragment() {
                 user.studentId.contains(trimmedQuery, ignoreCase = true) ||
                 user.bloodGroup.contains(trimmedQuery, ignoreCase = true) ||
                 user.homeDistrict.contains(trimmedQuery, ignoreCase = true) ||
+                user.department.contains(trimmedQuery, ignoreCase = true) ||
                 user.address.contains(trimmedQuery, ignoreCase = true) ||
                 user.phone.contains(trimmedQuery)
             }

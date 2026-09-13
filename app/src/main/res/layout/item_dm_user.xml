@@ -13,10 +13,13 @@
         android:layout_height="52dp"
         android:layout_marginEnd="14dp">
 
-        <de.hdodenhof.circleimageview.CircleImageView
+        <ImageView
             android:id="@+id/ivAvatar"
             android:layout_width="52dp"
             android:layout_height="52dp"
+            android:scaleType="centerCrop"
+            android:background="@drawable/bg_circle_avatar"
+            android:clipToOutline="true"
             android:src="@drawable/ic_default_avatar" />
 
         <TextView

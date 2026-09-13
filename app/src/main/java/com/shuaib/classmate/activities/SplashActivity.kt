@@ -87,7 +87,19 @@ class SplashActivity : AppCompatActivity() {
 
     private fun routeFromProfile(document: DocumentSnapshot) {
         try {
-            navigate(MainActivity::class.java)
+            val role = document.getString("role") ?: "student"
+            val approvedVal = document.get("approved")
+            val approved = when (approvedVal) {
+                is Boolean -> approvedVal
+                is String -> approvedVal.toBoolean()
+                else -> false
+            }
+            
+            if (role == "superadmin" || role == "admin" || approved) {
+                navigate(MainActivity::class.java)
+            } else {
+                navigate(PendingApprovalActivity::class.java)
+            }
         } catch (e: Exception) {
             android.util.Log.e("SplashActivity", "Error parsing profile: ${e.message}")
             navigate(MainActivity::class.java)

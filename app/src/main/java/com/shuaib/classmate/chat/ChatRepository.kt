@@ -2,60 +2,41 @@ package com.shuaib.classmate.chat
 
 import android.content.Context
 import android.util.Log
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.SetOptions
 import com.shuaib.classmate.chat.model.ChatMessage
 import com.shuaib.classmate.chat.model.ChatRoom
 import com.shuaib.classmate.chat.model.ChatUser
-import com.shuaib.classmate.chat.model.MessageReaction
+import com.shuaib.classmate.models.User
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
-import okhttp3.WebSocket
-import okhttp3.WebSocketListener
-import org.json.JSONArray
-import org.json.JSONObject
-import com.google.firebase.firestore.FirebaseFirestore
-import java.util.Collections
-import java.util.concurrent.ConcurrentLinkedQueue
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.tasks.await
+import java.util.UUID
 
 object ChatRepository {
-    private var serverUrl = "wss://hobby-monitors-committees-providence.trycloudflare.com"
-    private const val RECONNECT_DELAY_MS = 3_000L
+    fun isTeacher(): Boolean {
+        val currentUserRole = _users.value.find { it.id == userId }?.role ?: "student"
+        return currentUserRole == "teacher"
+    }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(8, TimeUnit.SECONDS)
-        .pingInterval(20, TimeUnit.SECONDS)
-        .retryOnConnectionFailure(true)
-        .build()
+    private val firestore = FirebaseFirestore.getInstance()
 
-    private var webSocket: WebSocket? = null
     private var context: Context? = null
     private var userId: String = ""
     private var userName: String = "User"
+    private var currentRoomId: String? = null
     private var avatarUrl: String = ""
-    private var reconnectScheduled = false
-    private var manuallyClosed = false
-    private var configJob: kotlinx.coroutines.Job? = null
-    private var pendingGetRooms = false
-    private var pendingGetUsers = false
-    private val pendingSetRooms: MutableSet<String> = Collections.newSetFromMap(ConcurrentHashMap())
-    private val pendingHistoryRooms: MutableSet<String> = Collections.newSetFromMap(ConcurrentHashMap())
-    private val pendingOutbound = ConcurrentLinkedQueue<String>()
-    val activeRooms: MutableSet<String> = Collections.newSetFromMap(ConcurrentHashMap())
+
+    val activeRooms = mutableSetOf<String>()
 
     private val _incomingMessage = MutableStateFlow<ChatMessage?>(null)
     val incomingMessage: StateFlow<ChatMessage?> = _incomingMessage
@@ -66,8 +47,8 @@ object ChatRepository {
     private val _dmCreated = MutableSharedFlow<ChatRoom>(extraBufferCapacity = 8)
     val dmCreated: SharedFlow<ChatRoom> = _dmCreated
 
-    private val _historyMessages = MutableStateFlow<List<ChatMessage>>(emptyList())
-    val historyMessages: StateFlow<List<ChatMessage>> = _historyMessages
+    private val _historyMessages = MutableStateFlow<Map<String, List<ChatMessage>>>(emptyMap())
+    val historyMessages: StateFlow<Map<String, List<ChatMessage>>> = _historyMessages
 
     private val _messageUpdate = MutableSharedFlow<ChatMessage>(extraBufferCapacity = 16)
     val messageUpdate: SharedFlow<ChatMessage> = _messageUpdate
@@ -99,613 +80,401 @@ object ChatRepository {
     private val _connectionError = MutableSharedFlow<Unit>(extraBufferCapacity = 8)
     val connectionError: SharedFlow<Unit> = _connectionError
 
-    private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
+    private val _connectionState = MutableStateFlow(ConnectionState.CONNECTED)
     val connectionState: StateFlow<ConnectionState> = _connectionState
 
+    private var roomsListener: ListenerRegistration? = null
+    private var usersListener: ListenerRegistration? = null
+    private val messagesListeners = mutableMapOf<String, ListenerRegistration>()
+
+    var userBatch: String = ""
+    val groupRoomId: String
+        get() = if (userBatch.isBlank()) "group_main" else "group_batch_$userBatch"
+
     fun init(context: Context, userId: String, userName: String?, avatarUrl: String?) {
+        ChatUnreadManager.init(context)
         if (userId.isBlank()) return
         this.context = context.applicationContext
-
-        // Start observing server config from Firestore reactively
-        observeServerConfig()
-
-        val wasConnected = _connectionState.value == ConnectionState.CONNECTED
-        if (this.userId == userId && wasConnected) {
-            // User already initialized and connected, just resend auth with updated name/avatar
-            this.userName = userName?.takeIf { it.isNotBlank() } ?: "User"
-            this.avatarUrl = avatarUrl.orEmpty()
-            sendAuth()
-            return
-        }
         this.userId = userId
         this.userName = userName?.takeIf { it.isNotBlank() } ?: "User"
         this.avatarUrl = avatarUrl.orEmpty()
-        manuallyClosed = false
-        connect()
+        
+        _connectionState.value = ConnectionState.CONNECTED
+        
+        firestore.collection("users").document(userId).get().addOnSuccessListener { doc ->
+            userBatch = doc.getString("batch") ?: ""
+            ensureMainGroupExists()
+            getRooms()
+            getUsers()
+        }
+    }
+
+    private fun ensureMainGroupExists() {
+        scope.launch {
+            try {
+                val mainGroupRef = firestore.collection("chat_rooms").document(groupRoomId)
+                val snap = mainGroupRef.get().await()
+                if (!snap.exists()) {
+                    mainGroupRef.set(mapOf(
+                        "id" to groupRoomId,
+                        "type" to "group",
+                        "name" to "Class Group (${if(userBatch.isNotBlank()) "Batch $userBatch" else "All"})",
+                        "lastMessage" to "",
+                        "lastTimestamp" to System.currentTimeMillis()
+                    ), SetOptions.merge())
+                }
+            } catch (e: Exception) {
+                Log.e("ChatRepo", "Failed to init $groupRoomId", e)
+            }
+        }
     }
 
     fun close() {
-        manuallyClosed = true
-        reconnectScheduled = false
-        val socketToCancel = webSocket
-        webSocket = null
-        try {
-            socketToCancel?.close(1000, "User logged out")
-        } catch (_: Exception) {}
-        userId = ""
-        userName = "User"
-        avatarUrl = ""
-        activeRooms.clear()
+        roomsListener?.remove()
+        usersListener?.remove()
+        messagesListeners.values.forEach { it.remove() }
+        messagesListeners.clear()
         _connectionState.value = ConnectionState.DISCONNECTED
     }
-
+    
     fun connect() {
-        if (userId.isBlank() || _connectionState.value == ConnectionState.CONNECTING || _connectionState.value == ConnectionState.CONNECTED) return
-
-        val ctx = context
-        if (ctx != null && !com.shuaib.classmate.utils.NetworkMonitor.isOnline(ctx)) {
-            _connectionState.value = ConnectionState.DISCONNECTED
-            scheduleReconnect()
-            return
-        }
-
-        _connectionState.value = ConnectionState.CONNECTING
-
-        // Nullify reference before cancel to ensure the guard in listener works
-        val socketToCancel = webSocket
-        webSocket = null
-        socketToCancel?.cancel()
-
-        val request = runCatching { Request.Builder().url(serverUrl).build() }
-            .getOrElse { error ->
-                Log.e("ChatDebug", "Invalid chat server URL: $serverUrl", error)
-                _connectionState.value = ConnectionState.DISCONNECTED
-                scheduleReconnect()
-                return
-            }
-        webSocket = client.newWebSocket(request, listener)
+        _connectionState.value = ConnectionState.CONNECTED
     }
 
-    fun updateServerUrl(newUrl: String) {
-        val normalizedUrl = normalizeServerUrl(newUrl)
-        if (normalizedUrl.isBlank() || serverUrl == normalizedUrl) return
-        serverUrl = normalizedUrl
-        manuallyClosed = false
-        reconnectScheduled = false
-        _connectionState.value = ConnectionState.DISCONNECTED
-
-        val socketToCancel = webSocket
-        webSocket = null
-        socketToCancel?.cancel()
-
-        connect()
-    }
+    fun updateServerUrl(newUrl: String) {}
 
     fun sendMessage(
         roomId: String,
         text: String,
         replyToId: String? = null,
         replyToText: String? = null,
-        replyToSender: String? = null
+        replyToSender: String? = null,
+        forwardedFrom: String? = null
     ) {
-        val trimmed = text.trim()
-        if (roomId.isBlank() || trimmed.isBlank()) return
-        sendJson(
-            JSONObject()
-                .put("type", "send_message")
-                .put("roomId", roomId)
-                .put("text", trimmed)
-                .putNullable("replyToId", replyToId)
-                .putNullable("replyToText", replyToText)
-                .putNullable("replyToSender", replyToSender)
+        val msgId = UUID.randomUUID().toString()
+        val msg = mapOf(
+            "id" to msgId,
+            "roomId" to roomId,
+            "senderId" to userId,
+            "senderName" to userName,
+            "senderAvatarUrl" to avatarUrl,
+            "text" to text,
+            "timestamp" to System.currentTimeMillis(),
+            "isDeleted" to false,
+            "replyToId" to replyToId,
+            "replyToText" to replyToText,
+            "replyToSender" to replyToSender,
+            "forwardedFrom" to forwardedFrom
         )
-        _incomingMessage.value = ChatMessage(
-            id = "temp_${System.currentTimeMillis()}",
+        firestore.collection("chat_rooms").document(roomId).collection("messages").document(msgId).set(msg)
+        firestore.collection("chat_rooms").document(roomId).update(
+            "lastMessage", text,
+            "lastTimestamp", System.currentTimeMillis()
+        )
+        
+        // Send Notification
+        val targetUserId = if (roomId.startsWith("dm_")) roomId.removePrefix("dm_").split("_").firstOrNull { it != userId } else null
+        com.shuaib.classmate.utils.NotificationSender.sendChatMessageAlert(
             roomId = roomId,
             senderId = userId,
             senderName = userName,
-            senderAvatarUrl = avatarUrl,
-            text = trimmed,
-            timestamp = System.currentTimeMillis(),
-            isDeleted = false,
-            replyToId = replyToId,
-            replyToText = replyToText,
-            replyToSender = replyToSender
+            messageText = text,
+            targetUserId = targetUserId
         )
     }
 
     fun sendImage(roomId: String, imageUrl: String, caption: String) {
-        if (roomId.isBlank() || imageUrl.isBlank()) return
-        sendJson(
-            JSONObject()
-                .put("type", "send_image")
-                .put("roomId", roomId)
-                .put("imageUrl", imageUrl)
-                .put("caption", caption.trim())
+        val msgId = UUID.randomUUID().toString()
+        val msg = mapOf(
+            "id" to msgId,
+            "roomId" to roomId,
+            "senderId" to userId,
+            "senderName" to userName,
+            "senderAvatarUrl" to avatarUrl,
+            "text" to caption,
+            "imageUrl" to imageUrl,
+            "timestamp" to System.currentTimeMillis(),
+            "isDeleted" to false
+        )
+        firestore.collection("chat_rooms").document(roomId).collection("messages").document(msgId).set(msg)
+        firestore.collection("chat_rooms").document(roomId).update(
+            "lastMessage", if (caption.isNotBlank()) caption else "Sent an image",
+            "lastTimestamp", System.currentTimeMillis()
+        )
+        
+        // Send Notification
+        val targetUserId = if (roomId.startsWith("dm_")) roomId.removePrefix("dm_").split("_").firstOrNull { it != userId } else null
+        val bodyText = if (caption.isNotBlank()) "Photo: $caption" else "Photo"
+        com.shuaib.classmate.utils.NotificationSender.sendChatMessageAlert(
+            roomId = roomId,
+            senderId = userId,
+            senderName = userName,
+            messageText = bodyText,
+            targetUserId = targetUserId
         )
     }
 
     fun enterRoom(roomId: String) {
-        if (roomId.isNotBlank()) activeRooms.add(roomId)
+        currentRoomId = roomId
+        ChatUnreadManager.markRoomSeen(roomId)
+        getRooms() // refresh rooms to update unread counts
+        activeRooms.add(roomId)
     }
-
+    
     fun leaveRoom(roomId: String) {
+        if (currentRoomId == roomId) currentRoomId = null
+        ChatUnreadManager.markRoomSeen(roomId)
+        getRooms()
         activeRooms.remove(roomId)
     }
+    fun setRoom(roomId: String) {}
 
     fun getHistory(roomId: String) {
-        if (roomId.isBlank()) return
-        if (_connectionState.value != ConnectionState.CONNECTED) {
-            pendingSetRooms.add(roomId)
-            pendingHistoryRooms.add(roomId)
-            connectIfNeeded()
-            return
-        }
-        sendRoomHistoryRequest(roomId)
-    }
+        if (messagesListeners.containsKey(roomId)) return
+        
+        messagesListeners[roomId] = firestore.collection("chat_rooms").document(roomId)
+            .collection("messages")
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .limit(50)
+            .addSnapshotListener { snap, _ ->
+                if (snap != null) {
+                    val msgs = snap.documents.mapNotNull { parseMessage(it.data) }
+                    val newMap = _historyMessages.value.toMutableMap()
+                    newMap[roomId] = msgs.reversed()
+                    _historyMessages.value = newMap
+                    
+                    if (msgs.isNotEmpty()) {
+                        _incomingMessage.value = msgs.first()
+                    }
 
-    fun setRoom(roomId: String) {
-        if (roomId.isBlank()) return
-        if (_connectionState.value != ConnectionState.CONNECTED) {
-            pendingSetRooms.add(roomId)
-            connectIfNeeded()
-            return
-        }
-        sendJson(JSONObject().put("type", "set_room").put("roomId", roomId))
+                    val batch = firestore.batch()
+                    var batchCount = 0
+                    msgs.forEach { msg ->
+                        if (msg.senderId != userId && !msg.seenBy.contains(userId)) {
+                            val ref = firestore.collection("chat_rooms").document(roomId).collection("messages").document(msg.id)
+                            batch.update(ref, "seenBy", com.google.firebase.firestore.FieldValue.arrayUnion(userId))
+                            batchCount++
+                        }
+                    }
+                    if (batchCount > 0) batch.commit()
+
+                    scope.launch { _historyLoaded.emit(roomId) }
+                }
+            }
     }
 
     fun getRooms() {
-        if (_connectionState.value != ConnectionState.CONNECTED) {
-            pendingGetRooms = true
-            connectIfNeeded()
-            return
-        }
-        sendJson(JSONObject().put("type", "get_rooms"))
+        roomsListener?.remove()
+        roomsListener = firestore.collection("chat_rooms")
+            .addSnapshotListener { snap, _ ->
+                if (snap != null) {
+                                        snap.documents.forEach { doc ->
+                        if (doc.id == currentRoomId) {
+                            ChatUnreadManager.markRoomSeen(doc.id)
+                        }
+                    }
+                    val allRooms = snap.documents.mapNotNull { parseRoom(it.data) }
+                    val currentUserRole = _users.value.find { it.id == userId }?.role ?: "student"
+                    val isTeacher = currentUserRole == "teacher"
+                    val userRooms = allRooms.filter { 
+                        (it.type == "group" && !isTeacher) || it.member1Id == userId || it.member2Id == userId 
+                    }.sortedByDescending { it.lastMessageTime }
+                    
+                    val totalUnread = ChatUnreadManager.getTotalUnread(userRooms, userId)
+                    _rooms.value = userRooms
+                    // We can emit the total unread somewhere or MainActivity can observe _rooms
+                    scope.launch { _roomsLoaded.emit(Unit) }
+                }
+            }
     }
 
     fun createDm(targetUserId: String, targetUserName: String) {
-        if (userId.isBlank() || targetUserId.isBlank() || targetUserId == userId) return
-        sendJson(
-            JSONObject()
-                .put("type", "create_dm")
-                .put("targetUserId", targetUserId)
-                .put("targetUserName", targetUserName.ifBlank { "User" })
+        val ids = listOf(userId, targetUserId).sorted()
+        val roomId = "dm_${ids[0]}_${ids[1]}"
+        
+        val roomData = mapOf(
+            "id" to roomId,
+            "type" to "direct",
+            "name" to "",
+            "member1Id" to ids[0],
+            "member2Id" to ids[1],
+            "lastMessage" to "",
+            "lastTimestamp" to System.currentTimeMillis()
         )
+        
+        firestore.collection("chat_rooms").document(roomId).set(roomData, SetOptions.merge())
+            .addOnSuccessListener {
+                val dmRoom = parseRoom(roomData)
+                if (dmRoom != null) {
+                    scope.launch { _dmCreated.emit(dmRoom) }
+                }
+            }
     }
 
     fun deleteMessage(messageId: String, roomId: String, isAdmin: Boolean) {
-        sendJson(
-            JSONObject()
-                .put("type", "delete_message")
-                .put("messageId", messageId)
-                .put("roomId", roomId)
-                .put("isAdmin", isAdmin)
-        )
-    }
-
-    fun getUsers() {
-        if (_connectionState.value != ConnectionState.CONNECTED) {
-            pendingGetUsers = true
-            connectIfNeeded()
-            return
-        }
-        sendJson(JSONObject().put("type", "get_users"))
-    }
-
-    fun sendTyping(roomId: String) {
-        if (roomId.isBlank()) return
-        sendJson(JSONObject().put("type", "typing").put("roomId", roomId), queueWhenDisconnected = false)
-    }
-
-    fun editMessage(messageId: String, roomId: String, newText: String) {
-        sendJson(JSONObject().put("type", "edit_message").put("messageId", messageId).put("roomId", roomId).put("newText", newText))
-    }
-
-    fun reactMessage(messageId: String, roomId: String, emoji: String) {
-        sendJson(JSONObject().put("type", "react_message").put("messageId", messageId).put("roomId", roomId).put("emoji", emoji))
-    }
-
-    fun seenMessage(messageId: String, roomId: String) {
-        sendJson(JSONObject().put("type", "seen_message").put("messageId", messageId).put("roomId", roomId))
-    }
-
-    fun forwardMessage(originalMessageId: String, targetRoomId: String) {
-        sendJson(JSONObject().put("type", "forward_message").put("originalMessageId", originalMessageId).put("targetRoomId", targetRoomId))
-    }
-
-    fun pinMessage(messageId: String, roomId: String, pin: Boolean) {
-        sendJson(JSONObject().put("type", "pin_message").put("messageId", messageId).put("roomId", roomId).put("pin", pin))
-    }
-
-    fun getPinned(roomId: String) {
-        sendJson(JSONObject().put("type", "get_pinned").put("roomId", roomId))
-    }
-
-    fun searchMessages(roomId: String, query: String) {
-        sendJson(JSONObject().put("type", "search_messages").put("roomId", roomId).put("query", query))
-    }
-
-    fun dmRoomIdFor(targetUserId: String): String {
-        return listOf(userId, targetUserId).sorted().joinToString(separator = "_", prefix = "dm_")
-    }
-
-    private fun observeServerConfig() {
-        if (configJob != null) return
-        configJob = scope.launch {
-            callbackFlow {
-                val listener = FirebaseFirestore.getInstance()
-                    .collection("config")
-                    .document("chat")
-                    .addSnapshotListener { snapshot, error ->
-                        if (error != null) return@addSnapshotListener
-                        snapshot?.getString("serverUrl")?.let { trySend(it) }
-                    }
-                awaitClose { listener.remove() }
-            }.collect { newUrl ->
-                updateServerUrl(newUrl)
-            }
-        }
-    }
-
-    private fun sendAuth() {
-        val authJson = JSONObject()
-            .put("type", "auth")
-            .put("userId", userId)
-            .put("userName", userName)
-            .put("avatarUrl", avatarUrl)
-        sendJson(authJson, queueWhenDisconnected = false)
-        flushPendingRequests()
-    }
-
-    private fun sendJson(json: JSONObject, queueWhenDisconnected: Boolean = true): Boolean {
-        val raw = json.toString()
-        if (_connectionState.value != ConnectionState.CONNECTED) {
-            if (queueWhenDisconnected) pendingOutbound.offer(raw)
-            connectIfNeeded()
-            return false
-        }
-        val sent = webSocket?.send(raw) == true
-        if (!sent && queueWhenDisconnected) {
-            pendingOutbound.offer(raw)
-            connectIfNeeded()
-        }
-        return sent
-    }
-
-    private fun sendRaw(json: String, queueWhenDisconnected: Boolean = true): Boolean {
-        if (_connectionState.value != ConnectionState.CONNECTED) {
-            if (queueWhenDisconnected) pendingOutbound.offer(json)
-            connectIfNeeded()
-            return false
-        }
-        val sent = webSocket?.send(json) == true
-        if (!sent && queueWhenDisconnected) {
-            pendingOutbound.offer(json)
-            connectIfNeeded()
-        }
-        return sent
-    }
-
-    private fun connectIfNeeded() {
-        if (_connectionState.value == ConnectionState.DISCONNECTED) {
-            connect()
-        }
-    }
-
-    private fun flushPendingRequests() {
-        val roomsToSet = pendingSetRooms.toList()
-        pendingSetRooms.clear()
-        roomsToSet.forEach { roomId ->
-            sendJson(JSONObject().put("type", "set_room").put("roomId", roomId))
-        }
-
-        val historiesToLoad = pendingHistoryRooms.toList()
-        pendingHistoryRooms.clear()
-        historiesToLoad.forEach { roomId -> sendRoomHistoryRequest(roomId) }
-
-        if (pendingGetRooms) {
-            pendingGetRooms = false
-            getRooms()
-        }
-        if (pendingGetUsers) {
-            pendingGetUsers = false
-            getUsers()
-        }
-
-        while (true) {
-            val raw = pendingOutbound.poll() ?: break
-            sendRaw(raw, queueWhenDisconnected = false)
-        }
-    }
-
-    private fun sendRoomHistoryRequest(roomId: String) {
-        val escapedRoomId = JSONObject.quote(roomId)
-        sendRaw("""{"type":"set_room","roomId":$escapedRoomId}""")
-        sendRaw("""{"type":"get_history","roomId":$escapedRoomId,"limit":50}""")
-    }
-
-    private val listener = object : WebSocketListener() {
-        override fun onOpen(webSocket: WebSocket, response: Response) {
-            if (webSocket !== this@ChatRepository.webSocket) return
-            reconnectScheduled = false
-            _connectionState.value = ConnectionState.CONNECTED
-            sendAuth()
-        }
-
-        override fun onMessage(webSocket: WebSocket, text: String) {
-            if (webSocket !== this@ChatRepository.webSocket) return
-            runCatching {
-                val jsonObject = JSONObject(text)
-                if (jsonObject.optString("type") == "rooms") {
-                    Log.d("ChatDebug", "RAW rooms JSON: $text")
-                    val roomsArray = jsonObject.getJSONArray("rooms")
-                    Log.d("ChatDebug", "Rooms array length: ${roomsArray.length()}")
-                }
-                handleMessage(jsonObject)
-            }
-        }
-
-        override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
-            if (webSocket !== this@ChatRepository.webSocket) return
-            webSocket.close(code, reason)
-        }
-
-        override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-            if (webSocket !== this@ChatRepository.webSocket) return
-            _connectionState.value = ConnectionState.DISCONNECTED
-            _connectionError.tryEmit(Unit)
-            scheduleReconnect()
-        }
-
-        override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-            if (webSocket !== this@ChatRepository.webSocket) return
-
-            val message = t.message ?: "Unknown error"
-            // Socket closed is common during network switches or manual cancels
-            if (message.contains("Socket closed", ignoreCase = true) ||
-                message.contains("Canceled", ignoreCase = true) ||
-                message.contains("Software caused connection abort", ignoreCase = true)) {
-                Log.w("ChatDebug", "Chat WebSocket disconnected: $message")
-            } else {
-                Log.e("ChatDebug", "Chat WebSocket failure: $message", t)
-            }
-
-            _connectionState.value = ConnectionState.DISCONNECTED
-            _connectionError.tryEmit(Unit)
-            scheduleReconnect()
-        }
-    }
-
-    private fun scheduleReconnect() {
-        if (manuallyClosed || reconnectScheduled || userId.isBlank()) return
-
-        val ctx = context
-        if (ctx != null && !com.shuaib.classmate.utils.NetworkMonitor.isOnline(ctx)) {
-            // Delay longer if offline to save battery, but keep trying
-            reconnectScheduled = true
-            scope.launch {
-                delay(10_000L)
-                reconnectScheduled = false
-                connect()
-            }
-            return
-        }
-
-        reconnectScheduled = true
-        scope.launch {
-            delay(RECONNECT_DELAY_MS)
-            reconnectScheduled = false
-            connect()
-        }
-    }
-
-    private fun handleMessage(json: JSONObject) {
-        when (json.optString("type")) {
-            "message", "new_message" -> {
-                parseMessage(json)?.let { message ->
-                    _incomingMessage.value = message
-
-                    // Push Notification Logic
-                    if (message.senderId != userId && message.roomId !in activeRooms) {
-                        context?.let { ctx ->
-                            val roomType = if (message.roomId.startsWith("dm_")) "dm" else "group"
-                            ChatNotificationHelper.showMessageNotification(
-                                context = ctx,
-                                roomId = message.roomId,
-                                roomType = roomType,
-                                senderId = message.senderId,
-                                senderName = message.senderName,
-                                senderAvatar = message.senderAvatarUrl ?: "",
-                                messageText = message.text,
-                                timestamp = message.timestamp
+        firestore.collection("chat_rooms").document(roomId).collection("messages").document(messageId)
+            .update(
+                "isDeleted", true,
+                "text", "",
+                "imageUrl", ""
+            ).addOnSuccessListener {
+                firestore.collection("chat_rooms").document(roomId).collection("messages")
+                    .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .limit(1)
+                    .get()
+                    .addOnSuccessListener { snap ->
+                        val lastDoc = snap.documents.firstOrNull()
+                        if (lastDoc != null) {
+                            val isDeleted = lastDoc.getBoolean("isDeleted") ?: false
+                            val text = if (isDeleted) "Message was deleted" else (lastDoc.getString("text") ?: "")
+                            val caption = lastDoc.getString("imageUrl")
+                            val finalText = if (text.isBlank() && !caption.isNullOrBlank()) "Sent an image" else text
+                            firestore.collection("chat_rooms").document(roomId).update(
+                                "lastMessage", finalText
                             )
                         }
                     }
+            }
+    }
+
+    fun getUsers() {
+        usersListener?.remove()
+        usersListener = firestore.collection("users")
+            .addSnapshotListener { snap, _ ->
+                if (snap != null) {
+                    val chatUsers = snap.documents.mapNotNull { doc ->
+                        try {
+                            val u = doc.toObject(User::class.java) ?: return@mapNotNull null
+                            ChatUser(
+                                id = u.uid,
+                                name = u.name.ifBlank { u.fullName },
+                                avatarUrl = u.photoUrl,
+                                role = u.role,
+                                isOnline = u.isOnline
+                            )
+                        } catch (e: Exception) {
+                            Log.e("ChatRepo", "Error parsing user ${doc.id}", e)
+                            null
+                        }
+                    }
+                    _users.value = chatUsers
+                    _onlineUsers.value = chatUsers.filter { it.isOnline }.map { it.id }
+                    scope.launch { _usersLoaded.emit(Unit) }
+                    
+                    // Re-parse rooms to update avatars/names if they were missing
+                    val currentRooms = _rooms.value
+                    if (currentRooms.isNotEmpty()) {
+                        val updatedRooms = currentRooms.map { room ->
+                            if (room.type == "direct") {
+                                val oId = if (room.member1Id == userId) room.member2Id else room.member1Id
+                                val oUser = chatUsers.find { it.id == oId }
+                                room.copy(
+                                    otherUserName = oUser?.name ?: "User",
+                                    otherUserAvatar = oUser?.avatarUrl ?: ""
+                                )
+                            } else room
+                        }
+                        _rooms.value = updatedRooms
+                    }
                 }
             }
-            "message_deleted", "delete_message", "deleted" -> parseDeletedMessage(json)?.let { _incomingMessage.value = it }
-            "message_edited", "message_reacted", "message_seen", "message_pinned" -> parseMessage(json)?.let { _messageUpdate.tryEmit(it) }
-            "search_results" -> _searchResults.value = parseMessages(json.optJSONArray("messages") ?: json.optJSONArray("results") ?: json.optJSONArray("data"))
-            "pinned_messages" -> _pinnedMessages.value = parseMessages(json.optJSONArray("messages") ?: json.optJSONArray("pinned") ?: json.optJSONArray("data"))
-            "history" -> {
-                val messages = parseMessages(json.optJSONArray("messages") ?: json.optJSONArray("data"))
-                _historyMessages.value = messages
-                val roomId = json.optString("roomId")
-                    .ifBlank { json.optJSONObject("room")?.optString("id").orEmpty() }
-                    .ifBlank { messages.firstOrNull()?.roomId.orEmpty() }
-                if (roomId.isNotBlank()) _historyLoaded.tryEmit(roomId)
-            }
-            "rooms", "room_list" -> {
-                val roomsArray = if (json.has("rooms")) json.getJSONArray("rooms") else json.optJSONArray("data")
-                val roomsList = parseRooms(roomsArray)
-                _rooms.value = roomsList
-                _roomsLoaded.tryEmit(Unit)
-            }
-            "room", "dm_room", "dm_created" -> parseRoom(json.optJSONObject("room") ?: json.optJSONObject("data") ?: json)?.let {
-                upsertRoom(it)
-                _dmCreated.tryEmit(it)
-            }
-            "users", "user_list" -> {
-                _users.value = parseUsers(json.optJSONArray("users") ?: json.optJSONArray("data"))
-                _usersLoaded.tryEmit(Unit)
-            }
-            "online_users", "online" -> _onlineUsers.value = parseStrings(json.optJSONArray("userIds"))
-            "user_typing", "typing" -> parseTypingEvent(json)?.let { _typingEvent.tryEmit(it) }
-        }
     }
 
-    private fun parseMessage(json: JSONObject): ChatMessage? {
-        val source = json.optJSONObject("message") ?: json.optJSONObject("data") ?: json
-        val id = source.optString("id", source.optString("messageId"))
-        val roomId = source.optString("roomId")
-        if (id.isBlank() || roomId.isBlank()) return null
+    fun sendTyping(roomId: String) {}
+    
+    fun editMessage(messageId: String, roomId: String, newText: String) {}
+    fun reactMessage(messageId: String, roomId: String, emoji: String) {
+        val docRef = firestore.collection("chat_rooms").document(roomId)
+            .collection("messages").document(messageId)
+        firestore.runTransaction { transaction ->
+            val snapshot = transaction.get(docRef)
+            if (!snapshot.exists()) return@runTransaction null
+            val currentReactions = snapshot.get("reactions") as? Map<*, *> ?: emptyMap<String, Any>()
+            val newReactions = mutableMapOf<String, List<String>>()
+            currentReactions.forEach { (k, v) ->
+                val em = k as? String ?: return@forEach
+                val list = (v as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
+                newReactions[em] = list
+            }
+            val usersForEmoji = newReactions[emoji]?.toMutableList() ?: mutableListOf()
+            if (usersForEmoji.contains(userId)) {
+                usersForEmoji.remove(userId)
+                if (usersForEmoji.isEmpty()) newReactions.remove(emoji) else newReactions[emoji] = usersForEmoji
+            } else {
+                usersForEmoji.add(userId)
+                newReactions[emoji] = usersForEmoji
+            }
+            transaction.update(docRef, "reactions", newReactions)
+            null
+        }
+    }
+    fun seenMessage(messageId: String, roomId: String) {}
+    fun forwardMessage(originalMessageId: String, targetRoomId: String) {}
+    fun pinMessage(messageId: String, roomId: String, pin: Boolean) {}
+    fun getPinned(roomId: String) {}
+    fun searchMessages(roomId: String, query: String) {}
+    
+    fun dmRoomIdFor(targetUserId: String): String {
+        val ids = listOf(userId, targetUserId).sorted()
+        return "dm_${ids[0]}_${ids[1]}"
+    }
+    
+    private fun parseMessage(map: Map<String, Any>?): ChatMessage? {
+        if (map == null) return null
         return ChatMessage(
-            id = id,
-            roomId = roomId,
-            senderId = source.optString("senderId", source.optString("userId")),
-            senderName = source.optString("senderName", source.optString("userName", "Unknown")),
-            senderAvatarUrl = source.optString("senderAvatarUrl", source.optString("avatarUrl", "")),
-            text = source.optString("text", source.optString("newText", source.optString("message"))),
-            timestamp = normalizeTimestamp(source.optLong("timestamp", System.currentTimeMillis())),
-            isDeleted = source.optBoolean("isDeleted", false),
-            editedAt = source.optNullableLong("editedAt"),
-            replyToId = source.optNullableString("replyToId"),
-            replyToText = source.optNullableString("replyToText"),
-            replyToSender = source.optNullableString("replyToSender"),
-            reactions = parseReactions(source.optJSONArray("reactions")),
-            seenBy = parseStrings(source.optJSONArray("seenBy")),
-            forwardedFrom = source.optNullableString("forwardedFrom"),
-            isPinned = source.optBoolean("isPinned", source.optBoolean("pin", false)),
-            imageUrl = source.optNullableString("imageUrl")
+            id = map["id"] as? String ?: return null,
+            roomId = map["roomId"] as? String ?: "",
+            senderId = map["senderId"] as? String ?: "",
+            senderName = map["senderName"] as? String ?: "User",
+            senderAvatarUrl = map["senderAvatarUrl"] as? String ?: "",
+            text = map["text"] as? String ?: "",
+            timestamp = (map["timestamp"] as? Number)?.toLong() ?: 0L,
+            isDeleted = map["isDeleted"] as? Boolean ?: false,
+            replyToId = map["replyToId"] as? String,
+            replyToText = map["replyToText"] as? String,
+            replyToSender = map["replyToSender"] as? String,
+            forwardedFrom = map["forwardedFrom"] as? String,
+            imageUrl = (map["imageUrl"] as? String)?.takeIf { it.isNotBlank() },
+            reactions = (map["reactions"] as? Map<*, *>)?.mapNotNull { (k, v) ->
+                val emoji = k as? String ?: return@mapNotNull null
+                val userIds = (v as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
+                if (userIds.isEmpty()) null else com.shuaib.classmate.chat.model.MessageReaction(emoji, userIds)
+            } ?: emptyList(),
+            seenBy = (map["seenBy"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+            isPinned = false
         )
     }
 
-    private fun parseDeletedMessage(json: JSONObject): ChatMessage? {
-        val source = json.optJSONObject("message") ?: json.optJSONObject("data") ?: json
-        val id = source.optString("id", source.optString("messageId"))
-        val roomId = source.optString("roomId")
-        if (id.isBlank() || roomId.isBlank()) return null
-        return ChatMessage(
-            id = id,
-            roomId = roomId,
-            senderId = source.optString("senderId"),
-            senderName = source.optString("senderName"),
-            senderAvatarUrl = source.optString("senderAvatarUrl", source.optString("avatarUrl", "")),
-            text = source.optString("text"),
-            timestamp = normalizeTimestamp(source.optLong("timestamp", System.currentTimeMillis())),
-            isDeleted = true
-        )
-    }
-
-    private fun parseMessages(array: JSONArray?): List<ChatMessage> {
-        if (array == null) return emptyList()
-        return (0 until array.length()).mapNotNull { index ->
-            array.optJSONObject(index)?.let { parseMessage(it) }
+    private fun parseRoom(map: Map<String, Any>?): ChatRoom? {
+        if (map == null) return null
+        val type = map["type"] as? String ?: "direct"
+        val m1 = map["member1Id"] as? String ?: ""
+        val m2 = map["member2Id"] as? String ?: ""
+        
+        var oId = ""
+        var oName = ""
+        var oAvatar = ""
+        
+        if (type == "direct") {
+            oId = if (m1 == userId) m2 else m1
+            val oUser = _users.value.find { it.id == oId }
+            oName = oUser?.name ?: "User"
+            oAvatar = oUser?.avatarUrl ?: ""
         }
-    }
-
-    private fun parseRoom(json: JSONObject?): ChatRoom? {
-        if (json == null) return null
-        val id = json.optString("id", json.optString("roomId"))
-        if (id.isBlank()) return null
+        
         return ChatRoom(
-            id = id,
-            type = json.optString("type", "dm"),
-            name = json.optString("name"),
-            member1Id = json.optString("member1Id", json.optString("member1_id", "")),
-            member2Id = json.optString("member2Id", json.optString("member2_id", "")),
-            otherUserId = json.optString("otherUserId", json.optString("other_user_id", "")),
-            otherUserName = json.optString("otherUserName", json.optString("other_user_name", "")),
-            otherUserAvatar = json.optString("otherUserAvatar", json.optString("other_user_avatar", "")),
-            lastMessage = json.optString("lastMessage", json.optString("last_message", "")),
-            lastMessageTime = normalizeTimestamp(json.optLong("lastMessageTime", json.optLong("lastTimestamp", json.optLong("last_timestamp", 0L)))),
-            unreadCount = json.optInt("unreadCount", 0),
-            memberCount = json.optInt("memberCount", 24),
-            avatarUrl = json.optString("avatarUrl", json.optString("avatar_url", ""))
+            id = map["id"] as? String ?: return null,
+            type = type,
+            name = map["name"] as? String ?: "",
+            member1Id = m1,
+            member2Id = m2,
+            otherUserId = oId,
+            otherUserName = oName,
+            otherUserAvatar = oAvatar,
+            lastMessage = map["lastMessage"] as? String ?: "",
+            lastMessageTime = (map["lastTimestamp"] as? Number)?.toLong() ?: 0L,
+            lastSenderId = map["lastSenderId"] as? String ?: "",
+            unreadCount = ChatUnreadManager.getUnreadCount(map["id"] as? String ?: "", (map["lastTimestamp"] as? Number)?.toLong() ?: 0L)
         )
-    }
-
-    private fun parseRooms(array: JSONArray?): List<ChatRoom> {
-        if (array == null) return emptyList()
-        return (0 until array.length()).mapNotNull { index ->
-            array.optJSONObject(index)?.let { parseRoom(it) }
-        }
-    }
-
-    private fun parseUsers(array: JSONArray?): List<ChatUser> {
-        if (array == null) return emptyList()
-        return (0 until array.length()).mapNotNull { index ->
-            val json = array.optJSONObject(index) ?: return@mapNotNull null
-            val id = json.optString("id", json.optString("userId", json.optString("uid")))
-            if (id.isBlank()) return@mapNotNull null
-            val name = json.optString("name")
-                .ifBlank { json.optString("userName") }
-                .ifBlank { json.optString("fullName") }
-                .ifBlank { json.optString("email").substringBefore("@") }
-                .ifBlank { "User" }
-            ChatUser(
-                id = id,
-                name = name,
-                avatarUrl = json.optString("avatarUrl", json.optString("photoUrl")),
-                isOnline = json.optBoolean("isOnline", json.optBoolean("online", _onlineUsers.value.contains(id)))
-            )
-        }
-    }
-
-    private fun parseStrings(array: JSONArray?): List<String> {
-        if (array == null) return emptyList()
-        return (0 until array.length()).mapNotNull { index -> array.optString(index).takeIf { it.isNotBlank() } }
-    }
-
-    private fun parseReactions(array: JSONArray?): List<MessageReaction> {
-        if (array == null) return emptyList()
-        return (0 until array.length()).mapNotNull { index ->
-            val json = array.optJSONObject(index) ?: return@mapNotNull null
-            MessageReaction(
-                emoji = json.optString("emoji"),
-                userIds = parseStrings(json.optJSONArray("userIds"))
-            )
-        }
-    }
-
-    private fun parseTypingEvent(json: JSONObject): TypingEvent? {
-        val roomId = json.optString("roomId")
-        val typingUserId = json.optString("userId")
-        if (roomId.isBlank() || typingUserId.isBlank()) return null
-        return TypingEvent(
-            roomId = roomId,
-            userId = typingUserId,
-            userName = json.optString("userName", "Someone")
-        )
-    }
-
-    private fun upsertRoom(room: ChatRoom) {
-        _rooms.value = _rooms.value.filterNot { it.id == room.id } + room
-    }
-
-    private fun normalizeTimestamp(timestamp: Long): Long {
-        return if (timestamp in 1..9_999_999_999L) timestamp * 1000 else timestamp
-    }
-
-    private fun normalizeServerUrl(url: String): String {
-        val trimmed = url.trim()
-        return when {
-            trimmed.startsWith("https://", ignoreCase = true) -> "wss://${trimmed.removePrefix("https://")}"
-            trimmed.startsWith("http://", ignoreCase = true) -> "ws://${trimmed.removePrefix("http://")}"
-            else -> trimmed
-        }
-    }
-
-    private fun JSONObject.putNullable(name: String, value: String?): JSONObject {
-        if (!value.isNullOrBlank()) put(name, value)
-        return this
-    }
-
-    private fun JSONObject.optNullableString(name: String): String? {
-        return optString(name).takeIf { it.isNotBlank() && it != "null" }
-    }
-
-    private fun JSONObject.optNullableLong(name: String): Long? {
-        return if (has(name) && !isNull(name)) normalizeTimestamp(optLong(name)) else null
     }
 }

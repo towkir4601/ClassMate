@@ -1,0 +1,15 @@
+--- app/src/main/java/com/shuaib/classmate/chat/ChatViewModel.kt
++++ app/src/main/java/com/shuaib/classmate/chat/ChatViewModel.kt
+@@ -41,10 +41,11 @@
+ 
+         viewModelScope.launch {
+-            repository.historyMessages.collect { history ->
++            repository.historyMessages.collect { historyMap ->
+                 val roomId = currentRoomId ?: return@collect
++                val history = historyMap[roomId] ?: emptyList()
+                 val current = _messages.value
+-                val merged = (history.filter { it.roomId == roomId } + current)
++                val merged = (history + current)
+                     .distinctBy { it.id }
+                     .sortedBy { it.timestamp }
+                 _messages.value = merged

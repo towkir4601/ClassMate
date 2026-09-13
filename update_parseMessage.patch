@@ -1,0 +1,11 @@
+--- app/src/main/java/com/shuaib/classmate/chat/ChatRepository.kt
++++ app/src/main/java/com/shuaib/classmate/chat/ChatRepository.kt
+@@ -192,7 +192,7 @@
+             forwardedFrom = map["forwardedFrom"] as? String,
+             imageUrl = map["imageUrl"] as? String,
+             reactions = emptyList(),
+-            seenBy = emptyList(),
++            seenBy = (map["seenBy"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+             isPinned = false
+         )
+     }
