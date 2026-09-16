@@ -390,7 +390,8 @@ class TimetableManagementActivity : AppCompatActivity() {
                     
                     com.shuaib.classmate.utils.NotificationSender.sendNoticeAlert(
                         title = "Routine Updated",
-                        body = "The class routine has been updated."
+                        body = "The class routine has been updated.",
+                        targetBatch = batch
                     )
                     
                     if (isEdit) {

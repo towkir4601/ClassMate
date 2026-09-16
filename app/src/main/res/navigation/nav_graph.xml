@@ -147,7 +147,15 @@
         android:id="@+id/fragment_question_bank"
         android:name="com.shuaib.classmate.fragments.QuestionBankFragment"
         android:label="Question Bank"
-        tools:layout="@layout/fragment_question_bank" />
+        tools:layout="@layout/fragment_question_bank">
+        <action
+            android:id="@+id/action_questionBankFragment_to_subjectPdfListFragment"
+            app:destination="@id/fragment_subject_pdf_list"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
 
     <fragment
         android:id="@+id/fragment_subject_pdf_list"

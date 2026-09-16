@@ -175,18 +175,42 @@ class GroupChatFragment : Fragment() {
         }
 
         checkAdmin(currentUserId)
-        viewModel.openRoom(com.shuaib.classmate.chat.ChatRepository.groupRoomId)
-        collectChatState()
+        
+        // Fetch batch asynchronously before opening room
+        FirebaseFirestore.getInstance().collection("users").document(currentUserId).get().addOnSuccessListener { doc ->
+            if (_binding == null) return@addOnSuccessListener
+            val batch = doc.getString("batch") ?: ""
+            if (batch.isBlank()) {
+                binding.bottomComposeArea.visibility = View.GONE
+                binding.rvMessages.visibility = View.GONE
+                binding.emptyState?.visibility = View.VISIBLE
+                try {
+                    val emptyTitle = binding.root.findViewById<android.widget.TextView>(R.id.tvEmptyTitle)
+                    val emptySubtitle = binding.root.findViewById<android.widget.TextView>(R.id.tvEmptySubtitle)
+                    emptyTitle?.text = "Batch Not Set"
+                    emptySubtitle?.text = "Please set your batch number in profile."
+                } catch (_: Exception) {}
+            } else {
+                com.shuaib.classmate.chat.ChatRepository.userBatch = batch
+                viewModel.openRoom(com.shuaib.classmate.chat.ChatRepository.groupRoomId)
+                collectChatState()
+                ChatRepository.enterRoom(com.shuaib.classmate.chat.ChatRepository.groupRoomId)
+            }
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        ChatRepository.enterRoom(com.shuaib.classmate.chat.ChatRepository.groupRoomId)
+        if (com.shuaib.classmate.chat.ChatRepository.userBatch.isNotBlank()) {
+            ChatRepository.enterRoom(com.shuaib.classmate.chat.ChatRepository.groupRoomId)
+        }
     }
 
     override fun onPause() {
         super.onPause()
-        ChatRepository.leaveRoom(com.shuaib.classmate.chat.ChatRepository.groupRoomId)
+        if (com.shuaib.classmate.chat.ChatRepository.userBatch.isNotBlank()) {
+            ChatRepository.leaveRoom(com.shuaib.classmate.chat.ChatRepository.groupRoomId)
+        }
     }
 
     private fun collectChatState() {

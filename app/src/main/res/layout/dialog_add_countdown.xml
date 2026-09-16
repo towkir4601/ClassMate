@@ -6,32 +6,42 @@
     android:padding="20dp">
 
     <EditText
-        android:id="@+id/etSubjectName"
+        android:id="@+id/etCountdownSubject"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Course Name (e.g. Data Structures)"
-        android:inputType="textCapWords"
-        android:padding="12dp"
-        android:background="@drawable/bg_chat_input"
-        android:layout_marginBottom="12dp"/>
-
-    <EditText
-        android:id="@+id/etSubjectCode"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Course Code"
+        android:hint="Subject (e.g. CSE2101)"
         android:inputType="textCapCharacters"
         android:padding="12dp"
         android:background="@drawable/bg_chat_input"
         android:layout_marginBottom="12dp"/>
 
     <EditText
-        android:id="@+id/etSubjectBatch"
+        android:id="@+id/etCountdownTopic"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Target Batch (e.g. 14) - Optional"
-        android:inputType="text"
+        android:hint="Topic (e.g. Final Exam)"
+        android:inputType="textCapWords"
         android:padding="12dp"
         android:background="@drawable/bg_chat_input"
         android:layout_marginBottom="12dp"/>
+
+    <EditText
+        android:id="@+id/etCountdownDate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Date (YYYY-MM-DD)"
+        android:inputType="date"
+        android:padding="12dp"
+        android:background="@drawable/bg_chat_input"
+        android:layout_marginBottom="12dp"/>
+        
+    <EditText
+        android:id="@+id/etCountdownTime"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Time (HH:MM)"
+        android:inputType="time"
+        android:padding="12dp"
+        android:background="@drawable/bg_chat_input"/>
+        
 </LinearLayout>

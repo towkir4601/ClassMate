@@ -17,5 +17,6 @@ data class QuestionPaper(
     val sizeBytes: Long = 0L,
     val downloadCount: Long = 0L,
     val timestamp: com.google.firebase.Timestamp? = null,
-    val isDeleted: Boolean = false
+    val isDeleted: Boolean = false,
+    val batch: String = ""
 )

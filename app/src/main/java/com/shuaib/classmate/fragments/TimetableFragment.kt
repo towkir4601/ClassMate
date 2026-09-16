@@ -12,6 +12,8 @@ import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.ArrayAdapter
+import android.widget.AdapterView
 import androidx.appcompat.app.AlertDialog
 import androidx.core.os.bundleOf
 import androidx.core.view.isVisible
@@ -68,6 +70,9 @@ class TimetableFragment : Fragment() {
     private var countdownsRegistration: ListenerRegistration? = null
     private var busScheduleRegistration: ListenerRegistration? = null
     private var isAdmin = false
+    private var currentPeriods = emptyList<Period>()
+    private var currentBatchFilter = "All"
+    private var isSpinnerInitialized = false
     private var countdownAdapter: CountdownAdapter? = null
     private var periodAdapter: PeriodAdapter? = null
     private val academicCalendarRepository = AcademicCalendarRepository()
@@ -387,11 +392,65 @@ class TimetableFragment : Fragment() {
                     }
                     .collect { periods ->
                         if (isViewingRoutine) {
-                            renderTimetable(selectedDayFlow.value, periods)
+                            currentPeriods = periods
+                            updateBatchSpinner(periods)
+                            applyBatchFilterAndRender()
                         }
                     }
             }
         }
+    }
+
+
+    private fun updateBatchSpinner(periods: List<Period>) {
+        if (_binding == null) return
+        val distinctBatches = periods.map { it.batch }.filter { it.isNotBlank() }.distinct().sorted()
+        if (distinctBatches.isEmpty()) {
+            binding.spinnerBatchFilter.isVisible = false
+            return
+        }
+        
+        binding.spinnerBatchFilter.isVisible = true
+        
+        val options = mutableListOf("All")
+        options.addAll(distinctBatches)
+        
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, options)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        
+        // Prevent infinite loops by temporarily detaching listener
+        binding.spinnerBatchFilter.onItemSelectedListener = null
+        binding.spinnerBatchFilter.adapter = adapter
+        
+        // Restore selection if it exists
+        val selectedIndex = options.indexOf(currentBatchFilter)
+        if (selectedIndex >= 0) {
+            binding.spinnerBatchFilter.setSelection(selectedIndex, false)
+        } else {
+            currentBatchFilter = "All"
+            binding.spinnerBatchFilter.setSelection(0, false)
+        }
+        
+        binding.spinnerBatchFilter.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val newFilter = options[position]
+                if (newFilter != currentBatchFilter) {
+                    currentBatchFilter = newFilter
+                    applyBatchFilterAndRender()
+                }
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+    }
+
+    private fun applyBatchFilterAndRender() {
+        if (_binding == null) return
+        val filtered = if (currentBatchFilter == "All") {
+            currentPeriods
+        } else {
+            currentPeriods.filter { it.batch.isEmpty() || it.batch == currentBatchFilter }
+        }
+        renderTimetable(selectedDayFlow.value, filtered)
     }
 
     private fun loadTimetable(day: String) {
@@ -582,15 +641,18 @@ class TimetableFragment : Fragment() {
         val now = LocalTime.now()
         val currentSeconds = now.hour * 3600 + now.minute * 60 + now.second
 
-        val nextPeriod = periods
+        // Find all active (not-yet-ended, not-cancelled) periods
+        val activePeriods = periods
             .filter { !it.isCancelled }
-            .firstOrNull { period ->
+            .filter { period ->
                 try {
                     val end = LocalTime.parse(period.endTime)
                     val endSeconds = end.hour * 3600 + end.minute * 60
                     currentSeconds < endSeconds
                 } catch (_: Exception) { false }
             }
+
+        val nextPeriod = activePeriods.firstOrNull()
 
         if (nextPeriod == null) {
             binding.heroNextClass.isVisible = false
@@ -639,7 +701,7 @@ class TimetableFragment : Fragment() {
                     val secs = diffSeconds % 60
                     binding.tvHeroCountdown.text = String.format(Locale.US, "in %dm %02ds", mins, secs)
                     binding.tvHeroCountdown.setTextColor(
-                        if (diffSeconds < 600) Color.parseColor("#FBBF24") // Amber/orange if starting soon (< 10m)
+                        if (diffSeconds < 600) Color.parseColor("#FBBF24") // Amber/orange if starting soon (<10m)
                         else Color.parseColor("#CCFFFFFF") // Default white
                     )
                     binding.pbHeroTime.isVisible = false
@@ -658,6 +720,152 @@ class TimetableFragment : Fragment() {
             binding.tvHeroCountdown.setTextColor(Color.parseColor("#CCFFFFFF"))
             binding.pbHeroTime.isVisible = false
         }
+
+        // ── Concurrent classes: show other classes happening at the same time slot ──
+        updateConcurrentClasses(nextPeriod, activePeriods, currentSeconds)
+    }
+
+    private fun updateConcurrentClasses(primaryPeriod: Period, activePeriods: List<Period>, currentSeconds: Int) {
+        if (_binding == null) return
+        
+        try {
+            val primaryStart = LocalTime.parse(primaryPeriod.startTime)
+            val primaryStartSec = primaryStart.hour * 3600 + primaryStart.minute * 60
+            val primaryEnd = LocalTime.parse(primaryPeriod.endTime)
+            val primaryEndSec = primaryEnd.hour * 3600 + primaryEnd.minute * 60
+
+            // Find all periods that overlap with the primary period's time slot
+            val concurrent = activePeriods.filter { it.id != primaryPeriod.id }.filter { period ->
+                try {
+                    val pStart = LocalTime.parse(period.startTime)
+                    val pStartSec = pStart.hour * 3600 + pStart.minute * 60
+                    val pEnd = LocalTime.parse(period.endTime)
+                    val pEndSec = pEnd.hour * 3600 + pEnd.minute * 60
+                    // Overlapping: starts before primary ends AND ends after primary starts
+                    pStartSec < primaryEndSec && pEndSec > primaryStartSec
+                } catch (_: Exception) { false }
+            }
+
+            if (concurrent.isEmpty()) {
+                binding.concurrentClassesContainer.isVisible = false
+                return
+            }
+
+            binding.concurrentClassesContainer.isVisible = true
+            
+            val isLive = currentSeconds >= primaryStartSec
+            binding.tvConcurrentLabel.text = if (isLive) {
+                "Also happening now (${concurrent.size + 1} classes):"
+            } else {
+                "Also at this time (${concurrent.size + 1} classes):"
+            }
+
+            // Build concurrent class items dynamically
+            binding.concurrentClassesList.removeAllViews()
+            for (period in concurrent) {
+                val itemView = buildConcurrentClassItem(period, currentSeconds)
+                binding.concurrentClassesList.addView(itemView)
+            }
+        } catch (_: Exception) {
+            binding.concurrentClassesContainer.isVisible = false
+        }
+    }
+
+    private fun buildConcurrentClassItem(period: Period, currentSeconds: Int): View {
+        val ctx = requireContext()
+        val density = ctx.resources.displayMetrics.density
+        
+        val row = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding((6 * density).toInt(), (6 * density).toInt(), (6 * density).toInt(), (6 * density).toInt())
+            val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+            lp.bottomMargin = (4 * density).toInt()
+            layoutParams = lp
+            background = android.graphics.drawable.GradientDrawable().apply {
+                cornerRadius = 10 * density
+                setColor(android.graphics.Color.parseColor("#15FFFFFF"))
+            }
+        }
+
+        // Status dot (green for live, blue for upcoming)
+        val isLive = try {
+            val start = LocalTime.parse(period.startTime)
+            val startSec = start.hour * 3600 + start.minute * 60
+            currentSeconds >= startSec
+        } catch (_: Exception) { false }
+        
+        val dot = View(ctx).apply {
+            val size = (8 * density).toInt()
+            layoutParams = LinearLayout.LayoutParams(size, size).apply { 
+                marginEnd = (8 * density).toInt() 
+            }
+            background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL
+                setColor(if (isLive) android.graphics.Color.parseColor("#4ADE80") else android.graphics.Color.parseColor("#60A5FA"))
+            }
+        }
+        row.addView(dot)
+
+        // Subject name
+        val tvSubject = TextView(ctx).apply {
+            text = period.subject
+            setTextColor(android.graphics.Color.parseColor("#F0FFFFFF"))
+            textSize = 13f
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        row.addView(tvSubject)
+
+        // Room badge
+        if (period.room.isNotBlank()) {
+            val tvRoom = TextView(ctx).apply {
+                text = "R: ${period.room}"
+                setTextColor(android.graphics.Color.parseColor("#99FFFFFF"))
+                textSize = 11f
+                val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                lp.marginEnd = (8 * density).toInt()
+                layoutParams = lp
+            }
+            row.addView(tvRoom)
+        }
+
+        // Time remaining
+        val tvRemaining = TextView(ctx).apply {
+            try {
+                val end = LocalTime.parse(period.endTime)
+                val endSec = end.hour * 3600 + end.minute * 60
+                val remaining = endSec - currentSeconds
+                if (remaining > 0) {
+                    val mins = remaining / 60
+                    text = "${mins}m left"
+                    setTextColor(if (isLive) android.graphics.Color.parseColor("#4ADE80") else android.graphics.Color.parseColor("#60A5FA"))
+                } else {
+                    text = ""
+                }
+            } catch (_: Exception) {
+                text = ""
+            }
+            textSize = 11f
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+        }
+        row.addView(tvRemaining)
+
+        // Batch badge if applicable
+        if (period.batch.isNotBlank() && period.batch != "all") {
+            val tvBatch = TextView(ctx).apply {
+                text = "B${period.batch}"
+                setTextColor(android.graphics.Color.parseColor("#80FFFFFF"))
+                textSize = 10f
+                val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                lp.marginStart = (6 * density).toInt()
+                layoutParams = lp
+            }
+            row.addView(tvBatch)
+        }
+
+        return row
     }
 
     private fun formatTo12Hour(time24: String): String {
@@ -678,7 +886,7 @@ class TimetableFragment : Fragment() {
             if (_binding == null) return@getUserCountdowns
 
             if (assignments.isEmpty()) {
-                binding.countdownSection.isVisible = false
+                binding.countdownSection.isVisible = isAdmin
             } else {
                 binding.countdownSection.isVisible = true
                 countdownAdapter?.cancelAllTimers()
@@ -895,7 +1103,8 @@ class TimetableFragment : Fragment() {
                         NotificationRouter.pendingDay = selectedDayFlow.value
                         com.shuaib.classmate.utils.NotificationSender.sendNoticeAlert(
                             title = "Class Updated",
-                            body = "${period.subject} room/time updated for ${targetDate.format(DateTimeFormatter.ofPattern("MMM dd"))}."
+                            body = "${period.subject} room/time updated for ${targetDate.format(DateTimeFormatter.ofPattern("MMM dd"))}.",
+                            targetBatch = period.batch
                         )
                     }
             }
@@ -922,6 +1131,10 @@ class TimetableFragment : Fragment() {
                     val permissions = snapshot?.get("permissions") as? Map<String, Boolean> ?: emptyMap()
                     
                     isAdmin = (role == "superadmin" || role == "admin" || permissions["canEditTimetable"] == true)
+                    binding.btnAddCountdown.isVisible = isAdmin
+                    if (isAdmin) {
+                        binding.countdownSection.isVisible = true
+                    }
                 } catch (e: Exception) {
                     android.util.Log.e("TimetableFragment", "Error parsing user for admin check", e)
                     isAdmin = false
@@ -929,7 +1142,50 @@ class TimetableFragment : Fragment() {
             }
     }
 
+    private fun showAddCountdownDialog() {
+        val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_add_countdown, null)
+        val etSubject = dialogView.findViewById<android.widget.EditText>(R.id.etCountdownSubject)
+        val etTopic = dialogView.findViewById<android.widget.EditText>(R.id.etCountdownTopic)
+        val etDate = dialogView.findViewById<android.widget.EditText>(R.id.etCountdownDate)
+        val etTime = dialogView.findViewById<android.widget.EditText>(R.id.etCountdownTime)
+
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Add Upcoming Deadline")
+            .setView(dialogView)
+            .setPositiveButton("Add") { _, _ ->
+                val subject = etSubject.text.toString().trim()
+                val topic = etTopic.text.toString().trim()
+                val date = etDate.text.toString().trim()
+                val time = etTime.text.toString().trim()
+
+                if (subject.isNotEmpty() && topic.isNotEmpty() && date.isNotEmpty()) {
+                    val assignment = com.shuaib.classmate.models.Assignment(
+                        subject = subject,
+                        topic = topic,
+                        submissionDate = date,
+                        submissionTime = if (time.isNotEmpty()) time else "23:59",
+                        postedBy = auth.currentUser?.uid ?: ""
+                    )
+                    CountdownManager.addCountdown(assignment,
+                        onSuccess = {
+                            Toast.makeText(context, "Added successfully", Toast.LENGTH_SHORT).show()
+                        },
+                        onFailure = { err ->
+                            Toast.makeText(context, "Failed: $err", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                } else {
+                    Toast.makeText(context, "Please fill required fields", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
     private fun setupScheduleToggle() {
+        binding.btnAddCountdown.setOnClickListener {
+            showAddCountdownDialog()
+        }
         binding.btnToggleRoutine.setOnClickListener {
             if (isViewingRoutine) return@setOnClickListener
             isViewingRoutine = true

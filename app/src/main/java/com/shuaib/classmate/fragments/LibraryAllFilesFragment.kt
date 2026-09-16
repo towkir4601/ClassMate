@@ -28,6 +28,7 @@ class LibraryAllFilesFragment : Fragment() {
     private lateinit var auth: FirebaseAuth
     private lateinit var pdfAdapter: PdfAdapter
     private var isAdmin = false
+    private var currentUserBatch = ""
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -56,6 +57,9 @@ class LibraryAllFilesFragment : Fragment() {
         pdfAdapter.onDeleteClick = { pdf ->
             showDeleteConfirmation(pdf)
         }
+        pdfAdapter.onEditClick = { pdf ->
+            showEditBatchDialog(pdf)
+        }
         
         binding.rvAllFiles.apply {
             layoutManager = LinearLayoutManager(context)
@@ -82,13 +86,16 @@ class LibraryAllFilesFragment : Fragment() {
             .addOnSuccessListener { doc ->
                 if (_binding == null) return@addOnSuccessListener
                 val role = doc.getString("role") ?: "student"
+                currentUserBatch = doc.getString("batch") ?: ""
                 val canUploadPdf = doc.getBoolean("permissions.canUploadPDF") ?: false
                 val canUploadLibrary = doc.getBoolean("permissions.canUploadLibrary") ?: false
-                isAdmin = role == "superadmin" || role == "admin" || canUploadPdf || canUploadLibrary
+                isAdmin = role == "superadmin"
+                val canManage = isAdmin || canUploadPdf || canUploadLibrary
                 
-                pdfAdapter = PdfAdapter(emptyList(), isAdmin)
+                pdfAdapter = PdfAdapter(emptyList(), canManage)
                 pdfAdapter.onItemClick = { pdf -> PdfDialogHelper.showPdfOptions(requireActivity(), requireContext(), pdf) }
                 pdfAdapter.onDeleteClick = { pdf -> showDeleteConfirmation(pdf) }
+                pdfAdapter.onEditClick = { pdf -> showEditBatchDialog(pdf) }
                 binding.rvAllFiles.adapter = pdfAdapter
                 loadAllFiles()
             }
@@ -112,6 +119,7 @@ class LibraryAllFilesFragment : Fragment() {
                 if (_binding == null) return@addOnSuccessListener
                 val files = snapshot.documents.map { doc -> doc.toPdfFile() }
                     .filter { !it.isDeleted }
+                    .filter { isAdmin || it.batch.isEmpty() || it.batch == currentUserBatch }
                     .sortedByDescending { it.timestamp ?: it.createdAt }
                 
                 pdfAdapter.updateList(files)
@@ -143,6 +151,50 @@ class LibraryAllFilesFragment : Fragment() {
             .setPositiveButton("Delete") { _, _ -> deletePdf(pdf) }
             .setNegativeButton("Cancel", null)
             .show()
+    }
+
+    private fun showEditBatchDialog(pdf: PdfFile) {
+        val input = android.widget.EditText(requireContext())
+        input.hint = "Target Batch (e.g., 14) or leave empty for Public"
+        input.setText(pdf.batch)
+        val container = android.widget.FrameLayout(requireContext())
+        val params = android.widget.FrameLayout.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        val dp16 = (16 * resources.displayMetrics.density).toInt()
+        params.leftMargin = dp16
+        params.rightMargin = dp16
+        input.layoutParams = params
+        container.addView(input)
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Edit Target Batch")
+            .setMessage("Update the target batch for '${pdf.title}'. Leaving it empty makes it Public.")
+            .setView(container)
+            .setPositiveButton("Save") { _, _ ->
+                val newBatch = input.text.toString().trim()
+                updatePdfBatch(pdf, newBatch)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun updatePdfBatch(pdf: PdfFile, newBatch: String) {
+        db.collection("library_files").document(pdf.id)
+            .update(
+                mapOf(
+                    "batch" to newBatch,
+                    "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                )
+            )
+            .addOnSuccessListener {
+                Toast.makeText(context, "Batch updated successfully", Toast.LENGTH_SHORT).show()
+                loadAllFiles()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(context, "Update failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
     }
 
     private fun deletePdf(pdf: PdfFile) {
@@ -185,7 +237,8 @@ class LibraryAllFilesFragment : Fragment() {
             createdAt = getTimestamp("createdAt"),
             updatedAt = getTimestamp("updatedAt"),
             downloadCount = getLong("downloadCount") ?: 0L,
-            isDeleted = getBoolean("isDeleted") ?: false
+            isDeleted = getBoolean("isDeleted") ?: false,
+            batch = getString("batch") ?: ""
         )
     }
 

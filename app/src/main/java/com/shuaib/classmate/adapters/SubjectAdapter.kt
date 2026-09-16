@@ -15,6 +15,8 @@ class SubjectAdapter(
     private val onItemClick: (Subject) -> Unit
 ) : RecyclerView.Adapter<SubjectAdapter.SubjectViewHolder>() {
 
+    var onLongClick: ((Subject) -> Unit)? = null
+
     inner class SubjectViewHolder(val binding: ItemSubjectCardBinding) :
         RecyclerView.ViewHolder(binding.root)
 
@@ -42,6 +44,10 @@ class SubjectAdapter(
 
             root.applyClickAnimation {
                 onItemClick(subject)
+            }
+            root.setOnLongClickListener {
+                onLongClick?.invoke(subject)
+                true
             }
         }
     }

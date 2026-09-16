@@ -84,9 +84,8 @@ data class User(
     
     @com.google.firebase.firestore.Exclude
     fun canManageUsers(): Boolean {
-        val r = role.trim().lowercase()
-        if (r == "superadmin" || r == "admin") return true
-        return permissions["canManageUsers"] == true
+        val r = role.lowercase()
+        return r == "superadmin" || r == "admin" || permissions["canManageUsers"] == true
     }
     
     @com.google.firebase.firestore.Exclude

@@ -18,6 +18,7 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.shuaib.classmate.R
 import com.shuaib.classmate.activities.MainActivity
@@ -38,6 +39,9 @@ class LibrarySearchFragment : Fragment() {
     private lateinit var db: FirebaseFirestore
     private lateinit var searchAdapter: LibrarySearchAdapter
     private var allFiles = emptyList<PdfFile>()
+    private var currentUserBatch = ""
+    private var isAdmin = false
+    private val auth = FirebaseAuth.getInstance()
     private var currentQuery = ""
     private var currentFilter = Filter.All
     private var filtersVisible = false
@@ -201,6 +205,22 @@ class LibrarySearchFragment : Fragment() {
     private fun loadFiles() {
         binding.shimmerView.isVisible = true
         binding.shimmerView.startShimmer()
+        val uid = auth.currentUser?.uid
+        if (uid != null) {
+            db.collection("users").document(uid).get().addOnSuccessListener { doc ->
+                currentUserBatch = doc.getString("batch") ?: ""
+                val role = doc.getString("role") ?: "student"
+                isAdmin = (role == "superadmin")
+                fetchLibraryFiles()
+            }.addOnFailureListener {
+                fetchLibraryFiles()
+            }
+        } else {
+            fetchLibraryFiles()
+        }
+    }
+
+    private fun fetchLibraryFiles() {
         db.collection("library_files")
             .whereEqualTo("isDeleted", false)
             .get()
@@ -208,6 +228,7 @@ class LibrarySearchFragment : Fragment() {
                 if (_binding == null) return@addOnSuccessListener
                 allFiles = snapshot.documents.map { doc -> doc.toPdfFile() }
                     .filterNot { it.isDeleted }
+                    .filter { isAdmin || it.batch.isEmpty() || it.batch == currentUserBatch }
                     .sortedByDescending { it.timestamp ?: it.createdAt }
                 binding.shimmerView.stopShimmer()
                 binding.shimmerView.isVisible = false
@@ -302,7 +323,8 @@ class LibrarySearchFragment : Fragment() {
             createdAt = getTimestamp("createdAt"),
             updatedAt = getTimestamp("updatedAt"),
             downloadCount = getLong("downloadCount") ?: 0L,
-            isDeleted = getBoolean("isDeleted") ?: false
+            isDeleted = getBoolean("isDeleted") ?: false,
+            batch = getString("batch") ?: ""
         )
     }
 

@@ -561,6 +561,7 @@ class PostNoticeActivity : AppCompatActivity() {
             title = title,
             body = body,
             noticeId = noticeId,
+            targetBatch = if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch,
             onSuccess = {
                 binding.progressBar.isVisible = false
                 Toast.makeText(this, "✅ Notice posted!", Toast.LENGTH_SHORT).show()
@@ -665,6 +666,7 @@ class PostNoticeActivity : AppCompatActivity() {
             whenText = whenText,
             day = day,
             noticeId = noticeId,
+            targetBatch = if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch,
             onSuccess = {
                 binding.progressBar.isVisible = false
                 Toast.makeText(this, "Cancellation published!", Toast.LENGTH_SHORT).show()
@@ -755,7 +757,9 @@ class PostNoticeActivity : AppCompatActivity() {
             subject = selectedSubject,
             substituteTeacher = subTeacher,
             whenText = whenText,
+            noticeId = newNoticeRef.id,
             day = targetDayString,
+            targetBatch = if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch,
             onSuccess = {
                 binding.progressBar.isVisible = false
                 Toast.makeText(this, "🔄 Substitute published!", Toast.LENGTH_SHORT).show()
@@ -966,6 +970,7 @@ class PostNoticeActivity : AppCompatActivity() {
                     title = noticeTitle,
                     body = noticeBody,
                     noticeId = newNoticeRef.id,
+                    targetBatch = if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch,
                     onSuccess = {
                         binding.progressBar.isVisible = false
                         Toast.makeText(this@PostNoticeActivity, "✅ Vacation notice and exception published!", Toast.LENGTH_SHORT).show()

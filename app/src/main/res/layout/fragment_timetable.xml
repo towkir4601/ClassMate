@@ -316,6 +316,40 @@
                         android:progress="0"
                         android:visibility="gone" />
 
+                    <!-- Concurrent Classes Summary -->
+                    <LinearLayout
+                        android:id="@+id/concurrentClassesContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginTop="12dp"
+                        android:visibility="gone">
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="#20FFFFFF"
+                            android:layout_marginBottom="10dp" />
+
+                        <TextView
+                            android:id="@+id/tvConcurrentLabel"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Also happening now:"
+                            android:textColor="#99FFFFFF"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.06"
+                            android:layout_marginBottom="8dp" />
+
+                        <LinearLayout
+                            android:id="@+id/concurrentClassesList"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical" />
+
+                    </LinearLayout>
+
                     <!-- Collapsible Details Container -->
                     <LinearLayout
                         android:id="@+id/heroDetailsContainer"
@@ -511,6 +545,18 @@
                     android:textSize="11sp"
                     android:textStyle="bold"/>
 
+                <Spinner
+                    android:id="@+id/spinnerBatchFilter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:minHeight="24dp"
+                    android:background="@drawable/bg_search_field"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="24dp"
+                    android:popupBackground="@color/cm_surface"
+                    android:visibility="gone" />
+
             </LinearLayout>
 
             <!-- ═══════════════════════════════════════════════════ -->
@@ -559,17 +605,35 @@
                 android:visibility="gone"
                 android:layout_marginTop="8dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="📝 UPCOMING DEADLINES"
-                    android:textColor="@color/cm_text_disabled"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.12"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
                     android:paddingHorizontal="20dp"
                     android:paddingTop="12dp"
-                    android:paddingBottom="8dp"/>
+                    android:paddingBottom="8dp">
+                    
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="📝 UPCOMING DEADLINES"
+                        android:textColor="@color/cm_text_disabled"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.12"/>
+                        
+                    <ImageView
+                        android:id="@+id/btnAddCountdown"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_add"
+                        app:tint="@color/cm_primary"
+                        android:visibility="gone"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:padding="2dp"/>
+                </LinearLayout>
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvCountdowns"

@@ -70,6 +70,7 @@ class PdfLibraryFragment : Fragment() {
     private var favoritePdfIds = emptySet<String>()
     private var pdfCounts = emptyMap<String, Int>()
     private var isAdmin = false
+    private var canEditCourses = false
     private var currentUserBatch = ""
     private var previousStatusBarColor: Int? = null
 
@@ -114,7 +115,9 @@ class PdfLibraryFragment : Fragment() {
     }
 
     private fun setupSections() {
-        allSubjects = SubjectList.subjects
+        allSubjects = SubjectList.subjects.filter { 
+            isAdmin || it.batch.isEmpty() || it.batch == currentUserBatch 
+        }
         labSubjects = allSubjects.filter { it.type == "lab" }
         otherSubjects = allSubjects.filter { it.type == "other" }
         regularSubjects = allSubjects.filter { it.type == "regular" }
@@ -141,6 +144,14 @@ class PdfLibraryFragment : Fragment() {
         regularAdapter = SubjectAdapter(regularSubjects, pdfCounts) { subject -> navigateToPdfs(subject) }
         labAdapter = SubjectAdapter(labSubjects, pdfCounts) { subject -> navigateToPdfs(subject) }
         otherAdapter = SubjectAdapter(otherSubjects, pdfCounts) { subject -> navigateToPdfs(subject) }
+
+        val handleLongClick: (com.shuaib.classmate.utils.Subject) -> Unit = { subject ->
+            if (canEditCourses) showEditSubjectDialog(subject)
+            else Toast.makeText(requireContext(), "Only admins can edit courses", Toast.LENGTH_SHORT).show()
+        }
+        regularAdapter.onLongClick = handleLongClick
+        labAdapter.onLongClick = handleLongClick
+        otherAdapter.onLongClick = handleLongClick
 
         binding.rvRegular.apply {
             layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
@@ -706,14 +717,18 @@ class PdfLibraryFragment : Fragment() {
                     val permissions = doc.get("permissions") as? Map<String, Boolean> ?: emptyMap()
                     
                     currentUserBatch = doc.getString("batch") ?: ""
-                    isAdmin = (role == "superadmin" || role == "admin" || permissions["canUploadPDF"] == true || permissions["canUploadLibrary"] == true)
-                    binding.btnUploadPdf.isVisible = isAdmin
-                    binding.btnAddRegular.isVisible = isAdmin
-                    binding.btnAddLab.isVisible = isAdmin
-                    binding.btnAddOther.isVisible = isAdmin
+                    isAdmin = (role == "superadmin")
+                    val canUpload = isAdmin || permissions["canUploadPDF"] == true || permissions["canUploadLibrary"] == true
+                    canEditCourses = canUpload || role == "admin" || role == "teacher"
+                    
+                    binding.btnUploadPdf.isVisible = canUpload
+                    binding.btnAddRegular.isVisible = canEditCourses
+                    binding.btnAddLab.isVisible = canEditCourses
+                    binding.btnAddOther.isVisible = canEditCourses
                 } catch (e: Exception) {
                     android.util.Log.e("PdfLibraryFragment", "Error parsing user for admin check", e)
                     isAdmin = false
+                    canEditCourses = false
                     binding.btnUploadPdf.isVisible = false
                     binding.btnAddRegular.isVisible = false
                     binding.btnAddLab.isVisible = false
@@ -724,6 +739,7 @@ class PdfLibraryFragment : Fragment() {
             .addOnFailureListener {
                 if (_binding == null) return@addOnFailureListener
                 isAdmin = false
+                canEditCourses = false
                 binding.btnUploadPdf.isVisible = false
                 binding.btnAddRegular.isVisible = false
                 binding.btnAddLab.isVisible = false
@@ -781,7 +797,8 @@ class PdfLibraryFragment : Fragment() {
             createdAt = getTimestamp("createdAt"),
             updatedAt = getTimestamp("updatedAt"),
             downloadCount = getLong("downloadCount") ?: 0L,
-            isDeleted = getBoolean("isDeleted") ?: false
+            isDeleted = getBoolean("isDeleted") ?: false,
+            batch = getString("batch") ?: ""
         )
     }
 
@@ -800,10 +817,74 @@ class PdfLibraryFragment : Fragment() {
         _binding = null
     }
 
+    private fun showEditSubjectDialog(subject: com.shuaib.classmate.utils.Subject) {
+        val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_edit_subject, null)
+        val etName = dialogView.findViewById<android.widget.EditText>(R.id.etSubjectName)
+        val etCode = dialogView.findViewById<android.widget.EditText>(R.id.etSubjectCode)
+        val etBatch = dialogView.findViewById<android.widget.EditText>(R.id.etSubjectBatch)
+        val rgType = dialogView.findViewById<android.widget.RadioGroup>(R.id.rgSubjectType)
+
+        etName.setText(subject.name)
+        etCode.setText(subject.code)
+        etBatch.setText(subject.batch)
+        when (subject.type) {
+            "lab" -> rgType.check(R.id.rbLab)
+            "other" -> rgType.check(R.id.rbOther)
+            "question_bank" -> rgType.check(R.id.rbQuestionBank)
+            else -> rgType.check(R.id.rbRegular)
+        }
+
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Edit Course")
+            .setView(dialogView)
+            .setPositiveButton("Save") { _, _ ->
+                val name = etName.text.toString().trim()
+                val code = etCode.text.toString().trim()
+                val batch = etBatch.text.toString().trim()
+                val type = when (rgType.checkedRadioButtonId) {
+                    R.id.rbLab -> "lab"
+                    R.id.rbOther -> "other"
+                    R.id.rbQuestionBank -> "question_bank"
+                    else -> "regular"
+                }
+
+                if (name.isNotEmpty()) {
+                    val updates = mapOf(
+                        "name" to name,
+                        "code" to code,
+                        "batch" to batch,
+                        "type" to type
+                    )
+                    db.collection("subjects").document(subject.id).update(updates)
+                        .addOnSuccessListener {
+                            Toast.makeText(context, "Course updated", Toast.LENGTH_SHORT).show()
+                            loadLibraryData()
+                        }
+                }
+            }
+            .setNeutralButton("Delete") { _, _ ->
+                androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                    .setTitle("Delete Course")
+                    .setMessage("Are you sure you want to delete '${subject.name}'? This will not delete the PDFs inside it, but the folder will be gone.")
+                    .setPositiveButton("Delete") { _, _ ->
+                        db.collection("subjects").document(subject.id).delete()
+                            .addOnSuccessListener {
+                                Toast.makeText(context, "Course deleted", Toast.LENGTH_SHORT).show()
+                                loadLibraryData()
+                            }
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
     private fun showAddSubjectDialog(type: String) {
         val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_add_subject, null)
         val etName = dialogView.findViewById<android.widget.EditText>(R.id.etSubjectName)
         val etCode = dialogView.findViewById<android.widget.EditText>(R.id.etSubjectCode)
+        val etBatch = dialogView.findViewById<android.widget.EditText>(R.id.etSubjectBatch)
 
         androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("Add New Course")
@@ -811,10 +892,12 @@ class PdfLibraryFragment : Fragment() {
             .setPositiveButton("Save") { _, _ ->
                 val name = etName.text.toString().trim()
                 val code = etCode.text.toString().trim()
+                val batch = etBatch.text.toString().trim()
                 if (name.isNotEmpty()) {
                     val newSubject = hashMapOf(
                         "name" to name,
                         "code" to code,
+                        "batch" to batch,
                         "type" to type
                     )
                     db.collection("subjects").add(newSubject)

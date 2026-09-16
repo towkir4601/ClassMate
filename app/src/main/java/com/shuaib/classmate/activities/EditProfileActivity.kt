@@ -42,6 +42,13 @@ class EditProfileActivity : AppCompatActivity() {
                     binding.etWhatsApp.setText(doc.getString("whatsappNumber") ?: "")
                     binding.etBatch.setText(doc.getString("batch") ?: "")
                     originalBatch = doc.getString("batch") ?: ""
+                    
+                    // Lock batch field if already set — prevent batch change fraud
+                    if (originalBatch.isNotBlank()) {
+                        binding.etBatch.isEnabled = false
+                        binding.etBatch.alpha = 0.5f
+                        binding.etBatch.hint = "Batch cannot be changed"
+                    }
                     binding.etFatherName.setText(doc.getString("fatherName") ?: "")
                     binding.etMotherName.setText(doc.getString("motherName") ?: "")
                     binding.etPresentAddress.setText(doc.getString("presentAddress") ?: "")
@@ -74,7 +81,6 @@ class EditProfileActivity : AppCompatActivity() {
             "department" to binding.etDepartment.text.toString().trim(),
             "phone" to binding.etPhone.text.toString().trim(),
             "whatsappNumber" to binding.etWhatsApp.text.toString().trim(),
-            "batch" to newBatch,
             "fatherName" to binding.etFatherName.text.toString().trim(),
             "motherName" to binding.etMotherName.text.toString().trim(),
             "presentAddress" to binding.etPresentAddress.text.toString().trim(),
@@ -84,9 +90,9 @@ class EditProfileActivity : AppCompatActivity() {
             "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
         )
         
-        if (newBatch != originalBatch && originalBatch.isNotEmpty()) {
-            updates["approved"] = false
-            android.widget.Toast.makeText(this, "Batch changed. You will need admin approval again.", android.widget.Toast.LENGTH_LONG).show()
+        // Only allow setting batch if it was never set before
+        if (originalBatch.isBlank() && newBatch.isNotBlank()) {
+            updates["batch"] = newBatch
         }
         
         binding.btnSave.isEnabled = false

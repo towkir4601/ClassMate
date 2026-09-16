@@ -18,7 +18,8 @@ object SubjectList {
                     val name = doc.getString("name") ?: continue
                     val code = doc.getString("code") ?: ""
                     val type = doc.getString("type") ?: "regular" // regular, lab, other
-                    list.add(Subject(name, code, type, doc.id))
+                    val batch = doc.getString("batch") ?: ""
+                    list.add(Subject(name, code, type, batch, doc.id))
                 }
                 subjects = list.sortedBy { it.name }
                 onComplete?.invoke()
@@ -33,5 +34,6 @@ data class Subject(
     val name: String,
     val code: String = "",
     val type: String = "regular",
+    val batch: String = "",
     val id: String = ""
 )

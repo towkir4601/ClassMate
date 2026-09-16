@@ -181,7 +181,10 @@ class CreatePollActivity : AppCompatActivity() {
 
         task.addOnSuccessListener {
             if (pollId == null) {
-                NotificationSender.sendPollAlert(question = question)
+                NotificationSender.sendPollAlert(
+                    question = question,
+                    targetBatch = if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch
+                )
             }
             binding.progressBar.isVisible = false
             Toast.makeText(this, if (pollId != null) "Poll updated!" else "Poll published!", Toast.LENGTH_SHORT).show()

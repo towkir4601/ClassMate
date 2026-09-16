@@ -67,7 +67,8 @@ object NoticeUi {
             submissionDate = doc.getString("submissionDate").orEmpty(),
             deadlineType = doc.getString("deadlineType") ?: "assignment",
             pdfId = doc.getString("pdfId").orEmpty(),
-            readCount = (doc.getLong("readCount") ?: 0L).toInt()
+            readCount = (doc.getLong("readCount") ?: 0L).toInt(),
+            targetBatch = doc.getString("targetBatch") ?: doc.getString("batch") ?: "all"
         )
     }
 

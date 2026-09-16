@@ -63,10 +63,16 @@ object TelegramUploader {
                 mainHandler.post { onProgress("Uploading to Telegram...") }
 
                 // Professional caption formatting
-                val sanitizedSubjectTag = subject.replace(" ", "").replace("&", "").replace("-", "")
+                fun escapeHtml(text: String): String {
+                    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                }
+                
+                val safeTitle = escapeHtml(title)
+                val safeSubject = escapeHtml(subject)
+                
                 val caption = "<b>New Academic Resource Posted</b> ✨\n\n" +
-                        "📝 <b>Title:</b> $title\n" +
-                        "📚 <b>Subject:</b> $subject\n" +
+                        "📝 <b>Title:</b> $safeTitle\n" +
+                        "📚 <b>Subject:</b> $safeSubject\n" +
                         "━━━━━━━━━━━━━━━━━━━━━\n" +
                         "📥 <i>Available in the ClassMate App Library</i>\n" +
                         "━━━━━━━━━━━━━━━━━━━━━\n\n" +

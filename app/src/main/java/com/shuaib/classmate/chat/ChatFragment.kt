@@ -684,6 +684,9 @@ class ChatFragment : Fragment(), TextToSpeech.OnInitListener {
                     .addOnSuccessListener { userDoc ->
                         if (_binding == null) return@addOnSuccessListener
                         val adminName = userDoc.getString("fullName") ?: userDoc.getString("name") ?: "Admin"
+                        val userRole = userDoc.getString("role") ?: ""
+                        val userBatch = userDoc.getString("batch") ?: ""
+                        val targetBatchStr = if (userRole == "superadmin") "all" else userBatch
                         
                         val noticeData = hashMapOf(
                             "title" to title,
@@ -704,6 +707,7 @@ class ChatFragment : Fragment(), TextToSpeech.OnInitListener {
                             "postedBy" to adminName,
                             "createdBy" to uid,
                             "createdByName" to adminName,
+                            "targetBatch" to targetBatchStr,
                             "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
                             "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
                             "isPinned" to false,
@@ -720,6 +724,7 @@ class ChatFragment : Fragment(), TextToSpeech.OnInitListener {
                                     title = title,
                                     body = body,
                                     noticeId = docRef.id,
+                                    targetBatch = targetBatchStr,
                                     onSuccess = {
                                         if (_binding != null) {
                                             Toast.makeText(requireContext(), "✅ Notice successfully posted!", Toast.LENGTH_SHORT).show()

@@ -148,6 +148,43 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Target Audience -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Target Audience"
+            android:textColor="@color/cm_text_primary"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/toggleTarget"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:singleSelection="true"
+            app:selectionRequired="true"
+            app:checkedButton="@+id/btnTargetMyBatch"
+            android:layout_marginBottom="24dp">
+
+            <Button
+                android:id="@+id/btnTargetAll"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Public"
+                android:textColor="@color/cm_text_primary"/>
+
+            <Button
+                android:id="@+id/btnTargetMyBatch"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="My Batch"
+                android:textColor="@color/cm_text_primary"/>
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+
         <!-- Mode Selector -->
         <com.google.android.material.button.MaterialButtonToggleGroup
             android:id="@+id/toggleGroup"

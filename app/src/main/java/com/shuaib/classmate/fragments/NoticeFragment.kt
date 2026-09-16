@@ -571,6 +571,14 @@ class NoticeFragment : Fragment() {
     }
 
     private fun itemMatchesFilter(item: Any): Boolean {
+        if (item is Notice) {
+            val target = item.targetBatch
+            val isPublic = target == "all" || target.isBlank()
+            val isTargetedToMe = target == currentUserBatch
+            val bypassBatchCheck = currentUserRole == "superadmin" || currentUserRole == "teacher"
+            if (!isPublic && !isTargetedToMe && !bypassBatchCheck) return false
+        }
+        
         return when (selectedFilter) {
             NoticeFilter.ALL -> true
             NoticeFilter.NOTICES -> item is Notice && (item.displayType == "notice" || item.displayType == "cancellation")
@@ -800,6 +808,7 @@ class NoticeFragment : Fragment() {
             .addOnSuccessListener { doc ->
                 try {
                     val role = doc.getString("role") ?: "student"
+                    currentUserRole = role
                     val permissions = doc.get("permissions") as? Map<String, Boolean> ?: emptyMap()
                     
                     isAdmin = (role == "superadmin" || role == "admin" || role == "teacher" || permissions["canPostNotices"] == true)

@@ -9,7 +9,7 @@
         android:id="@+id/etSubjectName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Course Name (e.g. Data Structures)"
+        android:hint="Course Name"
         android:inputType="textCapWords"
         android:padding="12dp"
         android:background="@drawable/bg_chat_input"
@@ -34,4 +34,21 @@
         android:padding="12dp"
         android:background="@drawable/bg_chat_input"
         android:layout_marginBottom="12dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Category:"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp"/>
+
+    <RadioGroup
+        android:id="@+id/rgSubjectType"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <RadioButton android:id="@+id/rbRegular" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Regular Courses"/>
+        <RadioButton android:id="@+id/rbLab" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Lab Courses"/>
+        <RadioButton android:id="@+id/rbOther" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Other Materials"/>
+        <RadioButton android:id="@+id/rbQuestionBank" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Question Bank"/>
+    </RadioGroup>
 </LinearLayout>

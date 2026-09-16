@@ -40,8 +40,9 @@ class SubjectPdfListFragment : Fragment() {
     private lateinit var auth: FirebaseAuth
     private lateinit var pdfAdapter: PdfAdapter
     private var allResources = emptyList<PdfFile>()
-    private var selectedFilter = Filter.All
+    private var currentUserBatch = ""
     private var isAdmin = false
+    private var selectedFilter = Filter.All
     private var isFavorite = false
     private var favoritePdfIds = emptySet<String>()
     private var previousStatusBarColor: Int? = null
@@ -202,6 +203,9 @@ class SubjectPdfListFragment : Fragment() {
         pdfAdapter.onDeleteClick = { pdf ->
             showDeleteConfirmation(pdf)
         }
+        pdfAdapter.onEditClick = { pdf ->
+            showEditBatchDialog(pdf)
+        }
         pdfAdapter.onFavoriteClick = { pdf ->
             togglePdfFavorite(pdf)
         }
@@ -222,6 +226,22 @@ class SubjectPdfListFragment : Fragment() {
         binding.swipeRefresh.isRefreshing = true
         binding.tvEmptyState.isVisible = false
 
+        val uid = auth.currentUser?.uid
+        if (uid != null) {
+            db.collection("users").document(uid).get().addOnSuccessListener { doc ->
+                currentUserBatch = doc.getString("batch") ?: ""
+                val role = doc.getString("role") ?: "student"
+                isAdmin = (role == "superadmin")
+                fetchLibraryFiles()
+            }.addOnFailureListener {
+                fetchLibraryFiles()
+            }
+        } else {
+            fetchLibraryFiles()
+        }
+    }
+
+    private fun fetchLibraryFiles() {
         db.collection("library_files")
             .whereEqualTo("subject", args.subjectName)
             .whereEqualTo("isDeleted", false)
@@ -235,6 +255,7 @@ class SubjectPdfListFragment : Fragment() {
 
                 allResources = snapshot.documents.map { doc -> doc.toPdfFile() }
                     .filterNot { it.isDeleted }
+                    .filter { isAdmin || it.batch.isEmpty() || it.batch == currentUserBatch }
                     .sortedByDescending { it.timestamp ?: it.createdAt }
 
                 binding.tvSubjectCode.text = "${subjectCode()} - ${allResources.size} resources"
@@ -309,6 +330,53 @@ class SubjectPdfListFragment : Fragment() {
             .show()
     }
 
+    private fun showEditBatchDialog(pdf: PdfFile) {
+        val input = android.widget.EditText(requireContext())
+        input.hint = "Target Batch (e.g., 14) or leave empty for Public"
+        input.setText(pdf.batch)
+        val container = android.widget.FrameLayout(requireContext())
+        val params = android.widget.FrameLayout.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        val dp16 = (16 * resources.displayMetrics.density).toInt()
+        params.leftMargin = dp16
+        params.rightMargin = dp16
+        input.layoutParams = params
+        container.addView(input)
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Edit Target Batch")
+            .setMessage("Update the target batch for '${pdf.title}'. Leaving it empty makes it Public.")
+            .setView(container)
+            .setPositiveButton("Save") { _, _ ->
+                val newBatch = input.text.toString().trim()
+                updatePdfBatch(pdf, newBatch)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun updatePdfBatch(pdf: PdfFile, newBatch: String) {
+        binding.progressBar.visibility = View.VISIBLE
+        db.collection("library_files").document(pdf.id)
+            .update(
+                mapOf(
+                    "batch" to newBatch,
+                    "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                )
+            )
+            .addOnSuccessListener {
+                binding.progressBar.visibility = View.GONE
+                Toast.makeText(context, "Batch updated successfully", Toast.LENGTH_SHORT).show()
+                fetchPdfs()
+            }
+            .addOnFailureListener { e ->
+                binding.progressBar.visibility = View.GONE
+                Toast.makeText(context, "Update failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
     private fun deletePdf(pdf: PdfFile) {
         binding.progressBar.visibility = View.VISIBLE
         db.collection("library_files").document(pdf.id)
@@ -358,7 +426,8 @@ class SubjectPdfListFragment : Fragment() {
             createdAt = getTimestamp("createdAt"),
             updatedAt = getTimestamp("updatedAt"),
             downloadCount = getLong("downloadCount") ?: 0L,
-            isDeleted = getBoolean("isDeleted") ?: false
+            isDeleted = getBoolean("isDeleted") ?: false,
+            batch = getString("batch") ?: ""
         )
     }
 

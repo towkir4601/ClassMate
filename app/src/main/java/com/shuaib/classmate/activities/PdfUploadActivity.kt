@@ -32,6 +32,13 @@ class PdfUploadActivity : AppCompatActivity() {
     private var selectedFileInfo: SelectedFileInfo? = null
     private var currentUserName = ""
     private var currentUserBatch = ""
+    
+    private val targetLibraryBatch: String
+        get() = if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "" else currentUserBatch
+
+    private val targetNotificationBatch: String
+        get() = if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch
+
     private enum class UploadMode {
         GITHUB, TELEGRAM, LINK
     }
@@ -222,7 +229,7 @@ class PdfUploadActivity : AppCompatActivity() {
             "timestamp" to FieldValue.serverTimestamp(),
             "downloadCount" to 0L,
             "isDeleted" to false,
-            "batch" to currentUserBatch
+            "batch" to targetLibraryBatch
         )
 
         db.collection("library_files")
@@ -311,7 +318,7 @@ class PdfUploadActivity : AppCompatActivity() {
             "timestamp" to FieldValue.serverTimestamp(),
             "downloadCount" to 0L,
             "isDeleted" to false,
-            "batch" to currentUserBatch
+            "batch" to targetLibraryBatch
         )
 
         db.collection("library_files")
@@ -353,7 +360,7 @@ class PdfUploadActivity : AppCompatActivity() {
             "timestamp" to FieldValue.serverTimestamp(),
             "downloadCount" to 0L,
             "isDeleted" to false,
-            "batch" to currentUserBatch
+            "batch" to targetLibraryBatch
         )
         db.collection("library_files")
             .add(data)
@@ -401,12 +408,13 @@ class PdfUploadActivity : AppCompatActivity() {
             "pdfId" to resourceId,
             "isPinned" to false,
             "isDeleted" to false,
-            "batch" to currentUserBatch
+            "batch" to targetLibraryBatch
         )
         db.collection("notices").add(noticeData)
         NotificationSender.sendResourceAlert(
             title = title,
             subject = subject,
+            targetBatch = targetNotificationBatch,
             onSuccess = { Log.d(TAG, "Resource notification sent") },
             onFailure = { err -> Log.e(TAG, "Resource notification failed: $err") }
         )

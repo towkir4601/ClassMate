@@ -23,6 +23,7 @@ class PdfAdapter(
 
     var onItemClick: ((PdfFile) -> Unit)? = null
     var onDeleteClick: ((PdfFile) -> Unit)? = null
+    var onEditClick: ((PdfFile) -> Unit)? = null
     var onFavoriteClick: ((PdfFile) -> Unit)? = null
 
     inner class PdfViewHolder(val binding: ItemPdfBinding) :
@@ -71,6 +72,11 @@ class PdfAdapter(
             btnDelete.isVisible = isAdmin
             btnDelete.setOnClickListener {
                 onDeleteClick?.invoke(pdf)
+            }
+
+            btnEdit.isVisible = isAdmin
+            btnEdit.setOnClickListener {
+                onEditClick?.invoke(pdf)
             }
 
             val isFavorite = favoritePdfIds.contains(pdf.id)

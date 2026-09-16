@@ -29,68 +29,30 @@ object NotificationSender {
         message: String,
         type: String,
         extraData: Map<String, String> = emptyMap(),
+        targetBatch: String = "all",
         onSuccess: () -> Unit = {},
         onFailure: (String) -> Unit = {}
     ) {
-        scope.launch {
-            try {
-                val connection = java.net.URL(
-                    "https://api.onesignal.com/notifications"
-                ).openConnection() as java.net.HttpURLConnection
-
-                connection.requestMethod = "POST"
-                connection.setRequestProperty(
-                    "Content-Type", "application/json; charset=utf-8"
-                )
-                connection.setRequestProperty(
-                    "Authorization",
-                    "Key ${AppConstants.ONESIGNAL_REST_API_KEY}"
-                )
-                connection.doOutput = true
-                connection.connectTimeout = 10000
-                connection.readTimeout = 10000
-
-                // Build data payload
-                val dataObj = JSONObject().apply {
-                    put("type", type)
-                    extraData.forEach { (k, v) -> put(k, v) }
+        val targetBuilder: org.json.JSONObject.() -> Unit = if (targetBatch.isNotBlank() && targetBatch != "all") {
+            {
+                val filters = org.json.JSONArray().apply {
+                    put(org.json.JSONObject().put("field", "tag").put("key", "batch").put("relation", "=").put("value", targetBatch))
                 }
-
-                val body = JSONObject().apply {
-                    put("app_id", AppConstants.ONESIGNAL_APP_ID)
-                    put("target_channel", "push")
-                    put("included_segments",
-                        org.json.JSONArray().put("All"))
-                    put("headings",
-                        JSONObject().put("en", NoticeTextFormatter.stripMarkdown(title)))
-                    put("contents",
-                        JSONObject().put("en", NoticeTextFormatter.stripMarkdown(message)))
-                    put("data", dataObj)
-                    put("android_accent_color", "FF4D9FFF")
-                    put("priority", 10)
-                    put("existing_android_channel_id", getChannelIdForType(type))
-                    put("android_visibility", 1)
-                }.toString()
-
-                connection.outputStream.write(body.toByteArray(Charsets.UTF_8))
-                connection.outputStream.flush()
-
-                val responseCode = connection.responseCode
-                android.util.Log.d("ONESIGNAL",
-                    "Response: $responseCode")
-
-                withContext(Dispatchers.Main) {
-                    if (responseCode == 200 || responseCode == 201 || responseCode == 204) onSuccess()
-                    else onFailure("HTTP $responseCode")
-                }
-
-            } catch (e: Exception) {
-                android.util.Log.e("ONESIGNAL", "Error: ${e.message}")
-                withContext(Dispatchers.Main) {
-                    onFailure(e.message ?: "Unknown error")
-                }
+                put("filters", filters)
             }
+        } else {
+            { put("included_segments", org.json.JSONArray().put("All")) }
         }
+
+        sendOneSignal(
+            title = title,
+            message = message,
+            type = type,
+            extraData = extraData,
+            targetBuilder = targetBuilder,
+            onSuccess = onSuccess,
+            onFailure = onFailure
+        )
     }
 
     fun sendToPlayers(
@@ -262,12 +224,14 @@ object NotificationSender {
     // New Poll Alert
     fun sendPollAlert(
         question: String,
+        targetBatch: String = "all",
         onSuccess: () -> Unit = {},
         onFailure: (String) -> Unit = {}
     ) = sendToAll(
-        title = "📊 New Poll Added",
-        message = "Question: $question\n\nClick to view and vote in the Notices tab!",
+        title = "📊 New Poll",
+        message = question,
         type = "poll",
+        targetBatch = targetBatch,
         onSuccess = onSuccess,
         onFailure = onFailure
     )
@@ -276,13 +240,15 @@ object NotificationSender {
     fun sendResourceAlert(
         title: String,
         subject: String,
+        targetBatch: String = "all",
         onSuccess: () -> Unit = {},
         onFailure: (String) -> Unit = {}
     ) = sendToAll(
-        title = title,
-        message = "New study material has been posted for $subject.",
+        title = "📚 New Resource: $title",
+        message = "Subject: $subject\n\nA new resource has been added. Click to view!",
         type = "resource",
-        extraData = mapOf("subject" to subject),
+        extraData = mapOf("subject" to subject, "title" to title),
+        targetBatch = targetBatch,
         onSuccess = onSuccess,
         onFailure = onFailure
     )
@@ -292,6 +258,7 @@ object NotificationSender {
         title: String,
         body: String,
         noticeId: String? = null,
+        targetBatch: String = "all",
         onSuccess: () -> Unit = {},
         onFailure: (String) -> Unit = {}
     ) = sendToAll(
@@ -299,6 +266,7 @@ object NotificationSender {
         message = body,
         type = "notice",
         extraData = if (noticeId != null) mapOf("noticeId" to noticeId) else emptyMap(),
+        targetBatch = targetBatch,
         onSuccess = onSuccess,
         onFailure = onFailure
     )
@@ -309,6 +277,7 @@ object NotificationSender {
         whenText: String,
         noticeId: String? = null,
         day: String = "",
+        targetBatch: String = "all",
         onSuccess: () -> Unit = {},
         onFailure: (String) -> Unit = {}
     ) = sendToAll(
@@ -318,6 +287,7 @@ object NotificationSender {
         extraData = mutableMapOf("subject" to subject, "day" to day).apply {
             if (noticeId != null) put("noticeId", noticeId)
         },
+        targetBatch = targetBatch,
         onSuccess = onSuccess,
         onFailure = onFailure
     )
@@ -329,6 +299,7 @@ object NotificationSender {
         whenText: String,
         noticeId: String? = null,
         day: String = "",
+        targetBatch: String = "all",
         onSuccess: () -> Unit = {},
         onFailure: (String) -> Unit = {}
     ) = sendToAll(
@@ -342,6 +313,7 @@ object NotificationSender {
         ).apply {
             if (noticeId != null) put("noticeId", noticeId)
         },
+        targetBatch = targetBatch,
         onSuccess = onSuccess,
         onFailure = onFailure
     )

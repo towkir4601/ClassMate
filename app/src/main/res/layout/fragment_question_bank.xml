@@ -4,19 +4,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/cm_bg">
-
-    <com.shuaib.classmate.ui.StarfieldView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:alpha="0.04" />
+    android:background="@color/cm_background">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- Header -->
+        <!-- Top Bar -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -25,7 +20,7 @@
             android:paddingStart="16dp"
             android:paddingTop="16dp"
             android:paddingEnd="16dp"
-            android:paddingBottom="8dp">
+            android:paddingBottom="16dp">
 
             <FrameLayout
                 android:id="@+id/btnBack"
@@ -59,89 +54,15 @@
                     android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/tvQbMeta"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
-                    android:text="Past exam &amp; CT questions"
+                    android:text="Folders"
                     android:textColor="@color/cm_text_secondary"
                     android:textSize="12sp" />
             </LinearLayout>
 
-            <!-- Upload button (admin only) -->
-            <TextView
-                android:id="@+id/btnUploadQuestion"
-                android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:background="@drawable/bg_library_upload_button"
-                android:drawableStart="@drawable/ic_upload_arrow"
-                android:drawablePadding="6dp"
-                android:gravity="center"
-                android:minWidth="80dp"
-                android:paddingStart="9dp"
-                android:paddingEnd="11dp"
-                android:text="Upload"
-                android:textColor="@color/cm_primary"
-                android:textSize="13.5sp"
-                android:textStyle="bold"
-                android:visibility="gone"
-                app:drawableTint="@color/cm_primary"
-                tools:visibility="visible" />
         </LinearLayout>
-
-        <!-- Filter row 1: Exam Type chips -->
-        <HorizontalScrollView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:clipToPadding="false"
-            android:overScrollMode="never"
-            android:scrollbars="none">
-
-            <LinearLayout
-                android:id="@+id/chipContainerExamType"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:paddingVertical="6dp" />
-        </HorizontalScrollView>
-
-        <!-- Filter row 2: Year chips -->
-        <HorizontalScrollView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:clipToPadding="false"
-            android:overScrollMode="never"
-            android:scrollbars="none">
-
-            <LinearLayout
-                android:id="@+id/chipContainerYear"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:paddingVertical="4dp" />
-        </HorizontalScrollView>
-
-        <!-- Filter row 3: Course code chips -->
-        <HorizontalScrollView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:clipToPadding="false"
-            android:overScrollMode="never"
-            android:scrollbars="none">
-
-            <LinearLayout
-                android:id="@+id/chipContainerCourse"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:paddingVertical="4dp" />
-        </HorizontalScrollView>
 
         <!-- List -->
         <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -155,13 +76,13 @@
                 android:layout_height="match_parent">
 
                 <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rvQuestions"
+                    android:id="@+id/rvSubjects"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:clipToPadding="false"
+                    android:paddingHorizontal="12dp"
                     android:paddingTop="8dp"
-                    android:paddingBottom="24dp"
-                    tools:listitem="@layout/item_question_paper" />
+                    android:paddingBottom="24dp" />
 
                 <LinearLayout
                     android:id="@+id/layoutEmpty"
@@ -177,7 +98,7 @@
                         android:layout_width="64dp"
                         android:layout_height="64dp"
                         android:alpha="0.35"
-                        android:src="@drawable/ic_result"
+                        android:src="@drawable/ic_timetable"
                         app:tint="@color/cm_text_secondary" />
 
                     <TextView
@@ -185,35 +106,12 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
                         android:gravity="center"
-                        android:text="No question papers yet.\nBe the first to upload one!"
+                        android:text="No courses found in Question Bank."
                         android:textColor="@color/cm_text_secondary"
                         android:textSize="14sp" />
                 </LinearLayout>
             </FrameLayout>
         </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
     </LinearLayout>
-
-    <!-- Shimmer -->
-    <com.facebook.shimmer.ShimmerFrameLayout
-        android:id="@+id/shimmerView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginTop="160dp"
-        android:visibility="gone"
-        app:shimmer_auto_start="true"
-        app:shimmer_base_alpha="0.4"
-        app:shimmer_duration="1000"
-        app:shimmer_highlight_alpha="0.8"
-        app:shimmer_intensity="0.15">
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-            <include layout="@layout/shimmer_item_pdf" />
-            <include layout="@layout/shimmer_item_pdf" />
-            <include layout="@layout/shimmer_item_pdf" />
-            <include layout="@layout/shimmer_item_pdf" />
-        </LinearLayout>
-    </com.facebook.shimmer.ShimmerFrameLayout>
 
 </FrameLayout>
