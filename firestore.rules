@@ -723,6 +723,11 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    match /timetable/{day} {
+      allow read: if isLoggedIn();
+      allow write: if canEditTimetable();
+    }
+    
     match /timetable/{day}/periods/{periodId} {
       allow read: if isLoggedIn();
       allow create, delete: if canEditTimetable();

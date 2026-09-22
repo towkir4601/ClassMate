@@ -14,10 +14,30 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.shuaib.classmate.R
 import com.shuaib.classmate.databinding.ActivityAdminPanelBinding
 import com.shuaib.classmate.models.User
+
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.lifecycleScope
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.io.IOException
+import com.shuaib.classmate.models.Period
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.tasks.await
+
 import com.shuaib.classmate.utils.AppConstants
 import com.shuaib.classmate.utils.applyClickAnimation
 
 class AdminPanelActivity : AppCompatActivity() {
+
+    private val csvPickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            parseAndUploadCsv(uri)
+        }
+    }
+
 
     private lateinit var binding: ActivityAdminPanelBinding
     private lateinit var firestore: FirebaseFirestore
@@ -56,11 +76,11 @@ class AdminPanelActivity : AppCompatActivity() {
                     setupClickListeners(user)
                     animateEntry()
                 } catch (e: Exception) {
-                    Toast.makeText(this, "Error parsing user: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@AdminPanelActivity, "Error parsing user: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
             .addOnFailureListener { e ->
-                Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@AdminPanelActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
 
@@ -128,6 +148,15 @@ class AdminPanelActivity : AppCompatActivity() {
             }
         }
 
+        
+        // Upload CSV Routine
+        if (user.role == "superadmin") {
+            binding.cardUploadRoutineCsv.visibility = View.VISIBLE
+            binding.cardUploadRoutineCsv.applyClickAnimation {
+                csvPickerLauncher.launch("text/*")
+            }
+        }
+
         if (user.canManageUsers()) {
             binding.cardManageUsers.visibility = View.VISIBLE
             binding.cardManageUsers.applyClickAnimation {
@@ -182,11 +211,11 @@ class AdminPanelActivity : AppCompatActivity() {
 
                 Handler(Looper.getMainLooper()).post {
                     if (responseCode == 200) {
-                        Toast.makeText(this,
+                        Toast.makeText(this@AdminPanelActivity,
                             "✅ Telegram connected!",
                             Toast.LENGTH_LONG).show()
                     } else {
-                        Toast.makeText(this,
+                        Toast.makeText(this@AdminPanelActivity,
                             "❌ Failed: $response",
                             Toast.LENGTH_LONG).show()
                     }
@@ -196,7 +225,7 @@ class AdminPanelActivity : AppCompatActivity() {
                 android.util.Log.e("TELEGRAM_TEST",
                     "Error: ${e.message}")
                 Handler(Looper.getMainLooper()).post {
-                    Toast.makeText(this,
+                    Toast.makeText(this@AdminPanelActivity,
                         "Error: ${e.message}",
                         Toast.LENGTH_LONG).show()
                 }
@@ -215,6 +244,7 @@ class AdminPanelActivity : AppCompatActivity() {
         if (binding.cardUploadPDF.visibility == View.VISIBLE) viewsToAnimate.add(binding.cardUploadPDF)
         if (binding.cardUploadSeatPlan.visibility == View.VISIBLE) viewsToAnimate.add(binding.cardUploadSeatPlan)
         if (binding.cardUploadResult.visibility == View.VISIBLE) viewsToAnimate.add(binding.cardUploadResult)
+        if (binding.cardUploadRoutineCsv.visibility == View.VISIBLE) viewsToAnimate.add(binding.cardUploadRoutineCsv)
         if (binding.cardManageUsers.visibility == View.VISIBLE) viewsToAnimate.add(binding.cardManageUsers)
         if (binding.btnTestTelegram.visibility == View.VISIBLE) viewsToAnimate.add(binding.btnTestTelegram)
 
@@ -230,6 +260,217 @@ class AdminPanelActivity : AppCompatActivity() {
                 .start()
         }
     }
+
+    
+    private fun parseAndUploadCsv(uri: android.net.Uri) {
+        // First, ask user for confirmation
+        MaterialAlertDialogBuilder(this, R.style.Theme_ClassMate_Dialog)
+            .setTitle("⚠️ Replace Timetable?")
+            .setMessage("This will replace the existing timetable with the new CSV data. Are you sure?")
+            .setPositiveButton("Yes, Upload") { _, _ ->
+                performCsvUpload(uri)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun performCsvUpload(uri: android.net.Uri) {
+        val progressDialog = MaterialAlertDialogBuilder(this, R.style.Theme_ClassMate_Dialog)
+            .setTitle("Uploading Routine")
+            .setMessage("Parsing and uploading to Firestore...")
+            .setCancelable(false)
+            .show()
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val inputStream = contentResolver.openInputStream(uri)
+                    ?: throw IOException("Cannot open file")
+                val reader = BufferedReader(InputStreamReader(inputStream))
+
+                var headerProcessed = false
+                var dayIdx = -1
+                var batchIdx = -1
+                var subjectIdx = -1
+                var titleIdx = -1
+                var teacherIdx = -1
+                var roomIdx = -1
+                var timeSlotIdx = -1
+                var startTimeIdx = -1
+                var endTimeIdx = -1
+
+                val periodsByDay = mutableMapOf<String, MutableList<Period>>()
+
+                reader.useLines { lines ->
+                    for (line in lines) {
+                        val row = parseCsvLine(line)
+                        if (!headerProcessed) {
+                            for ((i, col) in row.withIndex()) {
+                                val cleanCol = col.trim()
+                                when {
+                                    cleanCol.equals("Day", true) -> dayIdx = i
+                                    cleanCol.equals("YearSemester", true) || cleanCol.equals("Batch", true) -> batchIdx = i
+                                    cleanCol.equals("CourseCode", true) -> subjectIdx = i
+                                    cleanCol.equals("CourseTitle", true) -> titleIdx = i
+                                    cleanCol.equals("TeacherFullName", true) -> teacherIdx = i
+                                    cleanCol.equals("Teacher", true) && teacherIdx == -1 -> teacherIdx = i
+                                    cleanCol.equals("Room", true) -> roomIdx = i
+                                    cleanCol.equals("TimeSlot", true) -> timeSlotIdx = i
+                                    cleanCol.equals("StartTime", true) -> startTimeIdx = i
+                                    cleanCol.equals("EndTime", true) -> endTimeIdx = i
+                                }
+                            }
+                            headerProcessed = true
+                            continue
+                        }
+
+                        if (row.size < 4) continue
+
+                        val day = safeGet(row, dayIdx)
+                        if (day.isBlank()) continue
+
+                        val batch = safeGet(row, batchIdx)
+                        val courseCode = safeGet(row, subjectIdx)
+                        val courseTitle = safeGet(row, titleIdx)
+                        val teacher = safeGet(row, teacherIdx)
+                        val room = safeGet(row, roomIdx)
+                        val timeSlot = safeGet(row, timeSlotIdx)
+
+                        var start = ""
+                        var end = ""
+                        if (timeSlot.contains("-")) {
+                            val parts = timeSlot.split("-", limit = 2)
+                            start = parts[0].trim()
+                            end = parts.getOrElse(1) { "" }.trim()
+                        } else {
+                            start = safeGet(row, startTimeIdx)
+                            end = safeGet(row, endTimeIdx)
+                        }
+
+                        val subjectFull = if (courseTitle.isNotBlank()) "$courseCode - $courseTitle" else courseCode
+
+                        val period = Period(
+                            id = java.util.UUID.randomUUID().toString(),
+                            subject = subjectFull,
+                            teacher = teacher,
+                            startTime = start,
+                            endTime = end,
+                            room = room,
+                            batch = batch
+                        )
+
+                        periodsByDay.getOrPut(day) { mutableListOf() }.add(period)
+                    }
+                }
+
+                if (periodsByDay.isEmpty()) {
+                    throw IOException("No valid entries found in CSV. Please check the file format.")
+                }
+
+                val db = FirebaseFirestore.getInstance()
+
+                // Step 1: Clear old timetable data for the days being uploaded (Chunked for safety)
+                for (day in periodsByDay.keys) {
+                    val oldPeriods = db.collection("timetable").document(day)
+                        .collection("periods").get().await()
+                    
+                    var deleteBatch = db.batch()
+                    var deleteCount = 0
+                    
+                    for (doc in oldPeriods.documents) {
+                        deleteBatch.delete(doc.reference)
+                        deleteCount++
+                        
+                        // Firestore batch limit is 500, we use 450 to be safe
+                        if (deleteCount >= 450) {
+                            deleteBatch.commit().await()
+                            deleteBatch = db.batch()
+                            deleteCount = 0
+                        }
+                    }
+                    if (deleteCount > 0) {
+                        deleteBatch.commit().await()
+                    }
+                }
+
+                // Step 2: Upload new data (Chunked for safety)
+                var batchWrite = db.batch()
+                var operationCount = 0
+                var totalPeriods = 0
+
+                for ((day, periods) in periodsByDay) {
+                    val dayRef = db.collection("timetable").document(day)
+                    batchWrite.set(dayRef, mapOf("updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()))
+                    operationCount++
+
+                    for (period in periods) {
+                        val pRef = dayRef.collection("periods").document(period.id)
+                        batchWrite.set(pRef, period)
+                        operationCount++
+                        totalPeriods++
+
+                        if (operationCount >= 450) {
+                            batchWrite.commit().await()
+                            batchWrite = db.batch()
+                            operationCount = 0
+                        }
+                    }
+                }
+
+                if (operationCount > 0) {
+                    batchWrite.commit().await()
+                }
+
+                withContext(Dispatchers.Main) {
+                    if (!isFinishing && !isDestroyed && progressDialog.isShowing) {
+                        progressDialog.dismiss()
+                    }
+                    Toast.makeText(
+                        this@AdminPanelActivity,
+                        "✅ Routine uploaded! $totalPeriods classes across ${periodsByDay.size} days.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    if (!isFinishing && !isDestroyed && progressDialog.isShowing) {
+                        progressDialog.dismiss()
+                    }
+                    Toast.makeText(
+                        this@AdminPanelActivity,
+                        "❌ Error: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+    }
+
+    /** Properly parses a single CSV line, handling quoted fields with commas inside. */
+    private fun parseCsvLine(line: String): List<String> {
+        val result = mutableListOf<String>()
+        val current = StringBuilder()
+        var insideQuotes = false
+
+        for (char in line) {
+            when {
+                char == '"' -> insideQuotes = !insideQuotes
+                char == ',' && !insideQuotes -> {
+                    result.add(current.toString().trim())
+                    current.clear()
+                }
+                else -> current.append(char)
+            }
+        }
+        result.add(current.toString().trim())
+        return result
+    }
+
+    /** Safely gets a value from CSV row by index, returning empty string if invalid. */
+    private fun safeGet(row: List<String>, idx: Int): String {
+        return if (idx in row.indices) row[idx].trim() else ""
+    }
+
 
     override fun onBackPressed() {
         super.onBackPressed()
