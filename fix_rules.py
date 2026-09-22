@@ -1,49 +1,50 @@
-with open("firestore.rules", "r") as f:
+import re
+
+with open('firestore.rules', 'r') as f:
     content = f.read()
 
-# 1. Add chat_rooms
-chat_rules = """
-    match /chat_rooms/{roomId} {
-      allow read: if isLoggedIn();
-      allow create: if isLoggedIn();
-      allow update: if isLoggedIn() &&
-        (!("id" in request.resource.data) || request.resource.data.id == roomId);
-      allow delete: if isAdmin();
-      
-      match /messages/{messageId} {
-        allow read: if isLoggedIn();
-        allow create: if isLoggedIn()
-          && request.resource.data.senderId == request.auth.uid
-          && (!("text" in request.resource.data) || request.resource.data.text.size() <= 5000)
-          && (!("imageUrl" in request.resource.data) || request.resource.data.imageUrl.size() <= 1000);
-          
-        allow update: if isLoggedIn()
-          && request.resource.data.senderId == resource.data.senderId
-          && (!("text" in request.resource.data.diff(resource.data).affectedKeys()) || resource.data.senderId == request.auth.uid)
-          && (!("text" in request.resource.data) || request.resource.data.text.size() <= 5000)
-          && (!("reactions" in request.resource.data.diff(resource.data).affectedKeys()) || true)
-          && (!("seenBy" in request.resource.data.diff(resource.data).affectedKeys()) || true)
-          && (!("isPinned" in request.resource.data.diff(resource.data).affectedKeys()) || true)
-          && (!("isDeleted" in request.resource.data.diff(resource.data).affectedKeys()) || resource.data.senderId == request.auth.uid);
-          
-        allow delete: if isAdmin() || resource.data.senderId == request.auth.uid;
-      }
-    }
-"""
+# 1. & 2. Fix studentId regex everywhere
+content = re.sub(r'\^\[A-Z\]\{2,4\}\[0-9\]\{5\}\$', '^[a-zA-Z0-9]{3,50}$', content)
 
-if "match /chat_rooms" not in content:
-    content = content.replace("match /{document=**} {", chat_rules + "\n    match /{document=**} {")
+# 3. Add canManageAcademicCalendar to noElevatedCreatePermissions hasOnly
+content = content.replace(
+    '"canEditTimetable",\n            "canPostNotices"',
+    '"canEditTimetable",\n            "canManageAcademicCalendar",\n            "canPostNotices"'
+)
 
-# 2. Add batch to notices
-content = content.replace('"isDeleted"\n      ])', '"isDeleted",\n        "batch"\n      ])')
-content = content.replace('"isDeleted",\n        "updatedAt"\n      ])', '"isDeleted",\n        "updatedAt",\n        "batch"\n      ])')
+# Add it to the false check in noElevatedCreatePermissions
+content = content.replace(
+    '&& (!("canEditTimetable" in request.resource.data.permissions) ||\n              request.resource.data.permissions.canEditTimetable == false)',
+    '&& (!("canEditTimetable" in request.resource.data.permissions) ||\n              request.resource.data.permissions.canEditTimetable == false)\n          && (!("canManageAcademicCalendar" in request.resource.data.permissions) ||\n              request.resource.data.permissions.canManageAcademicCalendar == false)'
+)
 
-# 3. Add uploadedByUid to library and qb
-content = content.replace('function validLibraryCreate() {\n      return canUploadPdf()\n        && validLibraryBaseFields()', 'function validLibraryCreate() {\n      return canUploadPdf()\n        && request.resource.data.uploadedByUid == request.auth.uid\n        && validLibraryBaseFields()')
-content = content.replace('function validQbCreate() {\n      return canUploadPdf()\n        && validQbBaseFields()', 'function validQbCreate() {\n      return canUploadPdf()\n        && request.resource.data.uploadedByUid == request.auth.uid\n        && validQbBaseFields()')
+# 4. Add canManageAcademicCalendar to validOwnPermissionsUpdate
+# It should already be caught by the first replace for hasOnly because they are identical blocks, but let's check.
+# Wait, they might not be identical spacing.
+content = content.replace(
+    '&& permissionStaysFalseOrUnchanged("canEditTimetable")',
+    '&& permissionStaysFalseOrUnchanged("canEditTimetable")\n          && permissionStaysFalseOrUnchanged("canManageAcademicCalendar")'
+)
 
-# 4. allow read for approved students
-content = content.replace('allow read: if isLoggedIn() && resource.data.isDeleted != true;', 'allow read: if isLoggedIn() && resource.data.isDeleted != true\n         && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.approved == true || isAdmin() || isTeacher());')
+# 5. Fix validOwnUserCreate role check
+content = content.replace(
+    '&& (!("role" in request.resource.data) || request.resource.data.role == "student")',
+    '&& (!("role" in request.resource.data) || request.resource.data.role in ["student", "teacher"])'
+)
 
-with open("firestore.rules", "w") as f:
+# 6. Add missing fields to validOwnUserUpdate
+content = content.replace(
+    '"photoUrl",\n          "studentId",',
+    '"photoUrl",\n          "studentId",\n          "batch",\n          "whatsappNumber",\n          "presentAddress",\n          "permanentAddress",\n          "fatherName",\n          "motherName",\n          "isDeleted",\n          "approved",'
+)
+
+# Also validOwnUserUpdate checks role update:
+content = content.replace(
+    '&& (!("role" in request.resource.data.diff(resource.data).affectedKeys()) ||\n            (!("role" in resource.data) && request.resource.data.role == "student"))',
+    '&& (!("role" in request.resource.data.diff(resource.data).affectedKeys()) ||\n            (!("role" in resource.data) && request.resource.data.role in ["student", "teacher"]))'
+)
+
+
+with open('firestore.rules', 'w') as f:
     f.write(content)
+

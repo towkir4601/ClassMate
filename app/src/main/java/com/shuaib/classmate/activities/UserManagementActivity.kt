@@ -274,7 +274,7 @@ class UserManagementActivity : AppCompatActivity() {
             "admin" -> User.DEFAULT_PERMISSIONS.mapValues { 
                 it.key != "canManageAdmins" && 
                 it.key != "canUploadSeatPlan" && 
-                it.key != "canManageAcademicCalendar" 
+                it.key != "canManageAcademicCalendar"
             }.toMutableMap()
             else -> User.DEFAULT_PERMISSIONS.mapValues { false }.toMutableMap()
         }

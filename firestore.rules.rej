@@ -1,0 +1,9 @@
+@@ -42,7 +42,7 @@
+ 
+     function isSuperAdmin() {
+       return isLoggedIn() &&
+-        getRole() == "superadmin";
++        getRole().lower() == "superadmin";
+     }
+ 
+     function isTeacher() {

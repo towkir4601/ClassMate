@@ -1008,13 +1008,13 @@ class TimetableFragment : Fragment() {
         binding.tvExceptionDateRange.text = formatDateRange(exception.startDate, exception.endDate)
         binding.tvExceptionMessage.text = when (exception.type) {
             AcademicCalendarException.TYPE_VACATION ->
-                "Enjoy your break! Your timetable is preserved and will resume after vacation."
+                exception.reason.ifBlank { "Enjoy your break! Your timetable is preserved and will resume after vacation." }
             AcademicCalendarException.TYPE_HOLIDAY ->
-                "No regular classes today."
+                exception.reason.ifBlank { "No regular classes today." }
             AcademicCalendarException.TYPE_CLASS_SUSPENDED ->
                 exception.reason.ifBlank { "All scheduled classes have been suspended today." }
             else ->
-                "Class reminders are temporarily paused during this period."
+                exception.reason.ifBlank { "Class reminders are temporarily paused during this period." }
         }
     }
 

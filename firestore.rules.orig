@@ -30,7 +30,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return isLoggedIn() &&
-        (getRole().lower() == "admin" || getRole().lower() == "superadmin");
+        (getRole() == "admin" || getRole() == "superadmin");
     }
 
     function hasPermission(permissionKey) {

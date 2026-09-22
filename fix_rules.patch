@@ -1,0 +1,24 @@
+--- firestore.rules
++++ firestore.rules
+@@ -30,7 +30,7 @@
+ 
+     function isAdmin() {
+       return isLoggedIn() &&
+-        (getRole() == "admin" || getRole() == "superadmin");
++        (getRole().lower() == "admin" || getRole().lower() == "superadmin");
+     }
+ 
+     function hasPermission(permissionKey) {
+@@ -42,7 +42,7 @@
+ 
+     function isSuperAdmin() {
+       return isLoggedIn() &&
+-        getRole() == "superadmin";
++        getRole().lower() == "superadmin";
+     }
+ 
+     function isTeacher() {
+       return isLoggedIn() &&
+-        getRole() == "teacher";
++        getRole().lower() == "teacher";
+     }

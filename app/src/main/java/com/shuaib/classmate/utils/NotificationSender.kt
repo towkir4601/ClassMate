@@ -318,6 +318,21 @@ object NotificationSender {
         onFailure = onFailure
     )
 
+    // Academic Calendar Holiday Alert
+    fun sendHolidayAlert(
+        title: String,
+        reason: String,
+        dateRange: String,
+        onSuccess: () -> Unit = {},
+        onFailure: (String) -> Unit = {}
+    ) = sendToAll(
+        title = "📅 $title",
+        message = if (reason.isNotBlank()) "$reason\nDate: $dateRange" else "Date: $dateRange",
+        type = "notice",
+        onSuccess = onSuccess,
+        onFailure = onFailure
+    )
+
     // Registration alert for Admins
     fun sendRegistrationAlert(
         userName: String,

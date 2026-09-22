@@ -68,7 +68,7 @@ data class User(
     @com.google.firebase.firestore.Exclude
     fun canEditTimetable(): Boolean = hasPermission("canEditTimetable")
     @com.google.firebase.firestore.Exclude
-    fun canManageAcademicCalendar(): Boolean = role.lowercase() == "admin" || hasPermission("canManageAcademicCalendar")
+    fun canManageAcademicCalendar(): Boolean = hasPermission("canManageAcademicCalendar")
     @com.google.firebase.firestore.Exclude
     fun canCreatePolls(): Boolean = hasPermission("canCreatePolls")
     @com.google.firebase.firestore.Exclude

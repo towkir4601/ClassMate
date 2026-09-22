@@ -21,6 +21,7 @@ import com.shuaib.classmate.databinding.DialogAcademicCalendarExceptionBinding
 import com.shuaib.classmate.models.AcademicCalendarException
 import com.shuaib.classmate.repositories.AcademicCalendarRepository
 import com.shuaib.classmate.utils.ClassReminderWorkCoordinator
+import com.shuaib.classmate.utils.NotificationSender
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.util.Calendar
@@ -146,6 +147,21 @@ class AcademicCalendarActivity : AppCompatActivity() {
                 } else {
                     ClassReminderWorkCoordinator.refreshTodayClassReminders(this@AcademicCalendarActivity)
                 }
+
+                if (exception.isActive && exception.showHolidayBriefing && existing == null) {
+                    val dateRange = if (exception.startDate == exception.endDate) exception.startDate else "${exception.startDate} to ${exception.endDate}"
+                    val title = exception.title.ifBlank {
+                        if (exception.type == AcademicCalendarException.TYPE_HOLIDAY) "University Holiday"
+                        else if (exception.type == AcademicCalendarException.TYPE_CLASS_SUSPENDED) "Classes Suspended"
+                        else "Vacation"
+                    }
+                    NotificationSender.sendHolidayAlert(
+                        title = title,
+                        reason = exception.reason,
+                        dateRange = dateRange
+                    )
+                }
+
                 Toast.makeText(this@AcademicCalendarActivity, "Calendar exception saved", Toast.LENGTH_SHORT).show()
                 dialog.dismiss()
             } else {
