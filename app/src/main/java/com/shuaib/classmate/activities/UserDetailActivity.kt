@@ -196,7 +196,6 @@ class UserDetailActivity : AppCompatActivity() {
             val alignedPermissions = when (role) {
                 "superadmin" -> User.DEFAULT_PERMISSIONS.mapValues { true }
                 "admin" -> newPermissions.apply { 
-                    put("canManageUsers", false)
                     put("canManageAdmins", false)
                 }
                 else -> newPermissions

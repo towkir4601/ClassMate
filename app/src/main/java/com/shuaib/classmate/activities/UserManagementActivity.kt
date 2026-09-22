@@ -272,7 +272,6 @@ class UserManagementActivity : AppCompatActivity() {
         val newPermissions = when (newRole) {
             "superadmin" -> User.DEFAULT_PERMISSIONS.mapValues { true }.toMutableMap()
             "admin" -> User.DEFAULT_PERMISSIONS.mapValues { 
-                it.key != "canManageUsers" && 
                 it.key != "canManageAdmins" && 
                 it.key != "canUploadSeatPlan" && 
                 it.key != "canManageAcademicCalendar" 
