@@ -325,7 +325,7 @@ class AdminPanelActivity : AppCompatActivity() {
 
                         if (row.size < 4) continue
 
-                        val day = safeGet(row, dayIdx)
+                        val day = safeGet(row, dayIdx).lowercase()
                         if (day.isBlank()) continue
 
                         val batch = safeGet(row, batchIdx)
