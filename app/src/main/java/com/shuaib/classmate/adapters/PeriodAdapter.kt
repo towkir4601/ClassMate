@@ -100,7 +100,7 @@ class PeriodAdapter(
         
         if (period.batch.isNotBlank() && period.batch != "all") {
             b.tvBatchBadge.isVisible = true
-            b.tvBatchBadge.text = "BATCH ${period.batch}"
+            b.tvBatchBadge.text = period.batch
         } else {
             b.tvBatchBadge.isVisible = false
         }

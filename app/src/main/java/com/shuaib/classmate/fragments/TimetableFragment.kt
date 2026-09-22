@@ -662,7 +662,7 @@ class TimetableFragment : Fragment() {
         binding.heroNextClass.isVisible = true
         currentHeroSubject = nextPeriod.subject
         binding.tvHeroSubject.text = nextPeriod.subject
-        val batchText = if (nextPeriod.batch.isNotBlank() && nextPeriod.batch != "all") " (Batch ${nextPeriod.batch})" else ""
+        val batchText = if (nextPeriod.batch.isNotBlank() && nextPeriod.batch != "all") " (${nextPeriod.batch})" else ""
         binding.tvHeroTeacher.text = nextPeriod.teacher.ifBlank { "Course Teacher" } + batchText
         binding.tvHeroTime.text = "${formatTo12Hour(nextPeriod.startTime)} → ${formatTo12Hour(nextPeriod.endTime)}"
 
@@ -855,7 +855,7 @@ class TimetableFragment : Fragment() {
         // Batch badge if applicable
         if (period.batch.isNotBlank() && period.batch != "all") {
             val tvBatch = TextView(ctx).apply {
-                text = "B${period.batch}"
+                text = period.batch
                 setTextColor(android.graphics.Color.parseColor("#80FFFFFF"))
                 textSize = 10f
                 val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
