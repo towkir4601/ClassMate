@@ -116,6 +116,7 @@ class PostNoticeActivity : AppCompatActivity() {
         auth.currentUser?.uid?.let { uid ->
             db.collection("users").document(uid).get().addOnSuccessListener { doc ->
                 currentUserBatch = doc.getString("batch") ?: ""
+                setupSubjectPicker()
                 if (doc.getString("role") == "teacher") {
                     binding.rbNormal.isVisible = false
                     binding.rbPoll.isVisible = false
@@ -127,7 +128,6 @@ class PostNoticeActivity : AppCompatActivity() {
         
         binding.rbSub.isVisible = false
         binding.sectionSubTeacher.isVisible = false
-        setupSubjectPicker()
         setupAttachmentButtons()
         fetchAdminName()
         setupEditModeIfNeeded()
@@ -332,7 +332,12 @@ class PostNoticeActivity : AppCompatActivity() {
     }
 
     private fun setupSubjectPicker() {
-        val subjectNames = SubjectList.subjects.map { it.fullName }
+        val filteredSubjects = if (currentUserBatch.isNotBlank() && !currentUserBatch.equals("all", ignoreCase = true)) {
+            SubjectList.subjects.filter { it.batch.equals(currentUserBatch, ignoreCase = true) || it.batch.isBlank() || it.batch.equals("all", ignoreCase = true) }
+        } else {
+            SubjectList.subjects
+        }
+        val subjectNames = filteredSubjects.map { it.fullName }
         val subjectAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, subjectNames)
         binding.dropdownSubject.setAdapter(subjectAdapter)
     }
@@ -416,6 +421,7 @@ class PostNoticeActivity : AppCompatActivity() {
             return
         }
 
+        val targetBatchId = getTargetBatchOrNull() ?: run { binding.progressBar.isVisible = false; binding.btnPublish.isEnabled = true; return }
         binding.progressBar.isVisible = true
         binding.btnPublish.isEnabled = false
 
@@ -442,7 +448,7 @@ class PostNoticeActivity : AppCompatActivity() {
             "isPinned" to false,
             "isDeleted" to false,
             "timestamp" to FieldValue.serverTimestamp(),
-            "targetBatch" to if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch
+            "targetBatch" to targetBatchId
         )
 
         val newNoticeRef = db.collection("notices").document()
@@ -467,6 +473,7 @@ class PostNoticeActivity : AppCompatActivity() {
             Toast.makeText(this, "Body text exceeds 5000 characters limit", Toast.LENGTH_SHORT).show()
             return
         }
+        val targetBatchId = getTargetBatchOrNull() ?: run { binding.progressBar.isVisible = false; binding.btnPublish.isEnabled = true; return }
 
         binding.progressBar.isVisible = true
         binding.btnPublish.isEnabled = false
@@ -551,7 +558,7 @@ class PostNoticeActivity : AppCompatActivity() {
             "isPinned" to false,
             "isDeleted" to false,
             "timestamp" to FieldValue.serverTimestamp(),
-            "targetBatch" to if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch
+            "targetBatch" to targetBatchId
         )
 
         val newNoticeRef = db.collection("notices").document()
@@ -565,7 +572,7 @@ class PostNoticeActivity : AppCompatActivity() {
             title = title,
             body = body,
             noticeId = noticeId,
-            targetBatch = if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch,
+            targetBatch = targetBatchId,
             onSuccess = {
                 binding.progressBar.isVisible = false
                 Toast.makeText(this, "✅ Notice posted!", Toast.LENGTH_SHORT).show()
@@ -598,6 +605,7 @@ class PostNoticeActivity : AppCompatActivity() {
                 return
             }
         }
+        val targetBatchId = getTargetBatchOrNull() ?: run { binding.progressBar.isVisible = false; binding.btnPublish.isEnabled = true; return }
 
         binding.progressBar.isVisible = true
         binding.btnPublish.isEnabled = false
@@ -625,7 +633,7 @@ class PostNoticeActivity : AppCompatActivity() {
             "isPinned" to false,
             "isDeleted" to false,
             "timestamp" to FieldValue.serverTimestamp(),
-            "targetBatch" to if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch
+            "targetBatch" to targetBatchId
         )
 
         val newNoticeRef = db.collection("notices").document()
@@ -670,7 +678,7 @@ class PostNoticeActivity : AppCompatActivity() {
             whenText = whenText,
             day = day,
             noticeId = noticeId,
-            targetBatch = if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch,
+            targetBatch = targetBatchId,
             onSuccess = {
                 binding.progressBar.isVisible = false
                 Toast.makeText(this, "Cancellation published!", Toast.LENGTH_SHORT).show()
@@ -706,6 +714,7 @@ class PostNoticeActivity : AppCompatActivity() {
             }
         }
 
+        val targetBatchId = getTargetBatchOrNull() ?: run { binding.progressBar.isVisible = false; binding.btnPublish.isEnabled = true; return }
         binding.progressBar.isVisible = true
         binding.btnPublish.isEnabled = false
 
@@ -733,7 +742,7 @@ class PostNoticeActivity : AppCompatActivity() {
             "isPinned" to false,
             "isDeleted" to false,
             "timestamp" to FieldValue.serverTimestamp(),
-            "targetBatch" to if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch
+            "targetBatch" to targetBatchId
         )
 
         val newNoticeRef = db.collection("notices").document()
@@ -763,7 +772,7 @@ class PostNoticeActivity : AppCompatActivity() {
             whenText = whenText,
             noticeId = newNoticeRef.id,
             day = targetDayString,
-            targetBatch = if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch,
+            targetBatch = targetBatchId,
             onSuccess = {
                 binding.progressBar.isVisible = false
                 Toast.makeText(this, "🔄 Substitute published!", Toast.LENGTH_SHORT).show()
@@ -904,6 +913,7 @@ class PostNoticeActivity : AppCompatActivity() {
             return
         }
 
+        val targetBatchId = getTargetBatchOrNull() ?: run { binding.progressBar.isVisible = false; binding.btnPublish.isEnabled = true; return }
         binding.progressBar.isVisible = true
         binding.btnPublish.isEnabled = false
 
@@ -963,7 +973,7 @@ class PostNoticeActivity : AppCompatActivity() {
                     "isPinned" to true,
                     "isDeleted" to false,
                     "timestamp" to FieldValue.serverTimestamp(),
-            "targetBatch" to if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch
+            "targetBatch" to targetBatchId
                 )
 
                 val newNoticeRef = db.collection("notices").document()
@@ -974,7 +984,7 @@ class PostNoticeActivity : AppCompatActivity() {
                     title = noticeTitle,
                     body = noticeBody,
                     noticeId = newNoticeRef.id,
-                    targetBatch = if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch,
+                    targetBatch = targetBatchId,
                     onSuccess = {
                         binding.progressBar.isVisible = false
                         Toast.makeText(this@PostNoticeActivity, "✅ Vacation notice and exception published!", Toast.LENGTH_SHORT).show()
@@ -992,5 +1002,14 @@ class PostNoticeActivity : AppCompatActivity() {
                 Toast.makeText(this@PostNoticeActivity, "Calendar Exception failed: $errorMsg", Toast.LENGTH_LONG).show()
             }
         }
+    }
+
+    private fun getTargetBatchOrNull(): String? {
+        val target = if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch
+        if (target.isBlank() && binding.toggleTarget.checkedButtonId != R.id.btnTargetAll) {
+            Toast.makeText(this, "Please set your batch in Profile first, or select Public!", Toast.LENGTH_LONG).show()
+            return null
+        }
+        return target
     }
 }

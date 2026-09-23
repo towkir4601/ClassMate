@@ -445,11 +445,12 @@ class TimetableFragment : Fragment() {
 
     private fun applyBatchFilterAndRender() {
         if (_binding == null) return
-        val filtered = if (currentBatchFilter == "All") {
+        var filtered = if (currentBatchFilter == "All") {
             currentPeriods
         } else {
             currentPeriods.filter { it.batch.isEmpty() || it.batch == currentBatchFilter }
         }
+        filtered = filtered.sortedBy { parseTimeToMinutes(it.startTime) }
         renderTimetable(selectedDayFlow.value, filtered)
     }
 
@@ -1299,16 +1300,22 @@ class TimetableFragment : Fragment() {
 
     private fun parseTimeToMinutes(timeStr: String): Int {
         try {
+            val parsed = java.time.LocalTime.parse(timeStr.trim())
+            return parsed.hour * 60 + parsed.minute
+        } catch (e: Exception) {
+            // ignore
+        }
+        try {
             val parts = timeStr.trim().split(" ")
-            if (parts.size != 2) return 0
             val timeParts = parts[0].split(":")
             if (timeParts.size != 2) return 0
             var hour = timeParts[0].toInt()
             val minute = timeParts[1].toInt()
-            val amPm = parts[1].uppercase()
-            
-            if (amPm == "PM" && hour < 12) hour += 12
-            if (amPm == "AM" && hour == 12) hour = 0
+            if (parts.size == 2) {
+                val amPm = parts[1].uppercase()
+                if (amPm == "PM" && hour < 12) hour += 12
+                if (amPm == "AM" && hour == 12) hour = 0
+            }
             return hour * 60 + minute
         } catch (e: Exception) {
             return 0
