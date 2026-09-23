@@ -83,9 +83,8 @@ class PdfUploadActivity : AppCompatActivity() {
             .addOnSuccessListener { doc ->
                 currentUserName = doc.getString("name") ?: "Admin"
                 currentUserBatch = doc.getString("batch") ?: ""
+                setupDropdown()
             }
-
-        setupDropdown()
 
         binding.btnAddSubject.setOnClickListener {
             showAddSubjectDialog()
@@ -211,6 +210,7 @@ class PdfUploadActivity : AppCompatActivity() {
             "title" to input.title,
             "subject" to input.subject,
             "courseCode" to input.courseCode,
+            "batch" to currentUserBatch,
             "courseType" to courseType,
             "description" to input.description,
             "fileType" to info.fileType,
@@ -298,6 +298,7 @@ class PdfUploadActivity : AppCompatActivity() {
             "title" to input.title,
             "subject" to input.subject,
             "courseCode" to input.courseCode,
+            "batch" to currentUserBatch,
             "courseType" to courseType,
             "description" to input.description,
             "fileType" to info.fileType,
@@ -342,6 +343,7 @@ class PdfUploadActivity : AppCompatActivity() {
             "title" to input.title,
             "subject" to input.subject,
             "courseCode" to input.courseCode,
+            "batch" to currentUserBatch,
             "courseType" to courseTypeFor(input.subject),
             "description" to input.description,
             "fileType" to "other",
@@ -529,13 +531,20 @@ class PdfUploadActivity : AppCompatActivity() {
         return if (mb >= 1) String.format("%.1f MB", mb) else String.format("%.0f KB", kb)
     }
 
+    private var filteredSubjects: List<com.shuaib.classmate.utils.Subject> = emptyList()
+
     private fun setupDropdown() {
-        val subjectNames = SubjectList.subjects.map { it.fullName }
+        filteredSubjects = if (currentUserBatch.isNotBlank() && !currentUserBatch.equals("all", ignoreCase = true)) {
+            SubjectList.subjects.filter { it.batch.equals(currentUserBatch, ignoreCase = true) || it.batch.isBlank() || it.batch.equals("all", ignoreCase = true) }
+        } else {
+            SubjectList.subjects
+        }
+        val subjectNames = filteredSubjects.map { it.fullName }
         binding.dropdownSubject.setAdapter(
             ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, subjectNames)
         )
         binding.dropdownSubject.setOnItemClickListener { _, _, position, _ ->
-            binding.etCourseCode.setText(SubjectList.subjects.getOrNull(position)?.code.orEmpty())
+            binding.etCourseCode.setText(filteredSubjects.getOrNull(position)?.code.orEmpty())
         }
     }
 
