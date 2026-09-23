@@ -392,13 +392,15 @@ class PostNoticeActivity : AppCompatActivity() {
             return
         }
 
+        val targetBatchId = getTargetBatchOrNull() ?: return
+
         when (normalizeAiType(result.type ?: "GENERAL")) {
             "cancellation" -> publishAiCancellation(result.copy(title = title, body = body))
             else -> {
                 attachmentType = "none"
                 uploadedAttachmentUrl = ""
                 attachmentFileName = ""
-                saveNoticeToFirestore(title, body)
+                saveNoticeToFirestore(title, body, targetBatchId)
             }
         }
     }
