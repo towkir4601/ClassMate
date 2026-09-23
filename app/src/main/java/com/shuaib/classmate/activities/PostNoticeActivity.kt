@@ -453,7 +453,7 @@ class PostNoticeActivity : AppCompatActivity() {
 
         val newNoticeRef = db.collection("notices").document()
         newNoticeRef.set(noticeData)
-        markPeriodAsCancelled(subject, targetDay, targetDate, whenText, newNoticeRef.id)
+        markPeriodAsCancelled(subject, targetDay, targetDate, whenText, newNoticeRef.id, targetBatchId)
     }
 
     private fun publishNormalNotice() {
@@ -496,7 +496,7 @@ class PostNoticeActivity : AppCompatActivity() {
                     onSuccess = { telegramUrl, _ ->
                         binding.attachmentProgress.isVisible = false
                         uploadedAttachmentUrl = telegramUrl
-                        saveNoticeToFirestore(titleText, bodyText)
+                        saveNoticeToFirestore(titleText, bodyText, targetBatchId)
                     },
                     onFailure = { error ->
                         binding.progressBar.isVisible = false
@@ -517,7 +517,7 @@ class PostNoticeActivity : AppCompatActivity() {
                     onSuccess = { imageUrl, _ ->
                         binding.attachmentProgress.isVisible = false
                         uploadedAttachmentUrl = imageUrl
-                        saveNoticeToFirestore(titleText, bodyText)
+                        saveNoticeToFirestore(titleText, bodyText, targetBatchId)
                     },
                     onFailure = { error ->
                         binding.progressBar.isVisible = false
@@ -528,12 +528,12 @@ class PostNoticeActivity : AppCompatActivity() {
                 )
             }
             else -> {
-                saveNoticeToFirestore(titleText, bodyText)
+                saveNoticeToFirestore(titleText, bodyText, targetBatchId)
             }
         }
     }
 
-    private fun saveNoticeToFirestore(title: String, body: String) {
+    private fun saveNoticeToFirestore(title: String, body: String, targetBatchId: String) {
         val noticeData = hashMapOf(
             "title" to title,
             "body" to body,
@@ -643,12 +643,13 @@ class PostNoticeActivity : AppCompatActivity() {
             day = targetDayString,
             cancelDate = targetDate,
             whenText = whenText,
-            noticeId = newNoticeRef.id
+            noticeId = newNoticeRef.id,
+            targetBatchId = targetBatchId
         )
     }
 
-    private fun markPeriodAsCancelled(subject: String, day: String, cancelDate: String, whenText: String, noticeId: String? = null) {
-        sendCancellationNotification(subject, whenText, day, noticeId)
+    private fun markPeriodAsCancelled(subject: String, day: String, cancelDate: String, whenText: String, noticeId: String? = null, targetBatchId: String) {
+        sendCancellationNotification(subject, whenText, day, noticeId, targetBatchId)
         
         db.collection("timetable")
             .document(day)
@@ -672,7 +673,7 @@ class PostNoticeActivity : AppCompatActivity() {
             }
     }
 
-    private fun sendCancellationNotification(subject: String, whenText: String, day: String, noticeId: String? = null) {
+    private fun sendCancellationNotification(subject: String, whenText: String, day: String, noticeId: String? = null, targetBatchId: String) {
         NotificationSender.sendCancellationAlert(
             subject = subject,
             whenText = whenText,
