@@ -36,4 +36,7 @@ data class Subject(
     val type: String = "regular",
     val batch: String = "",
     val id: String = ""
-)
+) {
+    val fullName: String
+        get() = if (code.isNotBlank()) "$code - $name" else name
+}

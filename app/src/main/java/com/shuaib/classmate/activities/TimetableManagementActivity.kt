@@ -306,7 +306,7 @@ class TimetableManagementActivity : AppCompatActivity() {
         val dialogBinding = DialogAddPeriodBinding.inflate(LayoutInflater.from(this))
         val isEdit = period != null
 
-        val subjectNames = SubjectList.subjects.map { it.name }
+        val subjectNames = SubjectList.subjects.map { it.fullName }
         val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, subjectNames)
                 dialogBinding.dropdownSubject.setAdapter(adapter)
         

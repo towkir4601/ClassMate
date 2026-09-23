@@ -268,7 +268,7 @@ class PostNoticeActivity : AppCompatActivity() {
                 messyText = messy,
                 currentDateStr = DateHelper.today(),
                 currentDayName = DateHelper.todayDayString(),
-                subjects = SubjectList.subjects.map { it.name }
+                subjects = SubjectList.subjects.map { it.fullName }
             )
             binding.progressBar.isVisible = false
             binding.btnAiAnalyze.isEnabled = true
@@ -332,7 +332,7 @@ class PostNoticeActivity : AppCompatActivity() {
     }
 
     private fun setupSubjectPicker() {
-        val subjectNames = SubjectList.subjects.map { it.name }
+        val subjectNames = SubjectList.subjects.map { it.fullName }
         val subjectAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, subjectNames)
         binding.dropdownSubject.setAdapter(subjectAdapter)
     }
@@ -399,7 +399,11 @@ class PostNoticeActivity : AppCompatActivity() {
     }
 
     private fun publishAiCancellation(result: com.shuaib.classmate.models.AiNoticeDraft) {
-        val subject = result.subject?.ifBlank { binding.dropdownSubject.text.toString().trim() } ?: binding.dropdownSubject.text.toString().trim()
+        val rawSubject = result.subject?.ifBlank { binding.dropdownSubject.text.toString().trim() } ?: binding.dropdownSubject.text.toString().trim()
+        val subject = com.shuaib.classmate.utils.SubjectList.subjects.find { 
+            it.name.equals(rawSubject, true) || it.fullName.equals(rawSubject, true) 
+        }?.fullName ?: rawSubject
+
         val targetDate = result.date?.ifBlank { DateHelper.today() } ?: DateHelper.today()
         val targetDay = dayStringFromIso(targetDate) ?: DateHelper.todayDayString()
         val whenText = when (targetDate) {

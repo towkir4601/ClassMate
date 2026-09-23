@@ -530,7 +530,7 @@ class PdfUploadActivity : AppCompatActivity() {
     }
 
     private fun setupDropdown() {
-        val subjectNames = SubjectList.subjects.map { it.name }
+        val subjectNames = SubjectList.subjects.map { it.fullName }
         binding.dropdownSubject.setAdapter(
             ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, subjectNames)
         )
@@ -547,7 +547,7 @@ class PdfUploadActivity : AppCompatActivity() {
             .setTitle("Delete Course")
             .setMessage("Are you sure you want to delete '$subjectName'? This action cannot be undone.")
             .setPositiveButton("Delete") { _, _ ->
-                val subject = SubjectList.subjects.find { it.name.equals(subjectName, ignoreCase = true) }
+                val subject = SubjectList.subjects.find { it.fullName.equals(subjectName, ignoreCase = true) }
                 if (subject != null && subject.id.isNotEmpty()) {
                     db.collection("subjects").document(subject.id).delete()
                         .addOnSuccessListener {
