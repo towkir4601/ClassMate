@@ -147,6 +147,11 @@ class TimetableFragment : Fragment() {
         if (todayIndex != -1 && selectedDayFlow.value.isBlank()) {
             selectDay(todayIndex)
         }
+
+        val currentDay = selectedDayFlow.value
+        if (currentDay.isNotBlank()) {
+            timetableViewModel.refreshDay(currentDay)
+        }
     }
 
     // ─────────────────────────────────────────────────────────────

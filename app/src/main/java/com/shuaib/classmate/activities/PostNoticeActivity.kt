@@ -656,21 +656,32 @@ class PostNoticeActivity : AppCompatActivity() {
         db.collection("timetable")
             .document(day)
             .collection("periods")
-            .whereEqualTo("subject", subject)
             .get()
             .addOnSuccessListener { snapshot ->
                 if (snapshot.isEmpty) return@addOnSuccessListener
 
                 val batch = db.batch()
+                var updatedCount = 0
                 snapshot.documents.forEach { doc ->
-                    batch.update(doc.reference, mapOf(
-                        "isCancelled" to true,
-                        "cancelDate" to cancelDate
-                    ))
+                    val docSubject = doc.getString("subject") ?: ""
+                    val docBatch = doc.getString("batch") ?: ""
+                    
+                    val subjectMatches = docSubject.equals(subject, ignoreCase = true) || docSubject.contains(subject, ignoreCase = true) || subject.contains(docSubject, ignoreCase = true)
+                    val batchMatches = targetBatchId == "all" || targetBatchId.isBlank() || docBatch.equals(targetBatchId, ignoreCase = true) || docBatch.isBlank()
+                    
+                    if (subjectMatches && batchMatches) {
+                        batch.update(doc.reference, mapOf(
+                            "isCancelled" to true,
+                            "cancelDate" to cancelDate
+                        ))
+                        updatedCount++
+                    }
                 }
 
-                batch.commit().addOnSuccessListener {
-                    WidgetUpdater.refresh(this)
+                if (updatedCount > 0) {
+                    batch.commit().addOnSuccessListener {
+                        WidgetUpdater.refresh(this)
+                    }
                 }
             }
     }
