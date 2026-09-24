@@ -122,6 +122,16 @@ class PostNoticeActivity : AppCompatActivity() {
                     binding.rbPoll.isVisible = false
                     binding.rbVacation.isVisible = false
                     binding.rgNoticeType.check(R.id.rbCancel)
+                    
+                    binding.toggleTarget.isVisible = false
+                    binding.sectionTargetBatch.isVisible = true
+                    val allBatches = com.shuaib.classmate.utils.SubjectList.subjects.map { it.batch }.filter { it.isNotBlank() && !it.equals("all", true) }.distinct().sorted()
+                    val batchAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, allBatches)
+                    binding.dropdownTargetBatch.setAdapter(batchAdapter)
+                    binding.dropdownTargetBatch.setOnItemClickListener { _, _, position, _ ->
+                        currentUserBatch = allBatches[position]
+                        setupSubjectPicker()
+                    }
                 }
             }
         }
@@ -1040,6 +1050,15 @@ class PostNoticeActivity : AppCompatActivity() {
     }
 
     private fun getTargetBatchOrNull(): String? {
+        if (binding.sectionTargetBatch.isVisible) {
+            val selectedBatch = binding.dropdownTargetBatch.text.toString().trim()
+            if (selectedBatch.isEmpty()) {
+                Toast.makeText(this, "Please select a target batch!", Toast.LENGTH_LONG).show()
+                return null
+            }
+            return selectedBatch
+        }
+
         val target = if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch
         if (target.isBlank() && binding.toggleTarget.checkedButtonId != R.id.btnTargetAll) {
             Toast.makeText(this, "Please set your batch in Profile first, or select Public!", Toast.LENGTH_LONG).show()

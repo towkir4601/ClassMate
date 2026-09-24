@@ -84,6 +84,17 @@ class PdfUploadActivity : AppCompatActivity() {
                 currentUserName = doc.getString("name") ?: "Admin"
                 currentUserBatch = doc.getString("batch") ?: ""
                 setupDropdown()
+                
+                if (doc.getString("role") == "teacher") {
+                    binding.sectionTargetBatch.visibility = android.view.View.VISIBLE
+                    val allBatches = com.shuaib.classmate.utils.SubjectList.subjects.map { it.batch }.filter { it.isNotBlank() && !it.equals("all", true) }.distinct().sorted()
+                    val batchAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, allBatches)
+                    binding.dropdownTargetBatch.setAdapter(batchAdapter)
+                    binding.dropdownTargetBatch.setOnItemClickListener { _, _, position, _ ->
+                        currentUserBatch = allBatches[position]
+                        setupDropdown()
+                    }
+                }
             }
 
         binding.btnAddSubject.setOnClickListener {

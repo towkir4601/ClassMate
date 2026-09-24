@@ -555,7 +555,7 @@
                             android:id="@+id/dropdownSubject"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="none"
+                            android:inputType="text"
                             android:textColor="@color/cm_text_primary" />
                     </com.google.android.material.textfield.TextInputLayout>
 
@@ -633,6 +633,23 @@
                         android:text="My Batch"
                         android:textColor="@color/cm_text_primary" />
                 </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/sectionTargetBatch"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone"
+                    android:hint="Select Target Batch">
+
+                    <AutoCompleteTextView
+                        android:id="@+id/dropdownTargetBatch"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="none"
+                        android:textColor="@color/cm_text_primary" />
+                </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnPublish"
