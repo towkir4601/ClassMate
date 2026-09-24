@@ -19,6 +19,15 @@ class AppPreferences(context: Context) {
             .apply()
     }
 
+    fun getUserBatch(): String =
+        prefs.getString("user_batch", "") ?: ""
+
+    fun setUserBatch(batch: String) {
+        prefs.edit()
+            .putString("user_batch", batch)
+            .apply()
+    }
+
     fun isDarkMode(): Boolean =
         prefs.getBoolean("dark_mode", false)
 

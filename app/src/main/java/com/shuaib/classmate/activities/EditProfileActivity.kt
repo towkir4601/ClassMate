@@ -101,6 +101,14 @@ class EditProfileActivity : AppCompatActivity() {
         db.collection("users").document(uid)
             .set(updates, SetOptions.merge())
             .addOnSuccessListener {
+                if (originalBatch.isBlank() && newBatch.isNotBlank()) {
+                    try {
+                        com.onesignal.OneSignal.User.addTag("batch", newBatch)
+                        com.shuaib.classmate.utils.AppPreferences(this).setUserBatch(newBatch)
+                    } catch (e: Exception) {
+                        // ignore
+                    }
+                }
                 Toast.makeText(this, "Profile updated successfully", Toast.LENGTH_SHORT).show()
                 finish()
             }

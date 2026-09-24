@@ -13,8 +13,8 @@ interface NoticeDao {
     @Query("SELECT * FROM notices WHERE id = :noticeId AND isDeleted = 0 LIMIT 1")
     fun observeNotice(noticeId: String): Flow<NoticeEntity?>
 
-    @Query("SELECT * FROM notices WHERE isDeleted = 0 ORDER BY timestampMillis DESC LIMIT 1")
-    fun getLatestNoticeSync(): NoticeEntity?
+    @Query("SELECT * FROM notices WHERE isDeleted = 0 AND (targetBatch = 'all' OR targetBatch = '' OR targetBatch = :userBatch) ORDER BY timestampMillis DESC LIMIT 1")
+    fun getLatestNoticeSync(userBatch: String): NoticeEntity?
 
     @Upsert
     suspend fun upsertAll(notices: List<NoticeEntity>)

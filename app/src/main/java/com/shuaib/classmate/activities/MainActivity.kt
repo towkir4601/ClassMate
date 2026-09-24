@@ -347,6 +347,7 @@ class MainActivity : AppCompatActivity() {
                 try {
                     // Manual parsing to prevent crashes if Firestore field types (like approved) are wrong
                     val role = doc.getString("role") ?: "student"
+                    val batch = doc.getString("batch") ?: ""
                     val permissions = doc.get("permissions") as? Map<String, Boolean> ?: emptyMap()
                     
                     val r = role.trim().lowercase()
@@ -354,6 +355,8 @@ class MainActivity : AppCompatActivity() {
                     
                     try {
                         com.onesignal.OneSignal.User.addTag("role", r)
+                        com.onesignal.OneSignal.User.addTag("batch", batch)
+                        AppPreferences(this@MainActivity).setUserBatch(batch)
                     } catch (e: Exception) {
                         Log.e("MainActivity", "Error setting OneSignal tag", e)
                     }
