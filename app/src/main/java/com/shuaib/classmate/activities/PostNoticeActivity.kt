@@ -408,7 +408,7 @@ class PostNoticeActivity : AppCompatActivity() {
     private fun publishAiCancellation(result: com.shuaib.classmate.models.AiNoticeDraft) {
         val rawSubject = result.subject?.ifBlank { binding.dropdownSubject.text.toString().trim() } ?: binding.dropdownSubject.text.toString().trim()
         val subject = com.shuaib.classmate.utils.SubjectList.subjects.find { 
-            it.name.equals(rawSubject, true) || it.fullName.equals(rawSubject, true) 
+            it.name.equals(rawSubject, true) || it.fullName.equals(rawSubject, true) || it.code.equals(rawSubject, true)
         }?.fullName ?: rawSubject
 
         var targetDate = result.date?.ifBlank { DateHelper.today() } ?: DateHelper.today()
@@ -591,12 +591,16 @@ class PostNoticeActivity : AppCompatActivity() {
     }
 
     private fun publishCancellationNotice() {
-        val selectedSubject = binding.dropdownSubject.text.toString().trim()
+        val rawSubject = binding.dropdownSubject.text.toString().trim()
 
-        if (selectedSubject.isEmpty()) {
+        if (rawSubject.isEmpty()) {
             Toast.makeText(this, "Select a subject", Toast.LENGTH_SHORT).show()
             return
         }
+
+        val selectedSubject = com.shuaib.classmate.utils.SubjectList.subjects.find {
+            it.name.equals(rawSubject, true) || it.fullName.equals(rawSubject, true) || it.code.equals(rawSubject, true)
+        }?.fullName ?: rawSubject
 
         val isToday = binding.rbToday.isChecked
         val targetDayString = if (isToday) DateHelper.todayDayString() else DateHelper.tomorrowDayString()
@@ -718,13 +722,17 @@ class PostNoticeActivity : AppCompatActivity() {
     }
 
     private fun publishSubstituteNotice() {
-        val selectedSubject = binding.dropdownSubject.text.toString().trim()
+        val rawSubject = binding.dropdownSubject.text.toString().trim()
         val subTeacher = binding.etSubTeacher.text.toString().trim()
 
-        if (selectedSubject.isEmpty() || subTeacher.isEmpty()) {
+        if (rawSubject.isEmpty() || subTeacher.isEmpty()) {
             Toast.makeText(this, "Fill all fields", Toast.LENGTH_SHORT).show()
             return
         }
+
+        val selectedSubject = com.shuaib.classmate.utils.SubjectList.subjects.find {
+            it.name.equals(rawSubject, true) || it.fullName.equals(rawSubject, true) || it.code.equals(rawSubject, true)
+        }?.fullName ?: rawSubject
 
         val isToday = binding.rbToday.isChecked
         val targetDayString = if (isToday) DateHelper.todayDayString() else DateHelper.tomorrowDayString()
