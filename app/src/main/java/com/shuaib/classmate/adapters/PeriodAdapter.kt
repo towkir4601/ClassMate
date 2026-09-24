@@ -232,10 +232,35 @@ class PeriodAdapter(
         }
     }
 
+    private fun parseTimeSafe(timeStr: String): LocalTime? {
+        if (timeStr.isBlank()) return null
+        return try {
+            LocalTime.parse(timeStr)
+        } catch (e: Exception) {
+            try {
+                val formatter = DateTimeFormatter.ofPattern("h:mm a", Locale.US)
+                LocalTime.parse(timeStr.uppercase(Locale.US), formatter)
+            } catch (e2: Exception) {
+                try {
+                    val formatter2 = DateTimeFormatter.ofPattern("hh:mm a", Locale.US)
+                    LocalTime.parse(timeStr.uppercase(Locale.US), formatter2)
+                } catch (e3: Exception) {
+                    try {
+                        // Fallback for simple "09:00" if it has trailing characters
+                        val cleanStr = timeStr.substringBefore(" ").trim()
+                        LocalTime.parse(cleanStr)
+                    } catch (e4: Exception) {
+                        null
+                    }
+                }
+            }
+        }
+    }
+
     private fun durationLabel(period: Period): String {
         return try {
-            val start = LocalTime.parse(period.startTime)
-            val end = LocalTime.parse(period.endTime)
+            val start = parseTimeSafe(period.startTime) ?: return ""
+            val end = parseTimeSafe(period.endTime) ?: return ""
             val duration = Duration.between(start, end)
             val minutes = duration.toMinutes().toInt()
             val hours = minutes / 60
@@ -253,8 +278,8 @@ class PeriodAdapter(
     private fun checkIsLive(period: Period): Boolean {
         return try {
             val now = LocalTime.now()
-            val start = LocalTime.parse(period.startTime)
-            val end = LocalTime.parse(period.endTime)
+            val start = parseTimeSafe(period.startTime) ?: return false
+            val end = parseTimeSafe(period.endTime) ?: return false
             !now.isBefore(start) && now.isBefore(end)
         } catch (e: Exception) {
             false
@@ -266,7 +291,7 @@ class PeriodAdapter(
         if (!isViewingToday) return false
         return try {
             val now = LocalTime.now()
-            val end = LocalTime.parse(period.endTime)
+            val end = parseTimeSafe(period.endTime) ?: return false
             now.isAfter(end) || now == end
         } catch (e: Exception) {
             false
