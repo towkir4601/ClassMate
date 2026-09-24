@@ -411,7 +411,10 @@ class PostNoticeActivity : AppCompatActivity() {
             it.name.equals(rawSubject, true) || it.fullName.equals(rawSubject, true) 
         }?.fullName ?: rawSubject
 
-        val targetDate = result.date?.ifBlank { DateHelper.today() } ?: DateHelper.today()
+        var targetDate = result.date?.ifBlank { DateHelper.today() } ?: DateHelper.today()
+        if (!targetDate.matches(Regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$"))) {
+            targetDate = DateHelper.today()
+        }
         val targetDay = dayStringFromIso(targetDate) ?: DateHelper.todayDayString()
         val whenText = when (targetDate) {
             DateHelper.today() -> "today"
@@ -674,9 +677,8 @@ class PostNoticeActivity : AppCompatActivity() {
                         (docName.equals(queryName, ignoreCase = true) || docName.contains(queryName, ignoreCase = true) || queryName.contains(docName, ignoreCase = true))
                     
                     val subjectMatches = exactMatch || nameMatch
-                    val batchMatches = targetBatchId == "all" || targetBatchId.isBlank() || docBatch.equals(targetBatchId, ignoreCase = true) || docBatch.isBlank()
                     
-                    if (subjectMatches && batchMatches) {
+                    if (subjectMatches) {
                         batch.update(doc.reference, mapOf(
                             "isCancelled" to true,
                             "cancelDate" to cancelDate
@@ -688,6 +690,8 @@ class PostNoticeActivity : AppCompatActivity() {
                 if (updatedCount > 0) {
                     batch.commit().addOnSuccessListener {
                         WidgetUpdater.refresh(this)
+                    }.addOnFailureListener { e ->
+                        Toast.makeText(this, "Failed to update timetable: ${e.message}", Toast.LENGTH_LONG).show()
                     }
                 }
             }
@@ -783,7 +787,9 @@ class PostNoticeActivity : AppCompatActivity() {
                         "substituteDate" to targetDate
                     ))
                 }
-                batch.commit()
+                batch.commit().addOnFailureListener { e ->
+                    Toast.makeText(this, "Failed to update timetable: ${e.message}", Toast.LENGTH_LONG).show()
+                }
             }
             
         WidgetUpdater.refresh(this)
