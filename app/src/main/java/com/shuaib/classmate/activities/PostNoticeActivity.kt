@@ -666,7 +666,14 @@ class PostNoticeActivity : AppCompatActivity() {
                     val docSubject = doc.getString("subject") ?: ""
                     val docBatch = doc.getString("batch") ?: ""
                     
-                    val subjectMatches = docSubject.equals(subject, ignoreCase = true) || docSubject.contains(subject, ignoreCase = true) || subject.contains(docSubject, ignoreCase = true)
+                    val docName = if (docSubject.contains("-")) docSubject.substringAfter("-").trim() else docSubject.trim()
+                    val queryName = if (subject.contains("-")) subject.substringAfter("-").trim() else subject.trim()
+                    
+                    val exactMatch = docSubject.equals(subject, ignoreCase = true)
+                    val nameMatch = docName.isNotBlank() && queryName.isNotBlank() && 
+                        (docName.equals(queryName, ignoreCase = true) || docName.contains(queryName, ignoreCase = true) || queryName.contains(docName, ignoreCase = true))
+                    
+                    val subjectMatches = exactMatch || nameMatch
                     val batchMatches = targetBatchId == "all" || targetBatchId.isBlank() || docBatch.equals(targetBatchId, ignoreCase = true) || docBatch.isBlank()
                     
                     if (subjectMatches && batchMatches) {
