@@ -99,16 +99,29 @@ class RegisterActivity : AppCompatActivity() {
 
 
     private fun setupRoleToggle() {
+        // Optional fields expand/collapse toggle
+        var optionalExpanded = false
+        binding.btnShowOptional.setOnClickListener {
+            optionalExpanded = !optionalExpanded
+            if (optionalExpanded) {
+                binding.optionalFields.visibility = android.view.View.VISIBLE
+                binding.btnShowOptional.text = "－ Hide Details"
+            } else {
+                binding.optionalFields.visibility = android.view.View.GONE
+                binding.btnShowOptional.text = "＋ More Details (Optional)"
+            }
+        }
+
         val applyRoleVisibility = {
             val isTeacher = binding.rgRole.checkedRadioButtonId == R.id.rbTeacher
             val visibility = if (isTeacher) android.view.View.GONE else android.view.View.VISIBLE
             binding.tilStudentId.visibility = visibility
             binding.tilBatch.visibility = visibility
-            binding.tilFatherName.visibility = visibility
-            binding.tilMotherName.visibility = visibility
-            binding.tilPresentAddress.visibility = visibility
-            binding.tilPermanentAddress.visibility = visibility
-            binding.tilDistrict.visibility = visibility
+            binding.btnShowOptional.visibility = visibility
+            if (isTeacher) {
+                binding.optionalFields.visibility = android.view.View.GONE
+                optionalExpanded = false
+            }
         }
         binding.rgRole.setOnCheckedChangeListener { _, _ -> applyRoleVisibility() }
         applyRoleVisibility()

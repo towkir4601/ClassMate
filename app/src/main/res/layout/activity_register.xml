@@ -191,64 +191,6 @@
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/tilWhatsApp"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:hint="WhatsApp Number"
-                    app:boxCornerRadiusBottomEnd="28dp"
-                    app:boxCornerRadiusBottomStart="28dp"
-                    app:boxCornerRadiusTopEnd="28dp"
-                    app:boxCornerRadiusTopStart="28dp"
-                    app:boxStrokeColor="@color/cm_border"
-                    app:boxStrokeWidth="1dp"
-                    app:boxStrokeWidthFocused="1.5dp"
-                    app:hintTextColor="@color/cm_text_disabled">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etWhatsApp"
-                        android:layout_width="match_parent"
-                        android:layout_height="58dp"
-                        android:gravity="center_vertical"
-                        android:imeOptions="actionNext"
-                        android:inputType="phone"
-                        android:singleLine="true"
-                        android:textColor="@color/cm_text_primary"
-                        android:textSize="16sp" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/tilPhone"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:hint="Phone Number"
-                    app:boxCornerRadiusBottomEnd="28dp"
-                    app:boxCornerRadiusBottomStart="28dp"
-                    app:boxCornerRadiusTopEnd="28dp"
-                    app:boxCornerRadiusTopStart="28dp"
-                    app:boxStrokeColor="@color/cm_border"
-                    app:boxStrokeWidth="1dp"
-                    app:boxStrokeWidthFocused="1.5dp"
-                    app:hintTextColor="@color/cm_text_disabled">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etPhone"
-                        android:layout_width="match_parent"
-                        android:layout_height="58dp"
-                        android:gravity="center_vertical"
-                        android:imeOptions="actionNext"
-                        android:inputType="phone"
-                        android:singleLine="true"
-                        android:textColor="@color/cm_text_primary"
-                        android:textSize="16sp" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-
-
-                <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/tilBatch"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
@@ -275,173 +217,257 @@
                         android:textSize="16sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/tilFatherName"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                <!-- Toggle button for optional fields -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnShowOptional"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:layout_gravity="start"
+                    android:text="＋ More Details (Optional)"
+                    android:textAllCaps="false"
+                    android:textColor="@color/cm_primary"
+                    android:textSize="14sp"
+                    app:icon="@drawable/ic_arrow_down"
+                    app:iconTint="@color/cm_primary"
+                    app:iconGravity="end"
+                    app:iconSize="18dp"
+                    app:rippleColor="@color/cm_primary_container" />
+
+                <!-- Collapsible optional fields -->
+                <LinearLayout
+                    android:id="@+id/optionalFields"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:hint="Father's Name (Optional)"
-                    app:boxCornerRadiusBottomEnd="28dp"
-                    app:boxCornerRadiusBottomStart="28dp"
-                    app:boxCornerRadiusTopEnd="28dp"
-                    app:boxCornerRadiusTopStart="28dp"
-                    app:boxStrokeColor="@color/cm_border"
-                    app:boxStrokeWidth="1dp"
-                    app:boxStrokeWidthFocused="1.5dp"
-                    app:hintTextColor="@color/cm_text_disabled">
+                    android:orientation="vertical"
+                    android:visibility="gone">
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etFatherName"
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilWhatsApp"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
-                        android:layout_height="58dp"
-                        android:gravity="center_vertical"
-                        android:imeOptions="actionNext"
-                        android:inputType="text"
-                        android:singleLine="true"
-                        android:textColor="@color/cm_text_primary"
-                        android:textSize="16sp" />
-                </com.google.android.material.textfield.TextInputLayout>
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:hint="WhatsApp Number (Optional)"
+                        app:boxCornerRadiusBottomEnd="28dp"
+                        app:boxCornerRadiusBottomStart="28dp"
+                        app:boxCornerRadiusTopEnd="28dp"
+                        app:boxCornerRadiusTopStart="28dp"
+                        app:boxStrokeColor="@color/cm_border"
+                        app:boxStrokeWidth="1dp"
+                        app:boxStrokeWidthFocused="1.5dp"
+                        app:hintTextColor="@color/cm_text_disabled">
 
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/tilMotherName"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:hint="Mother's Name (Optional)"
-                    app:boxCornerRadiusBottomEnd="28dp"
-                    app:boxCornerRadiusBottomStart="28dp"
-                    app:boxCornerRadiusTopEnd="28dp"
-                    app:boxCornerRadiusTopStart="28dp"
-                    app:boxStrokeColor="@color/cm_border"
-                    app:boxStrokeWidth="1dp"
-                    app:boxStrokeWidthFocused="1.5dp"
-                    app:hintTextColor="@color/cm_text_disabled">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etWhatsApp"
+                            android:layout_width="match_parent"
+                            android:layout_height="58dp"
+                            android:gravity="center_vertical"
+                            android:imeOptions="actionNext"
+                            android:inputType="phone"
+                            android:singleLine="true"
+                            android:textColor="@color/cm_text_primary"
+                            android:textSize="16sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etMotherName"
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilPhone"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
-                        android:layout_height="58dp"
-                        android:gravity="center_vertical"
-                        android:imeOptions="actionNext"
-                        android:inputType="text"
-                        android:singleLine="true"
-                        android:textColor="@color/cm_text_primary"
-                        android:textSize="16sp" />
-                </com.google.android.material.textfield.TextInputLayout>
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:hint="Phone Number (Optional)"
+                        app:boxCornerRadiusBottomEnd="28dp"
+                        app:boxCornerRadiusBottomStart="28dp"
+                        app:boxCornerRadiusTopEnd="28dp"
+                        app:boxCornerRadiusTopStart="28dp"
+                        app:boxStrokeColor="@color/cm_border"
+                        app:boxStrokeWidth="1dp"
+                        app:boxStrokeWidthFocused="1.5dp"
+                        app:hintTextColor="@color/cm_text_disabled">
 
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/tilPresentAddress"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:hint="Present Address (Optional)"
-                    app:boxCornerRadiusBottomEnd="28dp"
-                    app:boxCornerRadiusBottomStart="28dp"
-                    app:boxCornerRadiusTopEnd="28dp"
-                    app:boxCornerRadiusTopStart="28dp"
-                    app:boxStrokeColor="@color/cm_border"
-                    app:boxStrokeWidth="1dp"
-                    app:boxStrokeWidthFocused="1.5dp"
-                    app:hintTextColor="@color/cm_text_disabled">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etPhone"
+                            android:layout_width="match_parent"
+                            android:layout_height="58dp"
+                            android:gravity="center_vertical"
+                            android:imeOptions="actionNext"
+                            android:inputType="phone"
+                            android:singleLine="true"
+                            android:textColor="@color/cm_text_primary"
+                            android:textSize="16sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etPresentAddress"
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilFatherName"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
-                        android:layout_height="58dp"
-                        android:gravity="center_vertical"
-                        android:imeOptions="actionNext"
-                        android:inputType="text"
-                        android:singleLine="true"
-                        android:textColor="@color/cm_text_primary"
-                        android:textSize="16sp" />
-                </com.google.android.material.textfield.TextInputLayout>
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:hint="Father's Name (Optional)"
+                        app:boxCornerRadiusBottomEnd="28dp"
+                        app:boxCornerRadiusBottomStart="28dp"
+                        app:boxCornerRadiusTopEnd="28dp"
+                        app:boxCornerRadiusTopStart="28dp"
+                        app:boxStrokeColor="@color/cm_border"
+                        app:boxStrokeWidth="1dp"
+                        app:boxStrokeWidthFocused="1.5dp"
+                        app:hintTextColor="@color/cm_text_disabled">
 
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/tilPermanentAddress"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:hint="Permanent Address (Optional)"
-                    app:boxCornerRadiusBottomEnd="28dp"
-                    app:boxCornerRadiusBottomStart="28dp"
-                    app:boxCornerRadiusTopEnd="28dp"
-                    app:boxCornerRadiusTopStart="28dp"
-                    app:boxStrokeColor="@color/cm_border"
-                    app:boxStrokeWidth="1dp"
-                    app:boxStrokeWidthFocused="1.5dp"
-                    app:hintTextColor="@color/cm_text_disabled">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etFatherName"
+                            android:layout_width="match_parent"
+                            android:layout_height="58dp"
+                            android:gravity="center_vertical"
+                            android:imeOptions="actionNext"
+                            android:inputType="text"
+                            android:singleLine="true"
+                            android:textColor="@color/cm_text_primary"
+                            android:textSize="16sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etPermanentAddress"
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilMotherName"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
-                        android:layout_height="58dp"
-                        android:gravity="center_vertical"
-                        android:imeOptions="actionNext"
-                        android:inputType="text"
-                        android:singleLine="true"
-                        android:textColor="@color/cm_text_primary"
-                        android:textSize="16sp" />
-                </com.google.android.material.textfield.TextInputLayout>
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:hint="Mother's Name (Optional)"
+                        app:boxCornerRadiusBottomEnd="28dp"
+                        app:boxCornerRadiusBottomStart="28dp"
+                        app:boxCornerRadiusTopEnd="28dp"
+                        app:boxCornerRadiusTopStart="28dp"
+                        app:boxStrokeColor="@color/cm_border"
+                        app:boxStrokeWidth="1dp"
+                        app:boxStrokeWidthFocused="1.5dp"
+                        app:hintTextColor="@color/cm_text_disabled">
 
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/tilDistrict"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:hint="Home District (Optional)"
-                    app:boxCornerRadiusBottomEnd="28dp"
-                    app:boxCornerRadiusBottomStart="28dp"
-                    app:boxCornerRadiusTopEnd="28dp"
-                    app:boxCornerRadiusTopStart="28dp"
-                    app:boxStrokeColor="@color/cm_border"
-                    app:boxStrokeWidth="1dp"
-                    app:boxStrokeWidthFocused="1.5dp"
-                    app:hintTextColor="@color/cm_text_disabled">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etMotherName"
+                            android:layout_width="match_parent"
+                            android:layout_height="58dp"
+                            android:gravity="center_vertical"
+                            android:imeOptions="actionNext"
+                            android:inputType="text"
+                            android:singleLine="true"
+                            android:textColor="@color/cm_text_primary"
+                            android:textSize="16sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etDistrict"
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilPresentAddress"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
-                        android:layout_height="58dp"
-                        android:gravity="center_vertical"
-                        android:imeOptions="actionNext"
-                        android:inputType="text"
-                        android:singleLine="true"
-                        android:textColor="@color/cm_text_primary"
-                        android:textSize="16sp" />
-                </com.google.android.material.textfield.TextInputLayout>
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:hint="Present Address (Optional)"
+                        app:boxCornerRadiusBottomEnd="28dp"
+                        app:boxCornerRadiusBottomStart="28dp"
+                        app:boxCornerRadiusTopEnd="28dp"
+                        app:boxCornerRadiusTopStart="28dp"
+                        app:boxStrokeColor="@color/cm_border"
+                        app:boxStrokeWidth="1dp"
+                        app:boxStrokeWidthFocused="1.5dp"
+                        app:hintTextColor="@color/cm_text_disabled">
 
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/tilBloodGroup"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:hint="Blood Group (Optional)"
-                    app:boxCornerRadiusBottomEnd="28dp"
-                    app:boxCornerRadiusBottomStart="28dp"
-                    app:boxCornerRadiusTopEnd="28dp"
-                    app:boxCornerRadiusTopStart="28dp"
-                    app:boxStrokeColor="@color/cm_border"
-                    app:boxStrokeWidth="1dp"
-                    app:boxStrokeWidthFocused="1.5dp"
-                    app:hintTextColor="@color/cm_text_disabled">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etPresentAddress"
+                            android:layout_width="match_parent"
+                            android:layout_height="58dp"
+                            android:gravity="center_vertical"
+                            android:imeOptions="actionNext"
+                            android:inputType="text"
+                            android:singleLine="true"
+                            android:textColor="@color/cm_text_primary"
+                            android:textSize="16sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etBloodGroup"
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilPermanentAddress"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
-                        android:layout_height="58dp"
-                        android:gravity="center_vertical"
-                        android:imeOptions="actionNext"
-                        android:inputType="text"
-                        android:singleLine="true"
-                        android:textColor="@color/cm_text_primary"
-                        android:textSize="16sp" />
-                </com.google.android.material.textfield.TextInputLayout>
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:hint="Permanent Address (Optional)"
+                        app:boxCornerRadiusBottomEnd="28dp"
+                        app:boxCornerRadiusBottomStart="28dp"
+                        app:boxCornerRadiusTopEnd="28dp"
+                        app:boxCornerRadiusTopStart="28dp"
+                        app:boxStrokeColor="@color/cm_border"
+                        app:boxStrokeWidth="1dp"
+                        app:boxStrokeWidthFocused="1.5dp"
+                        app:hintTextColor="@color/cm_text_disabled">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etPermanentAddress"
+                            android:layout_width="match_parent"
+                            android:layout_height="58dp"
+                            android:gravity="center_vertical"
+                            android:imeOptions="actionNext"
+                            android:inputType="text"
+                            android:singleLine="true"
+                            android:textColor="@color/cm_text_primary"
+                            android:textSize="16sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilDistrict"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:hint="Home District (Optional)"
+                        app:boxCornerRadiusBottomEnd="28dp"
+                        app:boxCornerRadiusBottomStart="28dp"
+                        app:boxCornerRadiusTopEnd="28dp"
+                        app:boxCornerRadiusTopStart="28dp"
+                        app:boxStrokeColor="@color/cm_border"
+                        app:boxStrokeWidth="1dp"
+                        app:boxStrokeWidthFocused="1.5dp"
+                        app:hintTextColor="@color/cm_text_disabled">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etDistrict"
+                            android:layout_width="match_parent"
+                            android:layout_height="58dp"
+                            android:gravity="center_vertical"
+                            android:imeOptions="actionNext"
+                            android:inputType="text"
+                            android:singleLine="true"
+                            android:textColor="@color/cm_text_primary"
+                            android:textSize="16sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilBloodGroup"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:hint="Blood Group (Optional)"
+                        app:boxCornerRadiusBottomEnd="28dp"
+                        app:boxCornerRadiusBottomStart="28dp"
+                        app:boxCornerRadiusTopEnd="28dp"
+                        app:boxCornerRadiusTopStart="28dp"
+                        app:boxStrokeColor="@color/cm_border"
+                        app:boxStrokeWidth="1dp"
+                        app:boxStrokeWidthFocused="1.5dp"
+                        app:hintTextColor="@color/cm_text_disabled">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etBloodGroup"
+                            android:layout_width="match_parent"
+                            android:layout_height="58dp"
+                            android:gravity="center_vertical"
+                            android:imeOptions="actionNext"
+                            android:inputType="text"
+                            android:singleLine="true"
+                            android:textColor="@color/cm_text_primary"
+                            android:textSize="16sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                </LinearLayout>
 
             </LinearLayout>
 
