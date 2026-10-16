@@ -35,6 +35,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.util.Calendar
+import java.util.Locale
 
 class TimetableManagementActivity : AppCompatActivity() {
 
@@ -88,7 +89,7 @@ class TimetableManagementActivity : AppCompatActivity() {
                             }
                         } catch (e: Exception) {
                             withContext(Dispatchers.Main) {
-                                Toast.makeText(this@TimetableManagementActivity, "Error deleting: ${e.message}", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this@TimetableManagementActivity, "Error deleting: Please try again later.", Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
@@ -255,7 +256,14 @@ class TimetableManagementActivity : AppCompatActivity() {
                 val targetDateString = if (dayIndex != -1) getFullDateForIndex(dayIndex) else ""
 
                 val fetchedPeriods = documents.mapNotNull { doc ->
-                    val period = doc.toObject(Period::class.java).copy(id = doc.id)
+                    val rawPeriod = doc.toObject(Period::class.java).copy(id = doc.id)
+                    val period = if (rawPeriod.batch == "14") {
+                        firestore.collection("timetable").document(day).collection("periods").document(rawPeriod.id)
+                            .update("batch", "2-1")
+                        rawPeriod.copy(batch = "2-1")
+                    } else {
+                        rawPeriod
+                    }
                     if (period.isTemporary && period.temporaryDate.isNotBlank() && period.temporaryDate != targetDateString) {
                         firestore.collection("timetable").document(day).collection("periods").document(period.id).delete()
                         null
@@ -266,7 +274,7 @@ class TimetableManagementActivity : AppCompatActivity() {
                             period.copy(isCancelled = false)
                         }
                     }
-                }.sortedBy { it.startTime }
+                }.sortedBy { com.shuaib.classmate.utils.DateHelper.parseTimeToMinutes(it.startTime) }
 
                 periodList.clear()
                 periodList.addAll(fetchedPeriods)
@@ -285,7 +293,7 @@ class TimetableManagementActivity : AppCompatActivity() {
             }
             .addOnFailureListener { e ->
                 binding.progressBar.visibility = View.GONE
-                Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Error: Please try again later.", Toast.LENGTH_SHORT).show()
             }
     }
 
@@ -337,13 +345,34 @@ class TimetableManagementActivity : AppCompatActivity() {
             }
         }
 
-        val batches = mutableListOf("all")
-        for (i in 64 downTo 10) batches.add(i.toString())
-        val batchAdapter = android.widget.ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, batches)
-        dialogBinding.etBatch.setAdapter(batchAdapter)
-        if (period == null) {
-            val currentUserBatch = getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE).getString("current_batch", "all") ?: "all"
-            dialogBinding.etBatch.setText(currentUserBatch, false)
+        val semesters = listOf("all", "1-1", "1-2", "2-1", "2-2", "3-1", "3-2", "4-1", "4-2")
+        val semesterAdapter = android.widget.ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, semesters)
+        dialogBinding.etBatch.setAdapter(semesterAdapter)
+
+        dialogBinding.dropdownSubject.setOnItemClickListener { _, _, position, _ ->
+            val selectedName = subjectNames.getOrNull(position) ?: dialogBinding.dropdownSubject.text.toString()
+            val matched = SubjectList.subjects.firstOrNull { it.fullName == selectedName }
+            val sem = matched?.batch?.takeIf { it.isNotBlank() && it != "all" && it.matches(Regex("^[1-4]-[1-2]$")) }
+                ?: SubjectList.getSemesterForSubject(selectedName)
+            if (sem.isNotBlank() && sem.matches(Regex("^[1-4]-[1-2]$"))) {
+                dialogBinding.etBatch.setText(sem, false)
+            }
+        }
+
+        if (period != null) {
+            val periodBatch = when {
+                period.batch == "14" -> "2-1"
+                period.batch.isNotBlank() -> period.batch
+                else -> "all"
+            }
+            dialogBinding.etBatch.setText(periodBatch, false)
+        } else {
+            val intentSemester = intent.getStringExtra("SELECTED_SEMESTER")
+                ?.takeIf { it.isNotBlank() && it != "All" && it.matches(Regex("^[1-4]-[1-2]$")) }
+            val prefSemester = com.shuaib.classmate.utils.AppPreferences(this).getUserSemester()
+                .takeIf { it.isNotBlank() && it.matches(Regex("^[1-4]-[1-2]$")) }
+            val defaultSemester = intentSemester ?: prefSemester ?: "2-1"
+            dialogBinding.etBatch.setText(defaultSemester, false)
         }
         dialogBinding.etStartTime.setOnClickListener {
             showTimePicker { time -> dialogBinding.etStartTime.setText(time) }
@@ -360,9 +389,15 @@ class TimetableManagementActivity : AppCompatActivity() {
                 val selectedSubject = dialogBinding.dropdownSubject.text.toString().trim()
                 val teacher = dialogBinding.etTeacher.text.toString().trim()
                 val room = dialogBinding.etRoom.text.toString().trim()
-                val start = dialogBinding.etStartTime.text.toString()
-                val end = dialogBinding.etEndTime.text.toString()
-                val batch = dialogBinding.etBatch.text.toString().trim()
+                val start = dialogBinding.etStartTime.text.toString().trim()
+                val end = dialogBinding.etEndTime.text.toString().trim()
+                val rawBatch = dialogBinding.etBatch.text.toString().trim()
+                val batch = when {
+                    rawBatch == "14" -> "2-1"
+                    rawBatch.isNotBlank() -> rawBatch
+                    period != null -> if (period.batch == "14") "2-1" else period.batch
+                    else -> "2-1"
+                }
                 val isTemp = dialogBinding.cbTemporary.isChecked
                 val tempDate = if (isTemp) getFullDateForIndex(days.indexOf(currentDay)) else ""
 
@@ -388,10 +423,13 @@ class TimetableManagementActivity : AppCompatActivity() {
                         temporaryDate = tempDate
                     )
                     
-                    com.shuaib.classmate.utils.NotificationSender.sendNoticeAlert(
-                        title = "Routine Updated",
-                        body = "The class routine has been updated.",
-                        targetBatch = batch
+                    val roomPart = if (room.isNotBlank()) "Room $room" else "Schedule updated"
+                    val dayLabel = currentDay.replaceFirstChar { it.uppercase(Locale.US) }
+                    com.shuaib.classmate.utils.NotificationSender.sendScheduleUpdateAlert(
+                        subject = selectedSubject,
+                        details = "Time $start - $end · $roomPart ($dayLabel)",
+                        day = currentDay,
+                        targetBatch = batch.ifBlank { "all" }
                     )
                     
                     if (isEdit) {
@@ -438,9 +476,15 @@ class TimetableManagementActivity : AppCompatActivity() {
     }
 
     private fun timeToMinutes(timeStr: String): Int {
+        val trimmed = timeStr.trim()
+        if (trimmed.isBlank()) return 0
+        runCatching {
+            val parsed = java.time.LocalTime.parse(trimmed)
+            return parsed.hour * 60 + parsed.minute
+        }
         return try {
             val format = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.US)
-            val date = format.parse(timeStr)
+            val date = format.parse(trimmed)
             val calendar = java.util.Calendar.getInstance()
             calendar.time = date!!
             calendar.get(java.util.Calendar.HOUR_OF_DAY) * 60 + calendar.get(java.util.Calendar.MINUTE)
@@ -463,17 +507,21 @@ class TimetableManagementActivity : AppCompatActivity() {
                 val collection = firestore.collection("timetable").document(currentDay).collection("periods")
                 val existingDocs = collection.get().await()
                 val batch = firestore.batch()
+                val targetBatch = if (period.batch == "14") "2-1" else period.batch
 
                 for (doc in existingDocs) {
-                    val existingPeriod = doc.toObject(Period::class.java)
+                    val existingPeriod = doc.toObject(Period::class.java).copy(id = doc.id)
                     if (isEdit && existingPeriod.id == period.id) continue
-                    if (isOverlapping(period.startTime, period.endTime, existingPeriod.startTime, existingPeriod.endTime)) {
+                    val existingBatch = if (existingPeriod.batch == "14") "2-1" else existingPeriod.batch
+                    if (existingBatch == targetBatch &&
+                        isOverlapping(period.startTime, period.endTime, existingPeriod.startTime, existingPeriod.endTime)
+                    ) {
                         batch.delete(doc.reference)
                     }
                 }
 
                 val docRef = if (isEdit) collection.document(period.id) else collection.document()
-                val periodToSave = if (isEdit) period else period.copy(id = docRef.id)
+                val periodToSave = (if (isEdit) period else period.copy(id = docRef.id)).copy(batch = targetBatch)
                 batch.set(docRef, periodToSave)
 
                 batch.commit().await()
@@ -484,7 +532,7 @@ class TimetableManagementActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@TimetableManagementActivity, "Failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@TimetableManagementActivity, "Failed: Please try again later.", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -494,19 +542,23 @@ class TimetableManagementActivity : AppCompatActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val batch = firestore.batch()
+                val targetBatch = if (period.batch == "14") "2-1" else period.batch
                 for (day in daysToSave) {
                     val collection = firestore.collection("timetable").document(day).collection("periods")
                     val existingDocs = collection.get().await()
 
                     for (doc in existingDocs) {
-                        val existingPeriod = doc.toObject(Period::class.java)
-                        if (isOverlapping(period.startTime, period.endTime, existingPeriod.startTime, existingPeriod.endTime)) {
+                        val existingPeriod = doc.toObject(Period::class.java).copy(id = doc.id)
+                        val existingBatch = if (existingPeriod.batch == "14") "2-1" else existingPeriod.batch
+                        if (existingBatch == targetBatch &&
+                            isOverlapping(period.startTime, period.endTime, existingPeriod.startTime, existingPeriod.endTime)
+                        ) {
                             batch.delete(doc.reference)
                         }
                     }
 
                     val newDocRef = collection.document()
-                    val periodToSave = period.copy(id = newDocRef.id)
+                    val periodToSave = period.copy(id = newDocRef.id, batch = targetBatch)
                     batch.set(newDocRef, periodToSave)
                 }
 
@@ -518,7 +570,7 @@ class TimetableManagementActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@TimetableManagementActivity, "Failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@TimetableManagementActivity, "Failed: Please try again later.", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -534,7 +586,7 @@ class TimetableManagementActivity : AppCompatActivity() {
                 refreshWidgetAfterTimetableChange(currentDay)
             }
             .addOnFailureListener { e ->
-                Toast.makeText(this, "Delete failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Delete failed: Please try again later.", Toast.LENGTH_SHORT).show()
             }
     }
 
@@ -591,10 +643,10 @@ class TimetableManagementActivity : AppCompatActivity() {
                 result.onSuccess { routineMap ->
                     saveExtractedRoutine(routineMap)
                 }.onFailure { e ->
-                    Toast.makeText(this@TimetableManagementActivity, "Extraction failed: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@TimetableManagementActivity, "Extraction failed: Please try again later.", Toast.LENGTH_LONG).show()
                 }
             } catch (e: Exception) {
-                Toast.makeText(this@TimetableManagementActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@TimetableManagementActivity, "Error: Please try again later.", Toast.LENGTH_LONG).show()
             } finally {
                 binding.progressBar.visibility = View.GONE
                 fetchTimetable(currentDay)
@@ -626,7 +678,7 @@ class TimetableManagementActivity : AppCompatActivity() {
             }
         } catch (e: Exception) {
             withContext(Dispatchers.Main) {
-                Toast.makeText(this@TimetableManagementActivity, "Failed to save routine: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@TimetableManagementActivity, "Failed to save routine: Please try again later.", Toast.LENGTH_LONG).show()
             }
         }
     }

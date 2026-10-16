@@ -9,12 +9,15 @@ import com.shuaib.classmate.models.Notice
 import com.shuaib.classmate.repositories.NoticeRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class NoticeViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = NoticeRepository.getInstance(application)
     private var realtimeListener: ListenerRegistration? = null
+
+    private val prefs = com.shuaib.classmate.utils.AppPreferences(application)
 
     val notices: StateFlow<List<Notice>> = repository.observeNotices()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())

@@ -108,4 +108,7 @@
     <color name="colorPrimary">#2563EB</color>
     <color name="colorPrimaryDark">#1E40AF</color>
     <color name="colorAccent">#D97706</color>
+
+    <color name="cm_date_separator_bg">#E2E8F0</color>
+    <color name="cm_date_separator_text">#475569</color>
 </resources>

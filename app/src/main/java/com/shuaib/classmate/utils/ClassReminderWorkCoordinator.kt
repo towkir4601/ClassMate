@@ -37,12 +37,7 @@ object ClassReminderWorkCoordinator {
     }
 
     fun refreshTodayClassReminders(context: Context) {
-        val request = OneTimeWorkRequestBuilder<DailySchedulerWorker>().build()
-        WorkManager.getInstance(context).enqueueUniqueWork(
-            DAILY_REFRESH_WORK,
-            ExistingWorkPolicy.REPLACE,
-            request
-        )
+        WorkManager.getInstance(context).cancelAllWorkByTag(CLASS_REMINDER_TAG)
     }
 
     fun uniqueReminderName(periodId: String): String = "notification_$periodId"

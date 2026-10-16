@@ -23,13 +23,13 @@
 
     <application
         android:name=".ClassMateApp"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="ClassMate"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.ClassMate"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="false">
 
         <!-- Entry point of the app with Splash Theme -->
         <activity
@@ -54,7 +54,7 @@
         <!-- Authentication Activities -->
         <activity
             android:name=".activities.LoginActivity"
-            android:exported="true"
+            android:exported="false"
             android:windowSoftInputMode="adjustResize|stateHidden" />
 
         <activity
@@ -104,7 +104,28 @@
             android:screenOrientation="portrait"
             tools:ignore="LockedOrientationActivity" />
 
-        <!-- Viewer Activities for Students -->
+        <!-- Viewer & Utility Activities for Students -->
+        <activity
+            android:name=".activities.CgpaCalculatorActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activities.BloodDonorDirectoryActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activities.LostFoundActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activities.EventsClubsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activities.CoverPageActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activities.CvMakerActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activities.ImportantContactsActivity"
+            android:exported="false" />
         <activity
             android:name=".activities.ResultViewerActivity"
             android:exported="false" />
@@ -142,8 +163,9 @@
             android:windowSoftInputMode="adjustResize"
             tools:ignore="LockedOrientationActivity" />
 
-                <activity
+        <activity
             android:name=".activities.EditProfileActivity"
+            android:exported="false"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.ClassMate" />
             
@@ -209,16 +231,6 @@
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths"/>
-        </provider>
-
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data

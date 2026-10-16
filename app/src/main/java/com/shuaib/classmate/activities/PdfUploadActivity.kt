@@ -76,6 +76,22 @@ class PdfUploadActivity : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
 
         binding.btnBack.setOnClickListener { finish() }
+        
+        binding.toggleResourceType.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                val isQb = checkedId == R.id.btnTypeQuestionBank
+                binding.layoutDescription.visibility = if (isQb) android.view.View.GONE else android.view.View.VISIBLE
+                binding.layoutQuestionBankFields.visibility = if (isQb) android.view.View.VISIBLE else android.view.View.GONE
+            }
+        }
+        
+        val examTypes = arrayOf("Mid", "Final", "CT1", "CT2", "CT3", "CT4", "Other")
+        val examTypeAdapter = android.widget.ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, examTypes)
+        binding.dropdownExamType.setAdapter(examTypeAdapter)
+        
+        val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR).toString()
+        binding.etYear.setText(currentYear)
+        
         updateMode()
 
         val uid = auth.currentUser?.uid ?: return
@@ -90,8 +106,8 @@ class PdfUploadActivity : AppCompatActivity() {
                     val allBatches = com.shuaib.classmate.utils.SubjectList.subjects.map { it.batch }.filter { it.isNotBlank() && !it.equals("all", true) }.distinct().sorted()
                     val batchAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, allBatches)
                     binding.dropdownTargetBatch.setAdapter(batchAdapter)
-                    binding.dropdownTargetBatch.setOnItemClickListener { _, _, position, _ ->
-                        currentUserBatch = allBatches[position]
+                    binding.dropdownTargetBatch.setOnItemClickListener { parent, _, position, _ ->
+                        currentUserBatch = parent.getItemAtPosition(position) as String
                         setupDropdown()
                     }
                 }
@@ -209,41 +225,65 @@ class PdfUploadActivity : AppCompatActivity() {
         }.start()
     }
 
+    
+    private fun buildDocumentData(
+        input: UploadInput,
+        info: SelectedFileInfo?,
+        telegramUrl: String,
+        fileId: String,
+        provider: String
+    ): HashMap<String, Any> {
+        val uid = auth.currentUser?.uid.orEmpty()
+        val courseType = courseTypeFor(input.subject)
+        
+        val data = hashMapOf(
+            "title" to input.title,
+            "subject" to input.subject,
+            "courseCode" to input.courseCode,
+            "batch" to targetLibraryBatch,
+            "courseType" to courseType,
+            "description" to input.description,
+            "fileType" to (info?.fileType ?: "other"),
+            "mimeType" to (info?.mimeType ?: "application/octet-stream"),
+            "sizeBytes" to (info?.sizeBytes ?: 0L),
+            "provider" to provider,
+            "downloadUrl" to telegramUrl,
+            "driveUrl" to telegramUrl,
+            "telegramUrl" to telegramUrl,
+            "fileId" to fileId,
+            "githubAssetId" to 0L,
+            "githubAssetName" to "",
+            "uploadedByUid" to uid,
+            "uploadedByName" to currentUserName,
+            "uploadedBy" to currentUserName,
+            "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
+            "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
+            "timestamp" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
+            "downloadCount" to 0L,
+            "isDeleted" to false
+        )
+        
+        if (input.isQuestionBank) {
+            data["examType"] = input.examType
+            data["year"] = input.year
+            data["semester"] = ""
+        }
+        
+        return data as HashMap<String, Any>
+    }
+
     private fun saveGitHubMetadata(
         input: UploadInput,
         info: SelectedFileInfo,
         result: com.shuaib.classmate.storage.GitHubUploadResult
     ) {
         binding.tvProgress.text = "Saving to library..."
-        val uid = auth.currentUser?.uid.orEmpty()
-        val courseType = courseTypeFor(input.subject)
-        val data = hashMapOf(
-            "title" to input.title,
-            "subject" to input.subject,
-            "courseCode" to input.courseCode,
-            "batch" to currentUserBatch,
-            "courseType" to courseType,
-            "description" to input.description,
-            "fileType" to info.fileType,
-            "mimeType" to result.mimeType,
-            "sizeBytes" to result.sizeBytes,
-            "provider" to "github_releases",
-            "downloadUrl" to result.downloadUrl,
-            "driveUrl" to "",
-            "githubAssetId" to result.assetId,
-            "githubAssetName" to result.assetName,
-            "uploadedByUid" to uid,
-            "uploadedByName" to currentUserName,
-            "uploadedBy" to currentUserName,
-            "createdAt" to FieldValue.serverTimestamp(),
-            "updatedAt" to FieldValue.serverTimestamp(),
-            "timestamp" to FieldValue.serverTimestamp(),
-            "downloadCount" to 0L,
-            "isDeleted" to false,
-            "batch" to targetLibraryBatch
-        )
+        val data = buildDocumentData(input, info, result.downloadUrl, result.assetId.toString(), "github_releases")
+        data["githubAssetId"] = result.assetId
+        data["githubAssetName"] = result.assetName
 
-        db.collection("library_files")
+        val collectionName = if (input.isQuestionBank) "question_bank" else "library_files"
+        db.collection(collectionName)
             .add(data)
             .addOnSuccessListener { doc ->
                 postResourceNotice(input.title, input.subject, doc.id, input.description)
@@ -303,37 +343,10 @@ class PdfUploadActivity : AppCompatActivity() {
         fileId: String
     ) {
         binding.tvProgress.text = "Saving to library..."
-        val uid = auth.currentUser?.uid.orEmpty()
-        val courseType = courseTypeFor(input.subject)
-        val data = hashMapOf(
-            "title" to input.title,
-            "subject" to input.subject,
-            "courseCode" to input.courseCode,
-            "batch" to currentUserBatch,
-            "courseType" to courseType,
-            "description" to input.description,
-            "fileType" to info.fileType,
-            "mimeType" to info.mimeType,
-            "sizeBytes" to info.sizeBytes,
-            "provider" to "telegram",
-            "downloadUrl" to telegramUrl,
-            "driveUrl" to telegramUrl,
-            "telegramUrl" to telegramUrl,
-            "fileId" to fileId,
-            "githubAssetId" to 0L,
-            "githubAssetName" to "",
-            "uploadedByUid" to uid,
-            "uploadedByName" to currentUserName,
-            "uploadedBy" to currentUserName,
-            "createdAt" to FieldValue.serverTimestamp(),
-            "updatedAt" to FieldValue.serverTimestamp(),
-            "timestamp" to FieldValue.serverTimestamp(),
-            "downloadCount" to 0L,
-            "isDeleted" to false,
-            "batch" to targetLibraryBatch
-        )
+        val data = buildDocumentData(input, info, telegramUrl, fileId, "telegram")
 
-        db.collection("library_files")
+        val collectionName = if (input.isQuestionBank) "question_bank" else "library_files"
+        db.collection(collectionName)
             .add(data)
             .addOnSuccessListener { doc ->
                 postResourceNotice(input.title, input.subject, doc.id, input.description)
@@ -349,33 +362,10 @@ class PdfUploadActivity : AppCompatActivity() {
 
     private fun saveExternalLink(input: UploadInput, link: String) {
         setUploading(true, "Saving to library...")
-        val uid = auth.currentUser?.uid.orEmpty()
-        val data = hashMapOf(
-            "title" to input.title,
-            "subject" to input.subject,
-            "courseCode" to input.courseCode,
-            "batch" to currentUserBatch,
-            "courseType" to courseTypeFor(input.subject),
-            "description" to input.description,
-            "fileType" to "other",
-            "mimeType" to "application/octet-stream",
-            "sizeBytes" to 0L,
-            "provider" to "external_link",
-            "downloadUrl" to link,
-            "driveUrl" to link,
-            "githubAssetId" to 0L,
-            "githubAssetName" to "",
-            "uploadedByUid" to uid,
-            "uploadedByName" to currentUserName,
-            "uploadedBy" to currentUserName,
-            "createdAt" to FieldValue.serverTimestamp(),
-            "updatedAt" to FieldValue.serverTimestamp(),
-            "timestamp" to FieldValue.serverTimestamp(),
-            "downloadCount" to 0L,
-            "isDeleted" to false,
-            "batch" to targetLibraryBatch
-        )
-        db.collection("library_files")
+        val data = buildDocumentData(input, null, link, "", "external_link")
+
+        val collectionName = if (input.isQuestionBank) "question_bank" else "library_files"
+        db.collection(collectionName)
             .add(data)
             .addOnSuccessListener { doc ->
                 postResourceNotice(input.title, input.subject, doc.id, input.description)
@@ -384,6 +374,7 @@ class PdfUploadActivity : AppCompatActivity() {
                 finish()
             }
             .addOnFailureListener { e ->
+                Log.e(TAG, "Firestore error: ${e.message}")
                 handleUploadError("Firestore error: ${e.message}")
             }
     }
@@ -434,11 +425,15 @@ class PdfUploadActivity : AppCompatActivity() {
     }
 
     private fun validateCommonInputs(): UploadInput? {
+        val isQuestionBank = binding.toggleResourceType.checkedButtonId == R.id.btnTypeQuestionBank
         val title = binding.etTitle.text.toString().trim()
         val subject = binding.dropdownSubject.text.toString().trim()
         val courseCode = binding.etCourseCode.text.toString().trim().uppercase()
             .ifBlank { SubjectList.codeFor(subject).uppercase() }
-        val description = binding.etDescription.text.toString().trim()
+        
+        val description = if (isQuestionBank) "" else binding.etDescription.text.toString().trim()
+        val examType = if (isQuestionBank) binding.dropdownExamType.text.toString().trim() else ""
+        val year = if (isQuestionBank) binding.etYear.text.toString().trim() else ""
 
         if (title.isEmpty()) {
             binding.etTitle.error = "Title required"
@@ -452,7 +447,18 @@ class PdfUploadActivity : AppCompatActivity() {
             binding.etCourseCode.error = "Course code required"
             return null
         }
-        return UploadInput(title, subject, courseCode, description)
+        if (isQuestionBank) {
+            if (examType.isEmpty()) {
+                binding.dropdownExamType.error = "Required"
+                return null
+            }
+            if (year.isEmpty()) {
+                binding.etYear.error = "Required"
+                return null
+            }
+        }
+        
+        return UploadInput(title, subject, courseCode, description, isQuestionBank, examType, year)
     }
 
     private fun getSelectedFileInfo(uri: Uri): SelectedFileInfo {
@@ -554,8 +560,10 @@ class PdfUploadActivity : AppCompatActivity() {
         binding.dropdownSubject.setAdapter(
             ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, subjectNames)
         )
-        binding.dropdownSubject.setOnItemClickListener { _, _, position, _ ->
-            binding.etCourseCode.setText(filteredSubjects.getOrNull(position)?.code.orEmpty())
+        binding.dropdownSubject.setOnItemClickListener { parent, _, position, _ ->
+            val selectedName = parent.getItemAtPosition(position) as String
+            val selectedSubject = filteredSubjects.find { it.fullName == selectedName }
+            binding.etCourseCode.setText(selectedSubject?.code.orEmpty())
         }
     }
 
@@ -567,7 +575,7 @@ class PdfUploadActivity : AppCompatActivity() {
             .setTitle("Delete Course")
             .setMessage("Are you sure you want to delete '$subjectName'? This action cannot be undone.")
             .setPositiveButton("Delete") { _, _ ->
-                val subject = SubjectList.subjects.find { it.fullName.equals(subjectName, ignoreCase = true) }
+                val subject = SubjectList.subjects.find { it.fullName.equals(subjectName, ignoreCase = true) || it.name.equals(subjectName, ignoreCase = true) }
                 if (subject != null && subject.id.isNotEmpty()) {
                     db.collection("subjects").document(subject.id).delete()
                         .addOnSuccessListener {
@@ -580,10 +588,35 @@ class PdfUploadActivity : AppCompatActivity() {
                             }
                         }
                         .addOnFailureListener { e ->
-                            Toast.makeText(this, "Failed to delete: ${e.message}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "Failed to delete: Please try again later.", Toast.LENGTH_SHORT).show()
                         }
                 } else {
-                    Toast.makeText(this, "Course not found", Toast.LENGTH_SHORT).show()
+                    db.collection("subjects").get().addOnSuccessListener { snapshot ->
+                        val matchedDoc = snapshot.documents.firstOrNull { doc ->
+                            val docName = doc.getString("name") ?: ""
+                            val docCode = doc.getString("code") ?: ""
+                            val docFullName = if (docCode.isNotBlank()) "$docCode - $docName" else docName
+                            docName.equals(subjectName, ignoreCase = true) ||
+                            docFullName.equals(subjectName, ignoreCase = true) ||
+                            SubjectList.isSameCourse(docName, subjectName) ||
+                            SubjectList.isSameCourse(docFullName, subjectName)
+                        }
+                        if (matchedDoc != null) {
+                            matchedDoc.reference.delete().addOnSuccessListener {
+                                Toast.makeText(this, "Course deleted", Toast.LENGTH_SHORT).show()
+                                binding.dropdownSubject.setText("", false)
+                                binding.etCourseCode.setText("")
+                                binding.btnDeleteSubject.visibility = android.view.View.GONE
+                                SubjectList.fetchSubjects { setupDropdown() }
+                            }.addOnFailureListener {
+                                Toast.makeText(this, "Failed to delete: Please try again later.", Toast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            Toast.makeText(this, "Course not found", Toast.LENGTH_SHORT).show()
+                        }
+                    }.addOnFailureListener {
+                        Toast.makeText(this, "Course not found", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
             .setNegativeButton("Cancel", null)
@@ -627,7 +660,10 @@ class PdfUploadActivity : AppCompatActivity() {
         val title: String,
         val subject: String,
         val courseCode: String,
-        val description: String
+        val description: String,
+        val isQuestionBank: Boolean,
+        val examType: String,
+        val year: String
     )
 
     private data class SelectedFileInfo(

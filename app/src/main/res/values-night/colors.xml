@@ -97,4 +97,7 @@
     <color name="colorPrimary">#3B82F6</color>
     <color name="colorPrimaryDark">#020817</color>
     <color name="colorAccent">#FBBF24</color>
+
+    <color name="cm_date_separator_bg">#1E293B</color>
+    <color name="cm_date_separator_text">#94A3B8</color>
 </resources>

@@ -207,7 +207,8 @@ class FriendsFragment : Fragment() {
                         ).show()
                         showLockedState()
                     } else {
-                        Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
+                        android.util.Log.e("FriendsFragment", "Error fetching friends", error)
+                        Toast.makeText(context, "Error loading list. Please try again later.", Toast.LENGTH_SHORT).show()
                     }
                     return@addSnapshotListener
                 }

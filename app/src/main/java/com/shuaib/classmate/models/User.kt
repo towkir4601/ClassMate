@@ -11,6 +11,8 @@ data class User(
     val fullName: String = "",
     val studentId: String = "",
     val batch: String = "",
+    val semester: String = "",
+    val teacherCode: String = "",
     val department: String = "",
     val email: String = "",
     val phone: String = "",
@@ -69,6 +71,10 @@ data class User(
     fun canEditTimetable(): Boolean = hasPermission("canEditTimetable")
     @com.google.firebase.firestore.Exclude
     fun canManageAcademicCalendar(): Boolean = hasPermission("canManageAcademicCalendar")
+    @com.google.firebase.firestore.Exclude
+    fun canEditCalendar(): Boolean = canManageAcademicCalendar()
+    @com.google.firebase.firestore.Exclude
+    fun canEditBusSchedule(): Boolean = canEditTimetable()
     @com.google.firebase.firestore.Exclude
     fun canCreatePolls(): Boolean = hasPermission("canCreatePolls")
     @com.google.firebase.firestore.Exclude

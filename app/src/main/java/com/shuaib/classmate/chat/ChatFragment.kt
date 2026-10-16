@@ -795,6 +795,7 @@ class ChatFragment : Fragment(), TextToSpeech.OnInitListener {
                     val id = json.optString("id")
                     val startTime = json.optString("startTime")
                     val endTime = json.optString("endTime")
+                    val room = json.optString("room")
                     if (id.isBlank() || startTime.isBlank() || endTime.isBlank()) return
                     
                     val docRef = collection.document(id)
@@ -802,12 +803,21 @@ class ChatFragment : Fragment(), TextToSpeech.OnInitListener {
                         if (_binding == null) return@addOnSuccessListener
                         if (doc.exists()) {
                             val period = doc.toObject(Period::class.java)?.copy(id = doc.id) ?: return@addOnSuccessListener
+                            val updatedRoom = room.ifBlank { period.room }
                             val updated = period.copy(
                                 startTime = startTime,
-                                endTime = endTime
+                                endTime = endTime,
+                                room = updatedRoom
                             )
                             docRef.set(updated).addOnSuccessListener {
                                 syncAndRefreshWidget(day)
+                                val roomPart = if (updatedRoom.isNotBlank()) " · Room $updatedRoom" else ""
+                                com.shuaib.classmate.utils.NotificationSender.sendScheduleUpdateAlert(
+                                    subject = period.subject,
+                                    details = "Time $startTime - $endTime$roomPart (${day.replaceFirstChar { it.uppercase() }})",
+                                    day = day,
+                                    targetBatch = period.batch.ifBlank { "all" }
+                                )
                             }
                         }
                     }
@@ -817,6 +827,7 @@ class ChatFragment : Fragment(), TextToSpeech.OnInitListener {
                     val teacher = json.optString("teacher")
                     val startTime = json.optString("startTime")
                     val endTime = json.optString("endTime")
+                    val room = json.optString("room")
                     if (subject.isBlank() || teacher.isBlank() || startTime.isBlank() || endTime.isBlank()) return
                     
                     val newDocRef = collection.document()
@@ -825,10 +836,18 @@ class ChatFragment : Fragment(), TextToSpeech.OnInitListener {
                         subject = subject,
                         teacher = teacher,
                         startTime = startTime,
-                        endTime = endTime
+                        endTime = endTime,
+                        room = room
                     )
                     newDocRef.set(newPeriod).addOnSuccessListener {
                         syncAndRefreshWidget(day)
+                        val roomPart = if (room.isNotBlank()) " · Room $room" else ""
+                        com.shuaib.classmate.utils.NotificationSender.sendScheduleUpdateAlert(
+                            subject = subject,
+                            details = "Added: $startTime - $endTime$roomPart (${day.replaceFirstChar { it.uppercase() }})",
+                            day = day,
+                            targetBatch = "all"
+                        )
                     }
                 }
                 "DELETE_CLASS" -> {

@@ -28,6 +28,42 @@ class AppPreferences(context: Context) {
             .apply()
     }
 
+    fun getUserRole(): String =
+        prefs.getString("user_role", "student") ?: "student"
+
+    fun setUserRole(role: String) {
+        prefs.edit()
+            .putString("user_role", role)
+            .apply()
+    }
+
+    fun getUserName(): String =
+        prefs.getString("user_name", "") ?: ""
+
+    fun setUserName(name: String) {
+        prefs.edit()
+            .putString("user_name", name)
+            .apply()
+    }
+
+    fun getUserSemester(): String =
+        prefs.getString("user_semester", "") ?: ""
+
+    fun setUserSemester(semester: String) {
+        prefs.edit()
+            .putString("user_semester", semester)
+            .apply()
+    }
+
+    fun getTeacherCode(): String =
+        prefs.getString("teacher_code", "") ?: ""
+
+    fun setTeacherCode(code: String) {
+        prefs.edit()
+            .putString("teacher_code", code)
+            .apply()
+    }
+
     fun isDarkMode(): Boolean =
         prefs.getBoolean("dark_mode", false)
 
@@ -97,6 +133,17 @@ class AppPreferences(context: Context) {
     fun setGroqModel(model: String) {
         prefs.edit()
             .putString("groq_model", model)
+            .apply()
+    }
+
+    fun getDeletedLostFoundIds(): Set<String> =
+        prefs.getStringSet("deleted_lost_found_ids", emptySet()) ?: emptySet()
+
+    fun addDeletedLostFoundId(id: String) {
+        val current = getDeletedLostFoundIds().toMutableSet()
+        current.add(id)
+        prefs.edit()
+            .putStringSet("deleted_lost_found_ids", current)
             .apply()
     }
 }

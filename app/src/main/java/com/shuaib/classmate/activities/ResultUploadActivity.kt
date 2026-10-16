@@ -135,7 +135,7 @@ class ResultUploadActivity : AppCompatActivity() {
             .addOnFailureListener { e ->
                 binding.progressBar.isVisible = false
                 binding.btnUpload.isEnabled = true
-                Toast.makeText(this, "Failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Failed: Please try again later.", Toast.LENGTH_SHORT).show()
             }
     }
 

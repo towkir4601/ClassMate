@@ -25,6 +25,7 @@ class PdfAdapter(
     var onDeleteClick: ((PdfFile) -> Unit)? = null
     var onEditClick: ((PdfFile) -> Unit)? = null
     var onFavoriteClick: ((PdfFile) -> Unit)? = null
+    var onShareClick: ((PdfFile) -> Unit)? = null
 
     inner class PdfViewHolder(val binding: ItemPdfBinding) :
         RecyclerView.ViewHolder(binding.root)
@@ -40,7 +41,10 @@ class PdfAdapter(
         val pdf = pdfs[position]
         holder.binding.apply {
             tvTitle.text = pdf.title
-            tvSubject.text = pdf.subject
+            
+            val isQb = pdf.year.isNotBlank() || pdf.examType.isNotBlank()
+            tvSubject.text = if (isQb) "${pdf.subject} • ${pdf.examType} ${pdf.year}" else pdf.subject
+            
             tvUploadedBy.text = if (pdf.uploadedBy.isBlank()) "ClassMate Library" else "By ${pdf.uploadedBy}"
             tvFileMeta.text = listOf(
                 formatBytes(pdf.sizeBytes),
@@ -85,6 +89,10 @@ class PdfAdapter(
 
             btnFavorite.setOnClickListener {
                 onFavoriteClick?.invoke(pdf)
+            }
+
+            btnShare.applyClickAnimation {
+                onShareClick?.invoke(pdf) ?: com.shuaib.classmate.utils.LibraryShareHelper.sharePdfLink(root.context, pdf)
             }
 
             root.applyClickAnimation {

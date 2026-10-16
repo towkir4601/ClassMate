@@ -238,7 +238,7 @@ class PdfLibraryFragment : Fragment() {
                 binding.swipeRefresh.isRefreshing = false
                 binding.tvRecentEmpty.isVisible = true
                 binding.rvRecent.isVisible = false
-                Toast.makeText(context, "Failed to load library: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Failed to load library: Please try again later.", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -255,10 +255,30 @@ class PdfLibraryFragment : Fragment() {
         binding.libraryNotificationDot.isVisible = hasRecentUploads
 
         val filteredPdfs = allPdfs
-        pdfCounts = filteredPdfs.groupingBy { it.subject }.eachCount()
-        val knownSubjectNames = allSubjects.map { it.name }.toSet()
+        val counts = mutableMapOf<String, Int>()
+        for (subject in allSubjects) {
+            val count = filteredPdfs.count { pdf ->
+                pdf.subject.equals(subject.name, ignoreCase = true) ||
+                pdf.subject.equals(subject.fullName, ignoreCase = true) ||
+                (subject.code.isNotBlank() && pdf.subject.equals(subject.code, ignoreCase = true)) ||
+                (subject.code.isNotBlank() && pdf.courseCode.equals(subject.code, ignoreCase = true)) ||
+                SubjectList.isSameCourse(pdf.subject, subject.fullName) ||
+                SubjectList.isSameCourse(pdf.subject, subject.name)
+            }
+            counts[subject.name] = count
+        }
+        pdfCounts = counts
+
         val dynamicOtherSubjects = allPdfs
-            .filter { it.subject.isNotBlank() && it.subject !in knownSubjectNames }
+            .filter { pdf ->
+                val s = pdf.subject.trim()
+                s.isNotBlank() && allSubjects.none { subject ->
+                    s.equals(subject.name, ignoreCase = true) ||
+                    s.equals(subject.fullName, ignoreCase = true) ||
+                    (subject.code.isNotBlank() && pdf.courseCode.equals(subject.code, ignoreCase = true)) ||
+                    SubjectList.isSameCourse(s, subject.fullName)
+                }
+            }
             .distinctBy { it.subject }
             .map { Subject(it.subject, it.courseCode.ifBlank { "LIB0000" }) }
         otherSubjects = (allSubjects.filter { it.type == "other" } + dynamicOtherSubjects).distinctBy { it.name }
@@ -299,8 +319,7 @@ class PdfLibraryFragment : Fragment() {
     }
 
     private fun resourceCountFor(subjects: List<Subject>, pdfs: List<PdfFile>): Int {
-        val names = subjects.map { it.name }.toSet()
-        return pdfs.count { it.subject in names }
+        return subjects.sumOf { pdfCounts[it.name] ?: 0 }
     }
 
     private fun subjectCountText(count: Int): String {
@@ -770,7 +789,7 @@ class PdfLibraryFragment : Fragment() {
                 loadLibraryData()
             }
             .addOnFailureListener { e ->
-                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Error: Please try again later.", Toast.LENGTH_LONG).show()
             }
     }
 
@@ -855,11 +874,7 @@ class PdfLibraryFragment : Fragment() {
                         "batch" to batch,
                         "type" to type
                     )
-                    db.collection("subjects").document(subject.id).update(updates)
-                        .addOnSuccessListener {
-                            Toast.makeText(context, "Course updated", Toast.LENGTH_SHORT).show()
-                            loadLibraryData()
-                        }
+                    saveSubjectSafely(subject, updates, type, name, code)
                 }
             }
             .setNeutralButton("Delete") { _, _ ->
@@ -867,17 +882,156 @@ class PdfLibraryFragment : Fragment() {
                     .setTitle("Delete Course")
                     .setMessage("Are you sure you want to delete '${subject.name}'? This will not delete the PDFs inside it, but the folder will be gone.")
                     .setPositiveButton("Delete") { _, _ ->
-                        db.collection("subjects").document(subject.id).delete()
-                            .addOnSuccessListener {
-                                Toast.makeText(context, "Course deleted", Toast.LENGTH_SHORT).show()
-                                loadLibraryData()
-                            }
+                        deleteSubjectSafely(subject)
                     }
                     .setNegativeButton("Cancel", null)
                     .show()
             }
             .setNegativeButton("Cancel", null)
             .show()
+    }
+
+    private fun saveSubjectSafely(
+        originalSubject: com.shuaib.classmate.utils.Subject,
+        updates: Map<String, Any>,
+        type: String,
+        newName: String,
+        newCode: String
+    ) {
+        val successMessage = if (type == "question_bank") {
+            "Course shifted to Question Bank"
+        } else {
+            "Course updated"
+        }
+
+        val onSaveSuccess: () -> Unit = {
+            updatePdfCourseMetadata(originalSubject, newName, newCode)
+            Toast.makeText(context, successMessage, Toast.LENGTH_SHORT).show()
+            com.shuaib.classmate.utils.SubjectList.fetchSubjects {
+                loadLibraryData()
+            }
+        }
+
+        if (originalSubject.id.isNotBlank()) {
+            db.collection("subjects").document(originalSubject.id)
+                .set(updates, com.google.firebase.firestore.SetOptions.merge())
+                .addOnSuccessListener { onSaveSuccess() }
+                .addOnFailureListener { e ->
+                    Toast.makeText(context, "Failed to update course: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+        } else {
+            // Find existing document by name or code if document ID is empty
+            db.collection("subjects").get()
+                .addOnSuccessListener { snapshot ->
+                    val matchedDoc = snapshot.documents.firstOrNull { doc ->
+                        val docName = doc.getString("name") ?: ""
+                        val docCode = doc.getString("code") ?: ""
+                        docName.equals(originalSubject.name, ignoreCase = true) ||
+                        (originalSubject.code.isNotBlank() && docCode.equals(originalSubject.code, ignoreCase = true)) ||
+                        com.shuaib.classmate.utils.SubjectList.isSameCourse(docName, originalSubject.name)
+                    }
+                    if (matchedDoc != null) {
+                        matchedDoc.reference.set(updates, com.google.firebase.firestore.SetOptions.merge())
+                            .addOnSuccessListener { onSaveSuccess() }
+                            .addOnFailureListener { e ->
+                                Toast.makeText(context, "Failed to update course: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
+                    } else {
+                        db.collection("subjects").add(updates)
+                            .addOnSuccessListener { onSaveSuccess() }
+                            .addOnFailureListener { e ->
+                                Toast.makeText(context, "Failed to save course: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
+                    }
+                }
+                .addOnFailureListener {
+                    db.collection("subjects").add(updates)
+                        .addOnSuccessListener { onSaveSuccess() }
+                        .addOnFailureListener { e ->
+                            Toast.makeText(context, "Failed to save course: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                }
+        }
+    }
+
+    private fun updatePdfCourseMetadata(
+        originalSubject: com.shuaib.classmate.utils.Subject,
+        newName: String,
+        newCode: String
+    ) {
+        if (originalSubject.name.equals(newName, ignoreCase = true) &&
+            originalSubject.code.equals(newCode, ignoreCase = true)) {
+            return
+        }
+
+        val targetCollections = listOf("library_files", "question_bank")
+        for (col in targetCollections) {
+            db.collection(col).whereEqualTo("isDeleted", false).get()
+                .addOnSuccessListener { snapshot ->
+                    val batch = db.batch()
+                    var changedCount = 0
+                    for (doc in snapshot.documents) {
+                        val fileSubject = doc.getString("subject") ?: ""
+                        val fileCode = doc.getString("courseCode") ?: ""
+                        val isMatch = fileSubject.equals(originalSubject.name, ignoreCase = true) ||
+                                fileSubject.equals(originalSubject.fullName, ignoreCase = true) ||
+                                (originalSubject.code.isNotBlank() && fileCode.equals(originalSubject.code, ignoreCase = true)) ||
+                                com.shuaib.classmate.utils.SubjectList.isSameCourse(fileSubject, originalSubject.fullName) ||
+                                com.shuaib.classmate.utils.SubjectList.isSameCourse(fileSubject, originalSubject.name)
+                        if (isMatch) {
+                            val map = mutableMapOf<String, Any>("subject" to newName)
+                            if (newCode.isNotBlank()) {
+                                map["courseCode"] = newCode
+                            }
+                            batch.update(doc.reference, map)
+                            changedCount++
+                        }
+                    }
+                    if (changedCount > 0) {
+                        batch.commit()
+                    }
+                }
+        }
+    }
+
+    private fun deleteSubjectSafely(subject: com.shuaib.classmate.utils.Subject) {
+        val onDeleteSuccess: () -> Unit = {
+            Toast.makeText(context, "Course deleted", Toast.LENGTH_SHORT).show()
+            com.shuaib.classmate.utils.SubjectList.fetchSubjects {
+                loadLibraryData()
+            }
+        }
+
+        if (subject.id.isNotBlank()) {
+            db.collection("subjects").document(subject.id).delete()
+                .addOnSuccessListener { onDeleteSuccess() }
+                .addOnFailureListener { e ->
+                    Toast.makeText(context, "Failed to delete: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+        } else {
+            db.collection("subjects").get()
+                .addOnSuccessListener { snapshot ->
+                    val matchedDoc = snapshot.documents.firstOrNull { doc ->
+                        val docName = doc.getString("name") ?: ""
+                        val docCode = doc.getString("code") ?: ""
+                        docName.equals(subject.name, ignoreCase = true) ||
+                        (subject.code.isNotBlank() && docCode.equals(subject.code, ignoreCase = true)) ||
+                        com.shuaib.classmate.utils.SubjectList.isSameCourse(docName, subject.name)
+                    }
+                    if (matchedDoc != null) {
+                        matchedDoc.reference.delete()
+                            .addOnSuccessListener { onDeleteSuccess() }
+                            .addOnFailureListener { e ->
+                                Toast.makeText(context, "Failed to delete: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
+                    } else {
+                        onDeleteSuccess()
+                    }
+                }
+                .addOnFailureListener {
+                    Toast.makeText(context, "Failed to delete course", Toast.LENGTH_SHORT).show()
+                }
+        }
     }
 
     private fun showAddSubjectDialog(type: String) {

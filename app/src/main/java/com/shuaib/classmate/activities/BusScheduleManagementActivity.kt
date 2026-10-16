@@ -139,7 +139,7 @@ class BusScheduleManagementActivity : AppCompatActivity() {
             }
             .addOnFailureListener { e ->
                 binding.progressBar.visibility = View.GONE
-                Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Error: Please try again later.", Toast.LENGTH_SHORT).show()
             }
     }
 
@@ -172,6 +172,14 @@ class BusScheduleManagementActivity : AppCompatActivity() {
                 val departureFrom = if (dialogBinding.rbCity.isChecked) "City" else "Campus"
 
                 if (time.isNotEmpty() && busName.isNotEmpty()) {
+                    if (busName.length > 100) {
+                        Toast.makeText(this, "Bus name is too long (max 100 characters)", Toast.LENGTH_SHORT).show()
+                        return@setPositiveButton
+                    }
+                    if (route.length > 250) {
+                        Toast.makeText(this, "Route details too long (max 250 characters)", Toast.LENGTH_SHORT).show()
+                        return@setPositiveButton
+                    }
                     val updated = BusSchedule(
                         id = schedule?.id ?: "",
                         time = time,
@@ -229,7 +237,7 @@ class BusScheduleManagementActivity : AppCompatActivity() {
             fetchBusSchedules()
         }.addOnFailureListener { e ->
             binding.progressBar.visibility = View.GONE
-            Toast.makeText(this, "Save failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Save failed: Please try again later.", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -243,7 +251,7 @@ class BusScheduleManagementActivity : AppCompatActivity() {
             }
             .addOnFailureListener { e ->
                 binding.progressBar.visibility = View.GONE
-                Toast.makeText(this, "Delete failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Delete failed: Please try again later.", Toast.LENGTH_SHORT).show()
                 fetchBusSchedules()
             }
     }

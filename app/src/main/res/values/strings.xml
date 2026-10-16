@@ -34,6 +34,10 @@
     <string name="auth_required">Authentication required</string>
 
     <!-- Main Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_academics">Academics</string>
+    <string name="nav_campus">Campus</string>
+    <string name="nav_community">Community</string>
     <string name="nav_timetable">Timetable</string>
     <string name="nav_notices">Notices</string>
     <string name="nav_chat">Chat</string>

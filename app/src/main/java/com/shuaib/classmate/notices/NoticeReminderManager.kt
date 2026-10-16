@@ -146,7 +146,7 @@ object NoticeReminderManager {
             }
             .addOnFailureListener {
                 logFailure("schedule_reminder", noticeId, userId, reminderDocId, it)
-                Toast.makeText(context, "Reminder failed: ${it.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Reminder failed. Please try again later.", Toast.LENGTH_LONG).show()
                 onComplete(false, it)
             }
     }

@@ -38,15 +38,19 @@ class NoticeRepository private constructor(context: Context) {
         return noticeDao.observeNotice(noticeId).map { entity -> entity?.toNotice() }
     }
 
+    suspend fun getNoticesLocal(): List<Notice> = kotlinx.coroutines.withContext(Dispatchers.IO) {
+        noticeDao.getNoticesLocal().map { it.toNotice() }
+    }
+
     fun startRealtimeSync(scope: CoroutineScope): ListenerRegistration {
         return db.collection("notices")
-            .orderBy("timestamp", Query.Direction.DESCENDING)
-            .limit(100)
             .addSnapshotListener { snapshot, error ->
                 if (error != null || snapshot == null) return@addSnapshotListener
                 
                 scope.launch(Dispatchers.IO) {
-                    val parsedNotices = snapshot.documents.map { NoticeUi.parseNotice(it) }
+                    val parsedNotices = snapshot.documents
+                        .map { NoticeUi.parseNotice(it) }
+                        .sortedByDescending { it.createdAt?.toDate()?.time ?: 0L }
                     
                     // Handle modified or added documents
                     val toUpsert = parsedNotices.filterNot { it.isDeleted }
@@ -100,7 +104,6 @@ class NoticeRepository private constructor(context: Context) {
     suspend fun syncFromFirestore(source: Source = Source.DEFAULT) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
         try {
             val snapshot = db.collection("notices")
-                .limit(80)
                 .get(source)
                 .await()
             val parsedNotices = snapshot.documents

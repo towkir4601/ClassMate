@@ -113,7 +113,7 @@ class PollAdapter(
 
         b.btnDelete.isVisible = isAdmin
         b.btnDelete.setOnClickListener {
-            android.app.AlertDialog.Builder(context, R.style.Theme_ClassMate_Dialog)
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(context, R.style.Theme_ClassMate_Dialog)
                 .setTitle("Delete Poll?")
                 .setMessage("This action cannot be undone.")
                 .setPositiveButton("Delete") { _, _ -> onDelete(poll.id) }

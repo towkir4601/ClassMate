@@ -87,6 +87,42 @@ class AcademicCalendarActivity : AppCompatActivity() {
         dialogBinding.switchHolidayBriefing.isChecked = existing?.showHolidayBriefing ?: false
         dialogBinding.switchActive.isChecked = existing?.isActive ?: true
 
+        // Semester selection
+        val allBatches = arrayOf("1-1", "1-2", "2-1", "2-2", "3-1", "3-2", "4-1", "4-2")
+        var selectedBatches = existing?.targetBatches?.toMutableList() ?: mutableListOf()
+        val checkedItems = BooleanArray(allBatches.size) { i -> selectedBatches.contains(allBatches[i]) }
+        
+        fun updateBatchBtnText() {
+            if (selectedBatches.isEmpty()) {
+                dialogBinding.btnSelectBatches.text = "Target: All Semesters (Click to change)"
+            } else {
+                dialogBinding.btnSelectBatches.text = "Target: ${selectedBatches.joinToString(", ")}"
+            }
+        }
+        updateBatchBtnText()
+        
+        dialogBinding.btnSelectBatches.setOnClickListener {
+            MaterialAlertDialogBuilder(this)
+                .setTitle("Select Target Semesters")
+                .setMultiChoiceItems(allBatches, checkedItems) { _, which, isChecked ->
+                    val batch = allBatches[which]
+                    if (isChecked) {
+                        if (!selectedBatches.contains(batch)) selectedBatches.add(batch)
+                    } else {
+                        selectedBatches.remove(batch)
+                    }
+                }
+                .setPositiveButton("OK") { _, _ ->
+                    updateBatchBtnText()
+                }
+                .setNeutralButton("Clear All") { _, _ ->
+                    selectedBatches.clear()
+                    checkedItems.fill(false)
+                    updateBatchBtnText()
+                }
+                .show()
+        }
+
         dialogBinding.etStartDate.setOnClickListener {
             showDatePicker(dialogBinding.etStartDate.text?.toString().orEmpty()) { date ->
                 dialogBinding.etStartDate.setText(date)
@@ -107,7 +143,7 @@ class AcademicCalendarActivity : AppCompatActivity() {
             .apply {
                 setOnShowListener {
                     getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                        saveFromDialog(existing, dialogBinding, this)
+                        saveFromDialog(existing, dialogBinding, this, selectedBatches)
                     }
                 }
                 show()
@@ -117,20 +153,23 @@ class AcademicCalendarActivity : AppCompatActivity() {
     private fun saveFromDialog(
         existing: AcademicCalendarException?,
         dialogBinding: DialogAcademicCalendarExceptionBinding,
-        dialog: AlertDialog
+        dialog: AlertDialog,
+        selectedBatches: List<String>
     ) {
         val type = when (dialogBinding.dropdownType.text.toString()) {
             "Holiday" -> AcademicCalendarException.TYPE_HOLIDAY
             "Classes Suspended" -> AcademicCalendarException.TYPE_CLASS_SUSPENDED
             else -> AcademicCalendarException.TYPE_VACATION
         }
+        val scope = if (selectedBatches.isEmpty()) AcademicCalendarException.SCOPE_ALL_CLASSES else AcademicCalendarException.SCOPE_SPECIFIC_BATCHES
         val exception = AcademicCalendarException(
             id = existing?.id.orEmpty(),
             title = dialogBinding.etTitle.text?.toString()?.trim().orEmpty(),
             type = type,
             startDate = dialogBinding.etStartDate.text?.toString()?.trim().orEmpty(),
             endDate = dialogBinding.etEndDate.text?.toString()?.trim().orEmpty(),
-            scope = AcademicCalendarException.SCOPE_ALL_CLASSES,
+            scope = scope,
+            targetBatches = selectedBatches,
             reason = dialogBinding.etReason.text?.toString()?.trim().orEmpty(),
             isActive = dialogBinding.switchActive.isChecked,
             showHolidayBriefing = dialogBinding.switchHolidayBriefing.isChecked,

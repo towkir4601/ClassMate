@@ -69,6 +69,8 @@ class TimetableFragment : Fragment() {
     private var userRoleRegistration: ListenerRegistration? = null
     private var countdownsRegistration: ListenerRegistration? = null
     private var busScheduleRegistration: ListenerRegistration? = null
+    private var timetableRealtimeRegistration: ListenerRegistration? = null
+    private var noticesRealtimeRegistration: ListenerRegistration? = null
     private var isAdmin = false
     private var currentPeriods = emptyList<Period>()
     private var currentBatchFilter = "All"
@@ -106,6 +108,15 @@ class TimetableFragment : Fragment() {
         auth = FirebaseAuth.getInstance()
 
         loadUserGreeting()
+        
+        if (!isSpinnerInitialized) {
+            val prefBatch = com.shuaib.classmate.utils.AppPreferences(requireContext()).getUserSemester()
+            if (prefBatch.isNotBlank()) {
+                currentBatchFilter = if (prefBatch.matches(Regex("^[1-4]-[1-2]$"))) prefBatch else "2-1"
+                currentActiveSemester = currentBatchFilter
+            }
+        }
+        
         setupWhatsAppButton()
         setupDaySelector()
         setupReactiveTimetableCollection()
@@ -115,12 +126,21 @@ class TimetableFragment : Fragment() {
         setupHeroClassClickListeners()
         setupHeroCountdownTimer()
         setupScheduleToggle()
+
+        val noticeRepo = com.shuaib.classmate.repositories.NoticeRepository.getInstance(requireContext())
+        noticesRealtimeRegistration?.remove()
+        noticesRealtimeRegistration = noticeRepo.startRealtimeSync(viewLifecycleOwner.lifecycleScope)
+        viewLifecycleOwner.lifecycleScope.launch {
+            noticeRepo.syncFromFirestore()
+        }
         
         binding.swipeRefresh.setOnRefreshListener {
             timetableViewModel.refreshAll()
-            binding.swipeRefresh.postDelayed({
-                binding.swipeRefresh.isRefreshing = false
-            }, 1000)
+            viewLifecycleOwner.lifecycleScope.launch {
+                noticeRepo.syncFromFirestore(com.google.firebase.firestore.Source.SERVER)
+                kotlinx.coroutines.delay(1000)
+                _binding?.swipeRefresh?.isRefreshing = false
+            }
         }
         
         timetableViewModel.refreshAll()
@@ -130,7 +150,7 @@ class TimetableFragment : Fragment() {
         super.onResume()
 
         // Refresh greeting (time of day may have changed)
-        binding.tvGreeting.text = getGreeting()
+        _binding?.tvGreeting?.text = getGreeting()
 
         // Handle target day from notification
         val pendingDay = NotificationRouter.pendingDay
@@ -152,6 +172,10 @@ class TimetableFragment : Fragment() {
         if (currentDay.isNotBlank()) {
             timetableViewModel.refreshDay(currentDay)
         }
+        viewLifecycleOwner.lifecycleScope.launch {
+            val ctx = context ?: return@launch
+            com.shuaib.classmate.repositories.NoticeRepository.getInstance(ctx).syncFromFirestore()
+        }
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -159,6 +183,7 @@ class TimetableFragment : Fragment() {
     // ─────────────────────────────────────────────────────────────
 
     private fun loadUserGreeting() {
+        if (_binding == null) return
         binding.tvGreeting.text = getGreeting()
 
         // Try Firebase Auth display name first (instant, no network)
@@ -409,7 +434,10 @@ class TimetableFragment : Fragment() {
 
     private fun updateBatchSpinner(periods: List<Period>) {
         if (_binding == null) return
-        val distinctBatches = periods.map { it.batch }.filter { it.isNotBlank() }.distinct().sorted()
+        val distinctBatches = periods.map { if (it.batch == "14") "2-1" else it.batch }
+            .filter { it.isNotBlank() && !it.equals("all", ignoreCase = true) }
+            .distinct()
+            .sorted()
         if (distinctBatches.isEmpty()) {
             binding.spinnerBatchFilter.isVisible = false
             return
@@ -441,6 +469,9 @@ class TimetableFragment : Fragment() {
                 val newFilter = options[position]
                 if (newFilter != currentBatchFilter) {
                     currentBatchFilter = newFilter
+                    if (newFilter != "All") {
+                        currentActiveSemester = newFilter
+                    }
                     applyBatchFilterAndRender()
                 }
             }
@@ -453,7 +484,10 @@ class TimetableFragment : Fragment() {
         var filtered = if (currentBatchFilter == "All") {
             currentPeriods
         } else {
-            currentPeriods.filter { it.batch.isEmpty() || it.batch == currentBatchFilter }
+            currentPeriods.filter {
+                val b = if (it.batch == "14") "2-1" else it.batch
+                b.isEmpty() || b.equals("all", ignoreCase = true) || b == currentBatchFilter
+            }
         }
         filtered = filtered.sortedBy { parseTimeToMinutes(it.startTime) }
         renderTimetable(selectedDayFlow.value, filtered)
@@ -462,6 +496,10 @@ class TimetableFragment : Fragment() {
     private fun loadTimetable(day: String) {
         handler.removeCallbacks(showLoadingRunnable)
         handler.postDelayed(showLoadingRunnable, 150)
+        timetableRealtimeRegistration?.remove()
+        timetableRealtimeRegistration = com.shuaib.classmate.repositories.TimetableRepository
+            .getInstance(requireContext())
+            .startRealtimeDaySync(day, viewLifecycleOwner.lifecycleScope)
         selectedDayFlow.value = day
     }
 
@@ -487,12 +525,19 @@ class TimetableFragment : Fragment() {
         val periods = rawPeriods.filter { period ->
             !period.isTemporary || period.temporaryDate.isBlank() || period.temporaryDate == targetDateString
         }.map { period ->
-            if (period.cancelDate == targetDateString) {
-                period.copy(isCancelled = true)
-            } else {
-                period.copy(isCancelled = false)
-            }
-        }
+            val isCancelledForDay = period.cancelDate == targetDateString
+            val isSubForDay = period.substituteDate == targetDateString && period.substituteTeacher.isNotBlank()
+            val isOverriddenForDay = period.overrideDate == targetDateString
+            period.copy(
+                isCancelled = isCancelledForDay,
+                isSubstitute = isSubForDay,
+                substituteTeacher = if (isSubForDay) period.substituteTeacher else "",
+                isDynamicOverride = isOverriddenForDay,
+                startTime = if (isOverriddenForDay && period.overrideStartTime.isNotBlank()) period.overrideStartTime else period.startTime,
+                endTime = if (isOverriddenForDay && period.overrideEndTime.isNotBlank()) period.overrideEndTime else period.endTime,
+                room = if (isOverriddenForDay && period.overrideRoom.isNotBlank()) period.overrideRoom else period.room
+            )
+        }.sortedBy { parseTimeToMinutes(it.startTime) }
 
         if (shouldPauseSelectedDay()) {
             binding.shimmerView.stopShimmer()
@@ -644,6 +689,7 @@ class TimetableFragment : Fragment() {
     }
 
     private fun updateHeroNextClass(periods: List<Period>) {
+        if (_binding == null) return
         val now = LocalTime.now()
         val currentSeconds = now.hour * 3600 + now.minute * 60 + now.second
 
@@ -960,8 +1006,19 @@ class TimetableFragment : Fragment() {
         val selectedDate = getDateForSelectedDay(selectedDay)
         
         return activeExceptionsList
-            .filter { it.scope == AcademicCalendarException.SCOPE_ALL_CLASSES }
             .filter { it.type in AcademicCalendarException.SUPPORTED_TYPES }
+            .filter { ex -> 
+                if (ex.scope == AcademicCalendarException.SCOPE_ALL_CLASSES) {
+                    true
+                } else if (ex.scope == AcademicCalendarException.SCOPE_SPECIFIC_BATCHES) {
+                    if (currentBatchFilter != "All") {
+                        ex.targetBatches.contains(currentBatchFilter)
+                    } else {
+                        val prefBatch = com.shuaib.classmate.utils.AppPreferences(requireContext()).getUserSemester()
+                        ex.targetBatches.contains(prefBatch)
+                    }
+                } else false
+            }
             .firstOrNull { ex ->
                 val start = ex.startDate.toLocalDateOrNull()
                 val end = ex.endDate.toLocalDateOrNull()
@@ -1025,10 +1082,17 @@ class TimetableFragment : Fragment() {
     }
 
     private fun shouldPauseSelectedDay(): Boolean {
-        val exception = getExceptionForSelectedDay()
-        return exception != null &&
-            exception.isActive &&
-            exception.scope == AcademicCalendarException.SCOPE_ALL_CLASSES
+        val exception = getExceptionForSelectedDay() ?: return false
+        if (!exception.isActive) return false
+        
+        if (exception.scope == AcademicCalendarException.SCOPE_ALL_CLASSES) return true
+        if (exception.scope == AcademicCalendarException.SCOPE_SPECIFIC_BATCHES) {
+            if (currentBatchFilter == "All") {
+                return false // Don't pause the entire 'All Batches' view for a specific batch holiday
+            }
+            return exception.targetBatches.contains(currentBatchFilter)
+        }
+        return false
     }
 
     private fun formatDateRange(startDate: String, endDate: String): String {
@@ -1096,8 +1160,11 @@ class TimetableFragment : Fragment() {
                 val newRoom = etRoom.text.toString().trim()
                 val newStart = etStart.text.toString().trim()
                 val newEnd = etEnd.text.toString().trim()
+                val day = selectedDayFlow.value
+                val appContext = context?.applicationContext ?: return@setPositiveButton
+                val dateLabel = targetDate.format(DateTimeFormatter.ofPattern("MMM dd", Locale.US))
                 
-                db.collection("timetable").document(selectedDayFlow.value)
+                db.collection("timetable").document(day)
                     .collection("periods").document(period.id)
                     .update(
                         "overrideDate", targetDateStr,
@@ -1105,12 +1172,25 @@ class TimetableFragment : Fragment() {
                         "overrideStartTime", newStart,
                         "overrideEndTime", newEnd
                     ).addOnSuccessListener {
-                        Toast.makeText(requireContext(), "Updated for this date", Toast.LENGTH_SHORT).show()
-                        NotificationRouter.pendingDay = selectedDayFlow.value
-                        com.shuaib.classmate.utils.NotificationSender.sendNoticeAlert(
-                            title = "Class Updated",
-                            body = "${period.subject} room/time updated for ${targetDate.format(DateTimeFormatter.ofPattern("MMM dd"))}.",
-                            targetBatch = period.batch
+                        if (_binding == null || !isAdded) return@addOnSuccessListener
+                        context?.let { ctx ->
+                            Toast.makeText(ctx, "Time/Room updated instantly!", Toast.LENGTH_SHORT).show()
+                        }
+                        viewLifecycleOwner.lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            runCatching {
+                                com.shuaib.classmate.repositories.TimetableRepository
+                                    .getInstance(appContext)
+                                    .syncDayFromFirestore(day, com.google.firebase.firestore.Source.SERVER)
+                                com.shuaib.classmate.utils.WidgetUpdater.refresh(appContext, syncTodayTimetable = false)
+                            }
+                        }
+                        NotificationRouter.pendingDay = day
+                        val roomPart = if (newRoom.isNotBlank()) "Room $newRoom" else "Updated"
+                        com.shuaib.classmate.utils.NotificationSender.sendScheduleUpdateAlert(
+                            subject = period.subject,
+                            details = "Time $newStart - $newEnd · $roomPart ($dateLabel)",
+                            day = day,
+                            targetBatch = period.batch.ifBlank { currentBatchFilter.takeUnless { it == "All" } ?: "all" }
                         )
                     }
             }
@@ -1244,7 +1324,8 @@ class TimetableFragment : Fragment() {
                     handler.removeCallbacks(showLoadingRunnable)
                     binding.shimmerView.stopShimmer()
                     binding.shimmerView.isVisible = false
-                    Toast.makeText(context, "Error fetching bus schedule: ${error.message}", Toast.LENGTH_SHORT).show()
+                    android.util.Log.e("TimetableFragment", "Error fetching bus schedule", error)
+                    Toast.makeText(context, "Error fetching bus schedule. Please try again later.", Toast.LENGTH_SHORT).show()
                     return@addSnapshotListener
                 }
                 if (documents == null || _binding == null) return@addSnapshotListener
@@ -1335,9 +1416,17 @@ class TimetableFragment : Fragment() {
         countdownsRegistration?.remove()
         busScheduleRegistration?.remove()
         busScheduleRegistration = null
+        timetableRealtimeRegistration?.remove()
+        timetableRealtimeRegistration = null
+        noticesRealtimeRegistration?.remove()
+        noticesRealtimeRegistration = null
         countdownAdapter?.cancelAllTimers()
         countdownAdapter = null
         periodAdapter = null
         _binding = null
+    }
+
+    companion object {
+        var currentActiveSemester: String = "2-1"
     }
 }

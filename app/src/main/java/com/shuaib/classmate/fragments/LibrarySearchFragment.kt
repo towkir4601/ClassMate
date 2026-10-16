@@ -238,7 +238,8 @@ class LibrarySearchFragment : Fragment() {
                 if (_binding == null) return@addOnFailureListener
                 binding.shimmerView.stopShimmer()
                 binding.shimmerView.isVisible = false
-                Toast.makeText(context, "Failed to load search: ${error.message}", Toast.LENGTH_SHORT).show()
+                android.util.Log.e("LibrarySearch", "Failed to load search results", error)
+                Toast.makeText(context, "Failed to load search results. Please try again later.", Toast.LENGTH_SHORT).show()
                 updateEmptyState(noResults = false)
             }
     }

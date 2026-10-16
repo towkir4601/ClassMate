@@ -38,7 +38,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:ellipsize="none"
-                android:fontFamily="serif"
+                
                 android:includeFontPadding="false"
                 android:maxLines="1"
                 android:text="Library"
@@ -167,7 +167,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:fontFamily="serif"
+                        
                         android:text="Recently Uploaded"
                         android:textColor="@color/cm_text_primary"
                         android:textSize="20sp"
@@ -251,7 +251,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:fontFamily="serif"
+                            
                             android:text="Offline Downloads"
                             android:textColor="@color/cm_text_primary"
                             android:textSize="16sp"
@@ -311,7 +311,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:fontFamily="serif"
+                            
                             android:text="Question Bank"
                             android:textColor="@color/cm_text_primary"
                             android:textSize="16sp"
@@ -352,7 +352,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:fontFamily="serif"
+                            
                             android:text="Courses"
                             android:textColor="@color/cm_text_primary"
                             android:textSize="21sp"
@@ -440,7 +440,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:fontFamily="serif"
+                                
                                 android:text="Regular Courses"
                                 android:textColor="@color/cm_text_primary"
                                 android:textSize="18sp"
@@ -543,7 +543,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:fontFamily="serif"
+                                
                                 android:text="Lab Courses"
                                 android:textColor="@color/cm_text_primary"
                                 android:textSize="18sp"
@@ -646,7 +646,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:fontFamily="serif"
+                                
                                 android:text="Other Materials"
                                 android:textColor="@color/cm_text_primary"
                                 android:textSize="18sp"

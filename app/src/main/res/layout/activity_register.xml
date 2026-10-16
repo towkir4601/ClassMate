@@ -5,7 +5,7 @@
     android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/cm_surface">
+    android:background="@drawable/bg_auth_glass_gradient">
 
     <ScrollView
         android:id="@+id/scrollContent"
@@ -68,7 +68,7 @@
                     android:layout_height="wrap_content"
                     android:text="Student"
                     android:checked="true"
-                    android:textColor="@color/cm_text_primary" />
+                    android:textColor="#FFFFFF" />
                     
                 <RadioButton
                     android:id="@+id/rbTeacher"
@@ -76,7 +76,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="24dp"
                     android:text="Teacher"
-                    android:textColor="@color/cm_text_primary" />
+                    android:textColor="#FFFFFF" />
             </RadioGroup>
 
             <TextView
@@ -85,7 +85,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="26dp"
                 android:text="Tell us who you are"
-                android:textColor="@color/cm_text_primary"
+                android:textColor="#FFFFFF"
                 android:textSize="22sp"
                 android:textStyle="bold" />
 
@@ -96,7 +96,7 @@
                 android:layout_marginTop="4dp"
                 android:layout_marginBottom="22dp"
                 android:text="Start with your name and student ID."
-                android:textColor="@color/cm_text_disabled"
+                android:textColor="#B3FFFFFF"
                 android:textSize="14sp" />
 
             <LinearLayout
@@ -107,18 +107,10 @@
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/tilName"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    style="@style/GlassTextInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Full name"
-                    app:boxCornerRadiusBottomEnd="28dp"
-                    app:boxCornerRadiusBottomStart="28dp"
-                    app:boxCornerRadiusTopEnd="28dp"
-                    app:boxCornerRadiusTopStart="28dp"
-                    app:boxStrokeColor="@color/cm_border"
-                    app:boxStrokeWidth="1dp"
-                    app:boxStrokeWidthFocused="1.5dp"
-                    app:hintTextColor="@color/cm_text_disabled">
+                    android:hint="Full name">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etName"
@@ -128,27 +120,19 @@
                         android:imeOptions="actionNext"
                         android:inputType="textPersonName"
                         android:singleLine="true"
-                        android:textColor="@color/cm_text_primary"
-                        android:textSize="16sp" />
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"  />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/tilStudentId"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    style="@style/GlassTextInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     android:hint="Student ID"
-                    app:boxCornerRadiusBottomEnd="28dp"
-                    app:boxCornerRadiusBottomStart="28dp"
-                    app:boxCornerRadiusTopEnd="28dp"
-                    app:boxCornerRadiusTopStart="28dp"
-                    app:boxStrokeColor="@color/cm_border"
-                    app:boxStrokeWidth="1dp"
-                    app:boxStrokeWidthFocused="1.5dp"
                     app:helperText="Example: CE25045"
-                    app:helperTextTextColor="@color/cm_text_disabled"
-                    app:hintTextColor="@color/cm_text_disabled">
+                    app:helperTextTextColor="@color/cm_text_disabled">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etStudentId"
@@ -159,24 +143,16 @@
                         android:inputType="text"
                         android:maxLength="9"
                         android:singleLine="true"
-                        android:textColor="@color/cm_text_primary"
-                        android:textSize="16sp" />
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"  />
                 </com.google.android.material.textfield.TextInputLayout>
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/tilDepartment"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    style="@style/GlassTextInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:hint="Department (e.g. CSE)"
-                    app:boxCornerRadiusBottomEnd="28dp"
-                    app:boxCornerRadiusBottomStart="28dp"
-                    app:boxCornerRadiusTopEnd="28dp"
-                    app:boxCornerRadiusTopStart="28dp"
-                    app:boxStrokeColor="@color/cm_border"
-                    app:boxStrokeWidth="1dp"
-                    app:boxStrokeWidthFocused="1.5dp"
-                    app:hintTextColor="@color/cm_text_disabled">
+                    android:hint="Department (e.g. CSE)">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etDepartment"
@@ -186,25 +162,17 @@
                         android:imeOptions="actionNext"
                         android:inputType="text"
                         android:singleLine="true"
-                        android:textColor="@color/cm_text_primary"
-                        android:textSize="16sp" />
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"  />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/tilBatch"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    style="@style/GlassTextInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:hint="Batch (e.g. 14)"
-                    app:boxCornerRadiusBottomEnd="28dp"
-                    app:boxCornerRadiusBottomStart="28dp"
-                    app:boxCornerRadiusTopEnd="28dp"
-                    app:boxCornerRadiusTopStart="28dp"
-                    app:boxStrokeColor="@color/cm_border"
-                    app:boxStrokeWidth="1dp"
-                    app:boxStrokeWidthFocused="1.5dp"
-                    app:hintTextColor="@color/cm_text_disabled">
+                    android:hint="Batch (e.g. 14)">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etBatch"
@@ -213,8 +181,8 @@
                         android:gravity="center_vertical"
                         android:imeOptions="actionNext"
                         android:inputType="number"
-                        android:textColor="@color/cm_text_primary"
-                        android:textSize="16sp" />
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"  />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- Toggle button for optional fields -->
@@ -245,226 +213,162 @@
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/tilWhatsApp"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        style="@style/GlassTextInputLayout"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:hint="WhatsApp Number (Optional)"
-                        app:boxCornerRadiusBottomEnd="28dp"
-                        app:boxCornerRadiusBottomStart="28dp"
-                        app:boxCornerRadiusTopEnd="28dp"
-                        app:boxCornerRadiusTopStart="28dp"
-                        app:boxStrokeColor="@color/cm_border"
-                        app:boxStrokeWidth="1dp"
-                        app:boxStrokeWidthFocused="1.5dp"
-                        app:hintTextColor="@color/cm_text_disabled">
+                        android:hint="WhatsApp Number (Optional)">
 
                         <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/etWhatsApp"
+                        android:id="@+id/etWhatsApp"
                             android:layout_width="match_parent"
                             android:layout_height="58dp"
                             android:gravity="center_vertical"
                             android:imeOptions="actionNext"
                             android:inputType="phone"
                             android:singleLine="true"
-                            android:textColor="@color/cm_text_primary"
-                            android:textSize="16sp" />
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"  />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/tilPhone"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        style="@style/GlassTextInputLayout"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:hint="Phone Number (Optional)"
-                        app:boxCornerRadiusBottomEnd="28dp"
-                        app:boxCornerRadiusBottomStart="28dp"
-                        app:boxCornerRadiusTopEnd="28dp"
-                        app:boxCornerRadiusTopStart="28dp"
-                        app:boxStrokeColor="@color/cm_border"
-                        app:boxStrokeWidth="1dp"
-                        app:boxStrokeWidthFocused="1.5dp"
-                        app:hintTextColor="@color/cm_text_disabled">
+                        android:hint="Phone Number (Optional)">
 
                         <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/etPhone"
+                        android:id="@+id/etPhone"
                             android:layout_width="match_parent"
                             android:layout_height="58dp"
                             android:gravity="center_vertical"
                             android:imeOptions="actionNext"
                             android:inputType="phone"
                             android:singleLine="true"
-                            android:textColor="@color/cm_text_primary"
-                            android:textSize="16sp" />
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"  />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/tilFatherName"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        style="@style/GlassTextInputLayout"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:hint="Father's Name (Optional)"
-                        app:boxCornerRadiusBottomEnd="28dp"
-                        app:boxCornerRadiusBottomStart="28dp"
-                        app:boxCornerRadiusTopEnd="28dp"
-                        app:boxCornerRadiusTopStart="28dp"
-                        app:boxStrokeColor="@color/cm_border"
-                        app:boxStrokeWidth="1dp"
-                        app:boxStrokeWidthFocused="1.5dp"
-                        app:hintTextColor="@color/cm_text_disabled">
+                        android:hint="Father's Name (Optional)">
 
                         <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/etFatherName"
+                        android:id="@+id/etFatherName"
                             android:layout_width="match_parent"
                             android:layout_height="58dp"
                             android:gravity="center_vertical"
                             android:imeOptions="actionNext"
                             android:inputType="text"
                             android:singleLine="true"
-                            android:textColor="@color/cm_text_primary"
-                            android:textSize="16sp" />
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"  />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/tilMotherName"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        style="@style/GlassTextInputLayout"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:hint="Mother's Name (Optional)"
-                        app:boxCornerRadiusBottomEnd="28dp"
-                        app:boxCornerRadiusBottomStart="28dp"
-                        app:boxCornerRadiusTopEnd="28dp"
-                        app:boxCornerRadiusTopStart="28dp"
-                        app:boxStrokeColor="@color/cm_border"
-                        app:boxStrokeWidth="1dp"
-                        app:boxStrokeWidthFocused="1.5dp"
-                        app:hintTextColor="@color/cm_text_disabled">
+                        android:hint="Mother's Name (Optional)">
 
                         <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/etMotherName"
+                        android:id="@+id/etMotherName"
                             android:layout_width="match_parent"
                             android:layout_height="58dp"
                             android:gravity="center_vertical"
                             android:imeOptions="actionNext"
                             android:inputType="text"
                             android:singleLine="true"
-                            android:textColor="@color/cm_text_primary"
-                            android:textSize="16sp" />
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"  />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/tilPresentAddress"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        style="@style/GlassTextInputLayout"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:hint="Present Address (Optional)"
-                        app:boxCornerRadiusBottomEnd="28dp"
-                        app:boxCornerRadiusBottomStart="28dp"
-                        app:boxCornerRadiusTopEnd="28dp"
-                        app:boxCornerRadiusTopStart="28dp"
-                        app:boxStrokeColor="@color/cm_border"
-                        app:boxStrokeWidth="1dp"
-                        app:boxStrokeWidthFocused="1.5dp"
-                        app:hintTextColor="@color/cm_text_disabled">
+                        android:hint="Present Address (Optional)">
 
                         <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/etPresentAddress"
+                        android:id="@+id/etPresentAddress"
                             android:layout_width="match_parent"
                             android:layout_height="58dp"
                             android:gravity="center_vertical"
                             android:imeOptions="actionNext"
                             android:inputType="text"
                             android:singleLine="true"
-                            android:textColor="@color/cm_text_primary"
-                            android:textSize="16sp" />
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"  />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/tilPermanentAddress"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        style="@style/GlassTextInputLayout"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:hint="Permanent Address (Optional)"
-                        app:boxCornerRadiusBottomEnd="28dp"
-                        app:boxCornerRadiusBottomStart="28dp"
-                        app:boxCornerRadiusTopEnd="28dp"
-                        app:boxCornerRadiusTopStart="28dp"
-                        app:boxStrokeColor="@color/cm_border"
-                        app:boxStrokeWidth="1dp"
-                        app:boxStrokeWidthFocused="1.5dp"
-                        app:hintTextColor="@color/cm_text_disabled">
+                        android:hint="Permanent Address (Optional)">
 
                         <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/etPermanentAddress"
+                        android:id="@+id/etPermanentAddress"
                             android:layout_width="match_parent"
                             android:layout_height="58dp"
                             android:gravity="center_vertical"
                             android:imeOptions="actionNext"
                             android:inputType="text"
                             android:singleLine="true"
-                            android:textColor="@color/cm_text_primary"
-                            android:textSize="16sp" />
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"  />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/tilDistrict"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        style="@style/GlassTextInputLayout"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:hint="Home District (Optional)"
-                        app:boxCornerRadiusBottomEnd="28dp"
-                        app:boxCornerRadiusBottomStart="28dp"
-                        app:boxCornerRadiusTopEnd="28dp"
-                        app:boxCornerRadiusTopStart="28dp"
-                        app:boxStrokeColor="@color/cm_border"
-                        app:boxStrokeWidth="1dp"
-                        app:boxStrokeWidthFocused="1.5dp"
-                        app:hintTextColor="@color/cm_text_disabled">
+                        android:hint="Home District (Optional)">
 
                         <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/etDistrict"
+                        android:id="@+id/etDistrict"
                             android:layout_width="match_parent"
                             android:layout_height="58dp"
                             android:gravity="center_vertical"
                             android:imeOptions="actionNext"
                             android:inputType="text"
                             android:singleLine="true"
-                            android:textColor="@color/cm_text_primary"
-                            android:textSize="16sp" />
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"  />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/tilBloodGroup"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        style="@style/GlassTextInputLayout"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:hint="Blood Group (Optional)"
-                        app:boxCornerRadiusBottomEnd="28dp"
-                        app:boxCornerRadiusBottomStart="28dp"
-                        app:boxCornerRadiusTopEnd="28dp"
-                        app:boxCornerRadiusTopStart="28dp"
-                        app:boxStrokeColor="@color/cm_border"
-                        app:boxStrokeWidth="1dp"
-                        app:boxStrokeWidthFocused="1.5dp"
-                        app:hintTextColor="@color/cm_text_disabled">
+                        android:hint="Blood Group (Optional)">
 
                         <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/etBloodGroup"
+                        android:id="@+id/etBloodGroup"
                             android:layout_width="match_parent"
                             android:layout_height="58dp"
                             android:gravity="center_vertical"
                             android:imeOptions="actionNext"
                             android:inputType="text"
                             android:singleLine="true"
-                            android:textColor="@color/cm_text_primary"
-                            android:textSize="16sp" />
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"  />
                     </com.google.android.material.textfield.TextInputLayout>
 
                 </LinearLayout>
@@ -480,18 +384,10 @@
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/tilEmail"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    style="@style/GlassTextInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Email"
-                    app:boxCornerRadiusBottomEnd="28dp"
-                    app:boxCornerRadiusBottomStart="28dp"
-                    app:boxCornerRadiusTopEnd="28dp"
-                    app:boxCornerRadiusTopStart="28dp"
-                    app:boxStrokeColor="@color/cm_border"
-                    app:boxStrokeWidth="1dp"
-                    app:boxStrokeWidthFocused="1.5dp"
-                    app:hintTextColor="@color/cm_text_disabled">
+                    android:hint="Email">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etEmail"
@@ -501,27 +397,18 @@
                         android:imeOptions="actionNext"
                         android:inputType="textEmailAddress"
                         android:singleLine="true"
-                        android:textColor="@color/cm_text_primary"
-                        android:textSize="16sp" />
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"  />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/tilPassword"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    style="@style/GlassTextInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     android:hint="Password"
-                    app:boxCornerRadiusBottomEnd="28dp"
-                    app:boxCornerRadiusBottomStart="28dp"
-                    app:boxCornerRadiusTopEnd="28dp"
-                    app:boxCornerRadiusTopStart="28dp"
-                    app:boxStrokeColor="@color/cm_border"
-                    app:boxStrokeWidth="1dp"
-                    app:boxStrokeWidthFocused="1.5dp"
-                    app:endIconMode="password_toggle"
-                    app:endIconTint="@color/cm_text_disabled"
-                    app:hintTextColor="@color/cm_text_disabled">
+                    app:endIconMode="password_toggle">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etPassword"
@@ -531,27 +418,18 @@
                         android:imeOptions="actionNext"
                         android:inputType="textPassword"
                         android:singleLine="true"
-                        android:textColor="@color/cm_text_primary"
-                        android:textSize="16sp" />
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"  />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/tilConfirmPassword"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    style="@style/GlassTextInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     android:hint="Confirm password"
-                    app:boxCornerRadiusBottomEnd="28dp"
-                    app:boxCornerRadiusBottomStart="28dp"
-                    app:boxCornerRadiusTopEnd="28dp"
-                    app:boxCornerRadiusTopStart="28dp"
-                    app:boxStrokeColor="@color/cm_border"
-                    app:boxStrokeWidth="1dp"
-                    app:boxStrokeWidthFocused="1.5dp"
-                    app:endIconMode="password_toggle"
-                    app:endIconTint="@color/cm_text_disabled"
-                    app:hintTextColor="@color/cm_text_disabled">
+                    app:endIconMode="password_toggle">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etConfirmPassword"
@@ -561,8 +439,8 @@
                         android:imeOptions="actionDone"
                         android:inputType="textPassword"
                         android:singleLine="true"
-                        android:textColor="@color/cm_text_primary"
-                        android:textSize="16sp" />
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"  />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <View
@@ -578,7 +456,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
                     android:text="Password strength"
-                    android:textColor="@color/cm_text_disabled"
+                    android:textColor="#B3FFFFFF"
                     android:textSize="12sp" />
             </LinearLayout>
         </LinearLayout>
@@ -588,7 +466,7 @@
         android:id="@+id/bottomActions"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="@color/cm_surface"
+        android:background="@android:color/transparent"
         android:gravity="center"
         android:orientation="vertical"
         android:paddingStart="22dp"
@@ -638,7 +516,7 @@
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
             android:text="Already have an account? Log in"
-            android:textColor="@color/cm_text_disabled"
+            android:textColor="#B3FFFFFF"
             android:textSize="14sp" />
     </LinearLayout>
 

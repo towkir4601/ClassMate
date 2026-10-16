@@ -3,9 +3,45 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/nav_timetable">
+    app:startDestination="@id/nav_home">
 
-    <!-- Home / Timetable Section -->
+    <!-- Home Section -->
+    <fragment
+        android:id="@+id/nav_home"
+        android:name="com.shuaib.classmate.fragments.HomeFragment"
+        android:label="Home"
+        tools:layout="@layout/fragment_home">
+        <deepLink app:uri="classmate://home" />
+    </fragment>
+
+    <!-- Academics Section -->
+    <fragment
+        android:id="@+id/nav_academics"
+        android:name="com.shuaib.classmate.fragments.AcademicsFragment"
+        android:label="Academics"
+        tools:layout="@layout/fragment_academics">
+        <deepLink app:uri="classmate://academics" />
+    </fragment>
+
+    <!-- Campus Section -->
+    <fragment
+        android:id="@+id/nav_campus"
+        android:name="com.shuaib.classmate.fragments.CampusFragment"
+        android:label="Campus"
+        tools:layout="@layout/fragment_campus">
+        <deepLink app:uri="classmate://campus" />
+    </fragment>
+
+    <!-- Community Section -->
+    <fragment
+        android:id="@+id/nav_community"
+        android:name="com.shuaib.classmate.fragments.CommunityFragment"
+        android:label="Community"
+        tools:layout="@layout/fragment_community">
+        <deepLink app:uri="classmate://community" />
+    </fragment>
+
+    <!-- Timetable Section -->
     <fragment
         android:id="@+id/nav_timetable"
         android:name="com.shuaib.classmate.fragments.TimetableFragment"
@@ -165,6 +201,10 @@
         <argument
             android:name="subjectName"
             app:argType="string" />
+        <argument
+            android:name="isQuestionBank"
+            app:argType="boolean"
+            android:defaultValue="false" />
     </fragment>
 
     <!-- Polls -->

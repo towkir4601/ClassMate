@@ -134,7 +134,7 @@ class SeatPlanUploadActivity : AppCompatActivity() {
             .addOnFailureListener { e ->
                 binding.progressBar.isVisible = false
                 binding.btnUpload.isEnabled = true
-                Toast.makeText(this, "Deployment failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Deployment failed: Please try again later.", Toast.LENGTH_SHORT).show()
             }
     }
 

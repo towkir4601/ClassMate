@@ -1,5 +1,6 @@
 package com.shuaib.classmate.activities
 
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.os.Bundle
@@ -58,9 +59,12 @@ class PdfRendererActivity : AppCompatActivity() {
             val result = repository.downloadPdf(fileId, fileName)
             
             result.onSuccess { file ->
-                binding.layoutLoading.isVisible = false
-                binding.rvPdfPages.isVisible = true
-                renderPdf(file)
+                val intent = Intent(this@PdfRendererActivity, OfflinePdfViewerActivity::class.java).apply {
+                    putExtra(OfflinePdfViewerActivity.EXTRA_FILE_PATH, file.absolutePath)
+                    putExtra(OfflinePdfViewerActivity.EXTRA_TITLE, fileName)
+                }
+                startActivity(intent)
+                finish()
             }.onFailure { error ->
                 binding.layoutLoading.isVisible = false
                 binding.tvError.isVisible = true

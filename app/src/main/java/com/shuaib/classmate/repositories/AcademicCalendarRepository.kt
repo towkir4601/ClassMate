@@ -41,6 +41,23 @@ class AcademicCalendarRepository(
         } == true
     }
 
+    suspend fun isClassSuspendedForBatch(date: LocalDate, batch: String): Boolean {
+        val exception = getActiveExceptionForDate(date) ?: return false
+        if (!exception.isActive) return false
+        if (exception.scope == AcademicCalendarException.SCOPE_ALL_CLASSES) return true
+        if (exception.scope == AcademicCalendarException.SCOPE_SPECIFIC_BATCHES) {
+            return exception.targetBatches.contains(batch)
+        }
+        return false
+    }
+
+    fun getExceptions(
+        onSuccess: (List<AcademicCalendarException>) -> Unit,
+        onFailure: (Exception) -> Unit = {}
+    ): ListenerRegistration {
+        return observeActiveExceptions(onResult = onSuccess, onError = onFailure)
+    }
+
     fun observeActiveExceptions(
         onResult: (List<AcademicCalendarException>) -> Unit,
         onError: (Exception) -> Unit = {}
@@ -87,7 +104,8 @@ class AcademicCalendarRepository(
                 "type" to exception.type,
                 "startDate" to exception.startDate,
                 "endDate" to exception.endDate,
-                "scope" to AcademicCalendarException.SCOPE_ALL_CLASSES,
+                "scope" to exception.scope,
+                "targetBatches" to exception.targetBatches,
                 "reason" to exception.reason.trim(),
                 "isActive" to exception.isActive,
                 "showHolidayBriefing" to exception.showHolidayBriefing,

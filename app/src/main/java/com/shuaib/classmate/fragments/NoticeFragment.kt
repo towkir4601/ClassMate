@@ -571,6 +571,18 @@ class NoticeFragment : Fragment() {
     }
 
     private fun itemMatchesFilter(item: Any): Boolean {
+        if (currentUserRole == "teacher") {
+            if (item is Notice) {
+                val allowed = item.isCancel ||
+                        item.title.startsWith("[Holiday]", ignoreCase = true) ||
+                        item.title.startsWith("[Suspension]", ignoreCase = true) ||
+                        item.title.startsWith("[Vacation]", ignoreCase = true)
+                if (!allowed) return false
+            } else if (item is com.shuaib.classmate.models.Poll) {
+                return false
+            }
+        }
+
         if (item is Notice) {
             val target = item.targetBatch
             val isPublic = target == "all" || target.isBlank()
@@ -791,14 +803,59 @@ class NoticeFragment : Fragment() {
     }
 
     private fun deleteNotice(notice: Notice) {
+        val appContext = requireContext().applicationContext
         db.collection("notices").document(notice.id)
             .update(mapOf("isDeleted" to true, "updatedAt" to FieldValue.serverTimestamp()))
             .addOnSuccessListener {
-                Toast.makeText(requireContext(), "Notice deleted", Toast.LENGTH_SHORT).show()
-                fetchData()
+                if (_binding != null) {
+                    Toast.makeText(requireContext(), "Notice deleted", Toast.LENGTH_SHORT).show()
+                    fetchData()
+                }
+                viewLifecycleOwner.lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                    com.shuaib.classmate.repositories.NoticeRepository
+                        .getInstance(appContext)
+                        .syncNoticeFromFirestore(notice.id, com.google.firebase.firestore.Source.SERVER)
+
+                    if (notice.isCancel) {
+                        val cancelDate = com.shuaib.classmate.utils.SubjectList.effectiveCancelDate(notice)
+                        val dayOfWeek = com.shuaib.classmate.utils.SubjectList.dayOfWeekFromIso(cancelDate)
+                        val subj = notice.subject.takeIf { it.isNotBlank() && !it.equals("General", true) }
+                            ?: notice.body.substringBefore(" class has been cancelled", "")
+                        if (dayOfWeek.isNotBlank() && subj.isNotBlank()) {
+                            runCatching {
+                                val snap = db.collection("timetable")
+                                    .document(dayOfWeek)
+                                    .collection("periods")
+                                    .get(com.google.firebase.firestore.Source.SERVER)
+                                    .let { com.google.android.gms.tasks.Tasks.await(it) }
+                                val batch = db.batch()
+                                var count = 0
+                                snap.documents.forEach { doc ->
+                                    val docSubject = doc.getString("subject").orEmpty()
+                                    if (com.shuaib.classmate.utils.SubjectList.isSameCourse(docSubject, subj)) {
+                                        batch.update(
+                                            doc.reference,
+                                            mapOf("isCancelled" to false, "cancelDate" to "")
+                                        )
+                                        count++
+                                    }
+                                }
+                                if (count > 0) {
+                                    com.google.android.gms.tasks.Tasks.await(batch.commit())
+                                }
+                                com.shuaib.classmate.repositories.TimetableRepository
+                                    .getInstance(appContext)
+                                    .syncDayFromFirestore(dayOfWeek, com.google.firebase.firestore.Source.SERVER)
+                            }
+                        }
+                    }
+                }
             }
             .addOnFailureListener {
-                Toast.makeText(requireContext(), "Delete failed: ${it.message}", Toast.LENGTH_SHORT).show()
+                if (_binding != null) {
+                    android.util.Log.e("NoticeFragment", "Delete notice failed", it)
+                    Toast.makeText(requireContext(), "Delete failed. Please try again later.", Toast.LENGTH_SHORT).show()
+                }
             }
     }
 

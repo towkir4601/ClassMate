@@ -76,6 +76,36 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Subject dropdown with Add button -->
+
+        <!-- Resource Type Selector -->
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/toggleResourceType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:singleSelection="true"
+            app:selectionRequired="true"
+            app:checkedButton="@+id/btnTypeLibrary"
+            android:layout_marginBottom="16dp">
+
+            <Button
+                android:id="@+id/btnTypeLibrary"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Library Material"
+                android:textColor="@color/cm_text_primary"/>
+
+            <Button
+                android:id="@+id/btnTypeQuestionBank"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Question Paper"
+                android:textColor="@color/cm_text_primary"/>
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -147,6 +177,7 @@
 
         <!-- Description -->
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layoutDescription"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Description (optional)"
@@ -164,6 +195,55 @@
                 android:minLines="2"/>
 
         </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Question Bank Fields -->
+        <LinearLayout
+            android:id="@+id/layoutQuestionBankFields"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="24dp"
+            android:visibility="gone">
+            
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Exam Type"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                android:layout_marginEnd="8dp"
+                app:boxStrokeColor="@color/cm_primary"
+                app:hintTextColor="@color/cm_primary">
+
+                <AutoCompleteTextView
+                    android:id="@+id/dropdownExamType"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="none"
+                    android:textColor="@color/cm_text_primary"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Year"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_marginStart="8dp"
+                app:boxStrokeColor="@color/cm_primary"
+                app:hintTextColor="@color/cm_primary">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etYear"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:maxLength="4"
+                    android:textColor="@color/cm_text_primary"/>
+            </com.google.android.material.textfield.TextInputLayout>
+            
+        </LinearLayout>
+
 
         <!-- Target Audience -->
         <TextView

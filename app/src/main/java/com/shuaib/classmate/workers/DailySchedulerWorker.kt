@@ -20,52 +20,9 @@ import java.util.concurrent.TimeUnit
 class DailySchedulerWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
-        if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser == null) {
-            return Result.success()
-        }
-        val firestore = FirebaseFirestore.getInstance()
-        val calendar = Calendar.getInstance()
-        val dayName = when (calendar.get(Calendar.DAY_OF_WEEK)) {
-            Calendar.SATURDAY -> "saturday"
-            Calendar.SUNDAY -> "sunday"
-            Calendar.MONDAY -> "monday"
-            Calendar.TUESDAY -> "tuesday"
-            Calendar.WEDNESDAY -> "wednesday"
-            Calendar.THURSDAY -> "thursday"
-            Calendar.FRIDAY -> "friday"
-            else -> return Result.success()
-        }
-
-        try {
-            if (AcademicCalendarRepository(firestore).areAllClassesSuspended(LocalDate.now())) {
-                ClassReminderWorkCoordinator.cancelTodayClassReminders(applicationContext)
-                return Result.success()
-            }
-
-            val snapshot = firestore.collection("timetable").document(dayName)
-                .collection("periods")
-                .get()
-                .await() 
-
-            val periods = snapshot.documents.map { doc ->
-                doc.toObject(Period::class.java)?.copy(id = doc.id)
-            }.filterNotNull()
-            
-            val todayDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-
-            for (period in periods) {
-                // Check if the class is cancelled specifically for today
-                val isCancelledToday = period.cancelDate == todayDate
-                
-                if (!isCancelledToday) {
-                    scheduleNotification(period, dayName)
-                }
-            }
-
-            return Result.success()
-        } catch (e: Exception) {
-            return Result.retry()
-        }
+        WorkManager.getInstance(applicationContext)
+            .cancelAllWorkByTag(ClassReminderWorkCoordinator.CLASS_REMINDER_TAG)
+        return Result.success()
     }
 
     private fun scheduleNotification(period: Period, dayName: String) {

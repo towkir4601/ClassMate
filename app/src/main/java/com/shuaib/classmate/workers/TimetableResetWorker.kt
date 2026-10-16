@@ -14,46 +14,51 @@ class TimetableResetWorker(
 
     override suspend fun doWork(): Result {
         val db = FirebaseFirestore.getInstance()
+        val todayDate = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
         val days = listOf(
             "saturday", "sunday", "monday",
-            "tuesday", "wednesday"
+            "tuesday", "wednesday", "thursday", "friday"
         )
-        days.forEach { day ->
-            val snapshot = db.collection("timetable")
-                .document(day)
-                .collection("periods")
-                .whereEqualTo("isCancelled", true)
-                .get()
-                .await()
+        runCatching {
+            days.forEach { day ->
+                val snapshot = db.collection("timetable")
+                    .document(day)
+                    .collection("periods")
+                    .whereEqualTo("isCancelled", true)
+                    .get()
+                    .await()
 
-            snapshot.documents.forEach { doc ->
-                doc.reference.update(
-                    mapOf(
-                        "isCancelled" to false,
-                        "cancelledFor" to "",
-                        "isSubstitute" to false,
-                        "substituteTeacher" to ""
-                    )
-                ).await()
-            }
-            
-            // Also reset substitutes
-            val subSnapshot = db.collection("timetable")
-                .document(day)
-                .collection("periods")
-                .whereEqualTo("isSubstitute", true)
-                .get()
-                .await()
+                snapshot.documents.forEach { doc ->
+                    val cancelDate = doc.getString("cancelDate").orEmpty()
+                    if (cancelDate.isBlank() || cancelDate < todayDate) {
+                        doc.reference.update(
+                            mapOf(
+                                "isCancelled" to false,
+                                "cancelDate" to ""
+                            )
+                        ).await()
+                    }
+                }
 
-            subSnapshot.documents.forEach { doc ->
-                doc.reference.update(
-                    mapOf(
-                        "isCancelled" to false,
-                        "cancelledFor" to "",
-                        "isSubstitute" to false,
-                        "substituteTeacher" to ""
-                    )
-                ).await()
+                val subSnapshot = db.collection("timetable")
+                    .document(day)
+                    .collection("periods")
+                    .whereEqualTo("isSubstitute", true)
+                    .get()
+                    .await()
+
+                subSnapshot.documents.forEach { doc ->
+                    val subDate = doc.getString("substituteDate").orEmpty()
+                    if (subDate.isBlank() || subDate < todayDate) {
+                        doc.reference.update(
+                            mapOf(
+                                "isSubstitute" to false,
+                                "substituteTeacher" to "",
+                                "substituteDate" to ""
+                            )
+                        ).await()
+                    }
+                }
             }
         }
         return Result.success()

@@ -75,7 +75,7 @@
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Target Batch"
+        android:hint="Target Year / Semester (e.g. 1-1, 2-1)"
         android:textColorHint="@color/cm_text_secondary"
         app:boxStrokeColor="@color/cm_primary"
         app:hintTextColor="@color/cm_primary"

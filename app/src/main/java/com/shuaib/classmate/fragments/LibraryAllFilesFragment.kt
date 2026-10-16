@@ -140,7 +140,7 @@ class LibraryAllFilesFragment : Fragment() {
                 binding.shimmerView.isVisible = false
                 binding.rvAllFiles.isVisible = true
 
-                Toast.makeText(context, "Failed to load: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Failed to load: Please try again later.", Toast.LENGTH_SHORT).show()
             }
     }
 
@@ -193,7 +193,7 @@ class LibraryAllFilesFragment : Fragment() {
                 loadAllFiles()
             }
             .addOnFailureListener { e ->
-                Toast.makeText(context, "Update failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Update failed: Please try again later.", Toast.LENGTH_SHORT).show()
             }
     }
 
@@ -210,7 +210,7 @@ class LibraryAllFilesFragment : Fragment() {
                 loadAllFiles()
             }
             .addOnFailureListener { e ->
-                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Error: Please try again later.", Toast.LENGTH_LONG).show()
             }
     }
 

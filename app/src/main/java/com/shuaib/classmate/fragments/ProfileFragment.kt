@@ -127,7 +127,9 @@ class ProfileFragment : Fragment() {
         listenToFriendsConfig()
         fetchUserProfile()
 
-        GlowHelper.pulseGlow(binding.profileBorder, ThemeColors.primary(requireContext()))
+        context?.let { ctx ->
+            GlowHelper.pulseGlow(binding.profileBorder, ThemeColors.primary(ctx))
+        }
 
         binding.fabEditPhoto.setOnClickListener {
             showPhotoOptions()
@@ -224,7 +226,7 @@ class ProfileFragment : Fragment() {
                     Toast.makeText(context, "Friends list visibility updated!", Toast.LENGTH_SHORT).show()
                 }
                 .addOnFailureListener { e ->
-                    Toast.makeText(context, "Failed to update visibility: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Failed to update visibility: Please try again later.", Toast.LENGTH_SHORT).show()
                     binding.switchFriendsPublic.isChecked = isFriendsPublic
                 }
         }
@@ -325,7 +327,7 @@ class ProfileFragment : Fragment() {
                 fetchUserProfile()
             }
             .addOnFailureListener { e ->
-                Toast.makeText(context, "Update failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Update failed: Please try again later.", Toast.LENGTH_SHORT).show()
             }
     }
 
@@ -557,7 +559,8 @@ class ProfileFragment : Fragment() {
                 .update("favoritePdfIds", com.google.firebase.firestore.FieldValue.arrayUnion(pdf.id))
                 .addOnFailureListener {
                     favoritePdfIdsSet = wasFavoritePdfIds
-                    Toast.makeText(context, "Save failed: ${it.message}", Toast.LENGTH_SHORT).show()
+                    android.util.Log.e("ProfileFragment", "Save favorite failed", it)
+                    Toast.makeText(context, "Save failed. Please try again.", Toast.LENGTH_SHORT).show()
                 }
         } else {
             favoritePdfIdsSet = favoritePdfIdsSet - pdf.id
@@ -565,7 +568,8 @@ class ProfileFragment : Fragment() {
                 .update("favoritePdfIds", com.google.firebase.firestore.FieldValue.arrayRemove(pdf.id))
                 .addOnFailureListener {
                     favoritePdfIdsSet = wasFavoritePdfIds
-                    Toast.makeText(context, "Remove failed: ${it.message}", Toast.LENGTH_SHORT).show()
+                    android.util.Log.e("ProfileFragment", "Remove favorite failed", it)
+                    Toast.makeText(context, "Remove failed. Please try again.", Toast.LENGTH_SHORT).show()
                 }
         }
 

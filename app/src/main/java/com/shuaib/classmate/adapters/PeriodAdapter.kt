@@ -98,16 +98,30 @@ class PeriodAdapter(
         b.layoutDuration.isVisible = true
         b.vCancelledDivider.isVisible = false
         
-        if (period.batch.isNotBlank() && period.batch != "all") {
+        val displayBatch = if (period.batch == "14") "2-1" else period.batch
+        if (displayBatch.isNotBlank() && !displayBatch.equals("all", ignoreCase = true)) {
             b.tvBatchBadge.isVisible = true
-            b.tvBatchBadge.text = period.batch
+            b.tvBatchBadge.text = displayBatch
         } else {
             b.tvBatchBadge.isVisible = false
         }
 
-        val isLive = isViewingToday && !isPausedByCalendarException && !period.isCancelled && checkIsLive(period)
-        val isCompleted = !isPausedByCalendarException && !period.isCancelled && !isLive && checkIsCompleted(period)
-        if (isLive) {
+        val isLive = isViewingToday && !period.isCancelled && checkIsLive(period)
+        val isCompleted = !period.isCancelled && !isLive && checkIsCompleted(period)
+
+        if (period.isCancelled) {
+            b.cardRoot.clearAnimation()
+            bindStatusColor(context, b, ThemeColors.error(context))
+            b.cardRoot.setBackgroundResource(R.drawable.bg_card_notice_cancel)
+            b.vEndDot.backgroundTintList = ColorStateList.valueOf(ThemeColors.error(context))
+            b.layoutStartClock.background = rounded(context, 50f, ColorUtils.setAlphaComponent(ThemeColors.error(context), 24))
+            b.tvTypeBadge.text = "CANCELLED"
+            b.tvTypeBadge.setBackgroundResource(R.drawable.bg_badge_red)
+            b.tvTypeBadge.setTextColor(ThemeColors.error(context))
+            b.tvSubject.paintFlags = b.tvSubject.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
+            b.layoutDuration.isVisible = false
+            b.vCancelledDivider.isVisible = true
+        } else if (isLive && !isPausedByCalendarException) {
             b.cardRoot.setBackgroundResource(R.drawable.bg_card_live)
             if (b.cardRoot.animation == null) {
                 startLivePulse(b.cardRoot)
@@ -116,71 +130,48 @@ class PeriodAdapter(
             b.tvTypeBadge.text = "LIVE NOW"
             b.tvTypeBadge.setBackgroundResource(R.drawable.bg_library_badge_green)
             b.tvTypeBadge.setTextColor(ThemeColors.success(context))
+        } else if (isCompleted && !isPausedByCalendarException) {
+            b.cardRoot.clearAnimation()
+            val mutedColor = ThemeColors.textMuted(context)
+            bindStatusColor(context, b, mutedColor)
+            b.cardRoot.setBackgroundResource(R.drawable.bg_card_paused)
+            if (period.isSubstitute) {
+                b.tvSubstituteMsg.isVisible = true
+                b.tvSubstituteMsg.text = "Substitute: ${period.substituteTeacher}"
+            }
+            b.tvTypeBadge.text = "COMPLETED"
+            b.tvTypeBadge.setBackgroundResource(R.drawable.bg_library_badge_green)
+            b.tvTypeBadge.setTextColor(ThemeColors.success(context))
+        } else if (isPausedByCalendarException) {
+            b.cardRoot.clearAnimation()
+            bindStatusColor(context, b, ThemeColors.textMuted(context))
+            b.cardRoot.setBackgroundResource(R.drawable.bg_card_paused)
+            b.tvSubstituteMsg.isVisible = true
+            b.tvSubstituteMsg.text = "Class reminders are paused today"
+            b.tvTypeBadge.text = "PAUSED"
+            b.tvTypeBadge.setBackgroundResource(R.drawable.bg_badge_paused)
+            b.tvTypeBadge.setTextColor(ThemeColors.textMuted(context))
+        } else if (period.isSubstitute) {
+            b.cardRoot.clearAnimation()
+            bindStatusColor(context, b, ThemeColors.warning(context))
+            b.cardRoot.setBackgroundResource(R.drawable.bg_card_notice_sub)
+            b.tvSubstituteMsg.isVisible = true
+            b.tvSubstituteMsg.text = "Substitute: ${period.substituteTeacher}"
+            b.tvTypeBadge.text = "SUBSTITUTE"
+            b.tvTypeBadge.setBackgroundResource(R.drawable.bg_badge_purple)
+            b.tvTypeBadge.setTextColor(ThemeColors.warning(context))
         } else {
             b.cardRoot.clearAnimation()
-            when {
-                isPausedByCalendarException -> {
-                    bindStatusColor(context, b, ThemeColors.textMuted(context))
-                    b.cardRoot.setBackgroundResource(R.drawable.bg_card_paused)
-                    b.tvSubstituteMsg.isVisible = true
-                    b.tvSubstituteMsg.text = "Class reminders are paused today"
-                    b.tvTypeBadge.text = "PAUSED"
-                    b.tvTypeBadge.setBackgroundResource(R.drawable.bg_badge_paused)
-                    b.tvTypeBadge.setTextColor(ThemeColors.textMuted(context))
-                }
-
-                period.isCancelled -> {
-                    bindStatusColor(context, b, ThemeColors.error(context))
-                    b.cardRoot.setBackgroundResource(R.drawable.bg_card_notice_cancel)
-                    b.vEndDot.backgroundTintList = ColorStateList.valueOf(ThemeColors.error(context))
-                    b.layoutStartClock.background = rounded(context, 50f, ColorUtils.setAlphaComponent(ThemeColors.error(context), 24))
-                    b.tvTypeBadge.text = "CANCELLED"
-                    b.tvTypeBadge.setBackgroundResource(R.drawable.bg_badge_red)
-                    b.tvTypeBadge.setTextColor(ThemeColors.error(context))
-                    b.layoutDuration.isVisible = false
-                    b.vCancelledDivider.isVisible = true
-                }
-
-
-
-                isCompleted -> {
-                    val mutedColor = ThemeColors.textMuted(context)
-                    bindStatusColor(context, b, mutedColor)
-                    b.cardRoot.setBackgroundResource(R.drawable.bg_card_paused)
-                    
-                    if (period.isSubstitute) {
-                        b.tvSubstituteMsg.isVisible = true
-                        b.tvSubstituteMsg.text = "Substitute: ${period.substituteTeacher}"
-                    }
-                    
-                    b.tvTypeBadge.text = "COMPLETED"
-                    b.tvTypeBadge.setBackgroundResource(R.drawable.bg_library_badge_green)
-                    b.tvTypeBadge.setTextColor(ThemeColors.success(context))
-                }
-
-                period.isSubstitute -> {
-                    bindStatusColor(context, b, ThemeColors.warning(context))
-                    b.cardRoot.setBackgroundResource(R.drawable.bg_card_notice_sub)
-                    b.tvSubstituteMsg.isVisible = true
-                    b.tvSubstituteMsg.text = "Substitute: ${period.substituteTeacher}"
-                    b.tvTypeBadge.text = "SUBSTITUTE"
-                    b.tvTypeBadge.setBackgroundResource(R.drawable.bg_badge_purple)
-                    b.tvTypeBadge.setTextColor(ThemeColors.warning(context))
-                }
-                    
-                else -> {
-                    bindStatusColor(context, b, accent)
-                    b.cardRoot.setBackgroundResource(R.drawable.bg_card_primary)
-                    if (isLabSession) {
-                        b.tvTypeBadge.text = "LAB"
-                        b.tvTypeBadge.setBackgroundResource(R.drawable.bg_badge_green)
-                        b.tvTypeBadge.setTextColor(ContextCompat.getColor(context, R.color.cm_file_lab_text))
-                    } else {
-                        b.tvTypeBadge.text = "CLASS"
-                        b.tvTypeBadge.setBackgroundResource(R.drawable.bg_badge_blue)
-                        b.tvTypeBadge.setTextColor(ThemeColors.primary(context))
-                    }
-                }
+            bindStatusColor(context, b, accent)
+            b.cardRoot.setBackgroundResource(R.drawable.bg_card_primary)
+            if (isLabSession) {
+                b.tvTypeBadge.text = "LAB"
+                b.tvTypeBadge.setBackgroundResource(R.drawable.bg_badge_green)
+                b.tvTypeBadge.setTextColor(ContextCompat.getColor(context, R.color.cm_file_lab_text))
+            } else {
+                b.tvTypeBadge.text = "CLASS"
+                b.tvTypeBadge.setBackgroundResource(R.drawable.bg_badge_blue)
+                b.tvTypeBadge.setTextColor(ThemeColors.primary(context))
             }
         }
 

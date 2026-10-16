@@ -38,6 +38,12 @@ object LibraryUrlOpener {
         Toast.makeText(context, "Opening resource...", Toast.LENGTH_SHORT).show()
 
         val uri = Uri.parse(url)
+        val scheme = uri.scheme?.lowercase()
+        if (scheme != "http" && scheme != "https") {
+            Toast.makeText(context, "Invalid or unsafe link", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         try {
             val customTabsIntent = CustomTabsIntent.Builder()
                 .setShowTitle(true)

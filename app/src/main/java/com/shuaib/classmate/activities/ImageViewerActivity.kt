@@ -170,7 +170,7 @@ class ImageViewerActivity : AppCompatActivity() {
                 Toast.makeText(this, "✅ Image saved to Gallery!", Toast.LENGTH_SHORT).show()
             }
         } catch (e: Exception) {
-            Toast.makeText(this, "Failed to save: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Failed to save: Please try again later.", Toast.LENGTH_SHORT).show()
         } finally {
             btnSave.isEnabled = true
         }
@@ -197,7 +197,7 @@ class ImageViewerActivity : AppCompatActivity() {
 
             val shareUri: Uri = FileProvider.getUriForFile(
                 this,
-                "${packageName}.fileprovider",
+                "${packageName}.provider",
                 shareFile
             )
 
@@ -209,7 +209,7 @@ class ImageViewerActivity : AppCompatActivity() {
             }
             startActivity(Intent.createChooser(shareIntent, "Share notice image via"))
         } catch (e: Exception) {
-            Toast.makeText(this, "Failed to share: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Failed to share: Please try again later.", Toast.LENGTH_SHORT).show()
         } finally {
             btnShare.isEnabled = true
         }

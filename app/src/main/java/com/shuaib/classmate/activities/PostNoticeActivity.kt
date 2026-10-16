@@ -54,6 +54,7 @@ class PostNoticeActivity : AppCompatActivity() {
 
     private var isAiPostingMode = false
     private var currentUserBatch: String = ""
+    private var currentUserSemester: String = ""
     private var aiPolishedNotice: com.shuaib.classmate.models.AiNoticeDraft? = null
 
     // Attachment fields
@@ -108,14 +109,25 @@ class PostNoticeActivity : AppCompatActivity() {
         db = FirebaseFirestore.getInstance()
         auth = FirebaseAuth.getInstance()
 
+        val prefs = com.shuaib.classmate.utils.AppPreferences(this)
+        currentUserBatch = prefs.getUserBatch()
+        currentUserSemester = prefs.getUserSemester()
+
         setupToolbar()
         setupTypeSelector()
         setupPostingMode()
+
+        if (SubjectList.subjects.isEmpty()) {
+            SubjectList.fetchSubjects { setupSubjectPicker() }
+        } else {
+            setupSubjectPicker()
+        }
         
         // Check if teacher
         auth.currentUser?.uid?.let { uid ->
             db.collection("users").document(uid).get().addOnSuccessListener { doc ->
-                currentUserBatch = doc.getString("batch") ?: ""
+                currentUserBatch = doc.getString("batch")?.takeIf { it.isNotBlank() } ?: currentUserBatch
+                currentUserSemester = doc.getString("semester")?.takeIf { it.isNotBlank() } ?: currentUserSemester
                 setupSubjectPicker()
                 if (doc.getString("role") == "teacher") {
                     binding.rbNormal.isVisible = false
@@ -125,9 +137,17 @@ class PostNoticeActivity : AppCompatActivity() {
                     
                     binding.toggleTarget.isVisible = false
                     binding.sectionTargetBatch.isVisible = true
-                    val allBatches = com.shuaib.classmate.utils.SubjectList.subjects.map { it.batch }.filter { it.isNotBlank() && !it.equals("all", true) }.distinct().sorted()
+                    val subjectBatches = com.shuaib.classmate.utils.SubjectList.subjects
+                        .map { it.batch }
+                        .filter { it.isNotBlank() && !it.equals("all", true) }
+                        .distinct()
+                        .sorted()
+                    val allBatches = listOf("all") + subjectBatches
                     val batchAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, allBatches)
                     binding.dropdownTargetBatch.setAdapter(batchAdapter)
+                    if (binding.dropdownTargetBatch.text.isNullOrBlank()) {
+                        binding.dropdownTargetBatch.setText("all", false)
+                    }
                     binding.dropdownTargetBatch.setOnItemClickListener { _, _, position, _ ->
                         currentUserBatch = allBatches[position]
                         setupSubjectPicker()
@@ -226,7 +246,7 @@ class PostNoticeActivity : AppCompatActivity() {
             .addOnFailureListener { e ->
                 binding.progressBar.isVisible = false
                 binding.btnPublish.isEnabled = true
-                Toast.makeText(this, "Update failed: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Update failed: Please try again later.", Toast.LENGTH_LONG).show()
             }
     }
 
@@ -342,12 +362,21 @@ class PostNoticeActivity : AppCompatActivity() {
     }
 
     private fun setupSubjectPicker() {
-        val filteredSubjects = if (currentUserBatch.isNotBlank() && !currentUserBatch.equals("all", ignoreCase = true)) {
-            SubjectList.subjects.filter { it.batch.equals(currentUserBatch, ignoreCase = true) || it.batch.isBlank() || it.batch.equals("all", ignoreCase = true) }
+        val filteredSubjects = if (
+            (currentUserBatch.isNotBlank() && !currentUserBatch.equals("all", ignoreCase = true)) ||
+            currentUserSemester.isNotBlank()
+        ) {
+            SubjectList.subjects.filter {
+                it.batch.isBlank() ||
+                    it.batch.equals("all", ignoreCase = true) ||
+                    (currentUserBatch.isNotBlank() && it.batch.equals(currentUserBatch, ignoreCase = true)) ||
+                    (currentUserSemester.isNotBlank() && it.batch.equals(currentUserSemester, ignoreCase = true))
+            }
         } else {
             SubjectList.subjects
         }
-        val subjectNames = filteredSubjects.map { it.fullName }
+        val finalSubjects = filteredSubjects.ifEmpty { SubjectList.subjects }
+        val subjectNames = finalSubjects.map { it.fullName }
         val subjectAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, subjectNames)
         binding.dropdownSubject.setAdapter(subjectAdapter)
     }
@@ -418,7 +447,7 @@ class PostNoticeActivity : AppCompatActivity() {
     private fun publishAiCancellation(result: com.shuaib.classmate.models.AiNoticeDraft) {
         val rawSubject = result.subject?.ifBlank { binding.dropdownSubject.text.toString().trim() } ?: binding.dropdownSubject.text.toString().trim()
         val subject = com.shuaib.classmate.utils.SubjectList.subjects.find { 
-            it.name.equals(rawSubject, true) || it.fullName.equals(rawSubject, true) || it.code.equals(rawSubject, true)
+            it.name.equals(rawSubject, true) || it.fullName.equals(rawSubject, true) || it.code.equals(rawSubject, true) || SubjectList.isSameCourse(it.fullName, rawSubject)
         }?.fullName ?: rawSubject
 
         var targetDate = result.date?.ifBlank { DateHelper.today() } ?: DateHelper.today()
@@ -458,6 +487,7 @@ class PostNoticeActivity : AppCompatActivity() {
             "targetSubject" to subject,
             "targetDay" to targetDay,
             "cancelDate" to targetDate,
+            "submissionDate" to targetDate,
             "createdAt" to FieldValue.serverTimestamp(),
             "updatedAt" to FieldValue.serverTimestamp(),
             "isPinned" to false,
@@ -479,11 +509,10 @@ class PostNoticeActivity : AppCompatActivity() {
             binding.etTitle.error = "Title required"
             return
         }
-        if (bodyText.length > 5000) {
-            Toast.makeText(this, "Body text exceeds 5000 characters limit", Toast.LENGTH_SHORT).show()
+        if (titleText.length > 150) {
+            binding.etTitle.error = "Title too long (max 150 characters)"
             return
         }
-
         if (bodyText.length > 5000) {
             Toast.makeText(this, "Body text exceeds 5000 characters limit", Toast.LENGTH_SHORT).show()
             return
@@ -647,6 +676,7 @@ class PostNoticeActivity : AppCompatActivity() {
             "targetSubject" to selectedSubject,
             "targetDay" to targetDayString,
             "cancelDate" to targetDate,
+            "submissionDate" to targetDate,
             "createdAt" to FieldValue.serverTimestamp(),
             "updatedAt" to FieldValue.serverTimestamp(),
             "isPinned" to false,
@@ -668,46 +698,59 @@ class PostNoticeActivity : AppCompatActivity() {
     }
 
     private fun markPeriodAsCancelled(subject: String, day: String, cancelDate: String, whenText: String, noticeId: String? = null, targetBatchId: String) {
-        sendCancellationNotification(subject, whenText, day, noticeId, targetBatchId)
-        
+        val normalizedDay = day.lowercase()
         db.collection("timetable")
-            .document(day)
+            .document(normalizedDay)
             .collection("periods")
             .get()
             .addOnSuccessListener { snapshot ->
-                if (snapshot.isEmpty) return@addOnSuccessListener
-
-                val batch = db.batch()
-                var updatedCount = 0
-                snapshot.documents.forEach { doc ->
+                val matchingSubjectDocs = snapshot.documents.filter { doc ->
                     val docSubject = doc.getString("subject") ?: ""
+                    SubjectList.isSameCourse(docSubject, subject)
+                }
+
+                val docsToUpdate = matchingSubjectDocs.filter { doc ->
                     val docBatch = doc.getString("batch") ?: ""
-                    
-                    val docName = if (docSubject.contains("-")) docSubject.substringAfter("-").trim() else docSubject.trim()
-                    val queryName = if (subject.contains("-")) subject.substringAfter("-").trim() else subject.trim()
-                    
-                    val exactMatch = docSubject.equals(subject, ignoreCase = true)
-                    val nameMatch = docName.isNotBlank() && queryName.isNotBlank() && 
-                        (docName.equals(queryName, ignoreCase = true) || docName.contains(queryName, ignoreCase = true) || queryName.contains(docName, ignoreCase = true))
-                    
-                    val subjectMatches = exactMatch || nameMatch
-                    
-                    if (subjectMatches) {
+                    targetBatchId.equals("all", ignoreCase = true) ||
+                        docBatch.isBlank() ||
+                        docBatch.equals("all", ignoreCase = true) ||
+                        docBatch.equals(targetBatchId, ignoreCase = true) ||
+                        (currentUserSemester.isNotBlank() && docBatch.equals(currentUserSemester, ignoreCase = true))
+                }.ifEmpty { matchingSubjectDocs }
+
+                if (docsToUpdate.isNotEmpty()) {
+                    val batch = db.batch()
+                    docsToUpdate.forEach { doc ->
                         batch.update(doc.reference, mapOf(
                             "isCancelled" to true,
                             "cancelDate" to cancelDate
                         ))
-                        updatedCount++
                     }
+                    batch.commit()
+                        .addOnSuccessListener {
+                            lifecycleScope.launch {
+                                runCatching {
+                                    com.shuaib.classmate.repositories.TimetableRepository
+                                        .getInstance(applicationContext)
+                                        .syncDayFromFirestore(normalizedDay, com.google.firebase.firestore.Source.SERVER)
+                                }
+                                WidgetUpdater.refresh(this@PostNoticeActivity)
+                                sendCancellationNotification(subject, whenText, normalizedDay, noticeId, targetBatchId)
+                            }
+                        }
+                        .addOnFailureListener {
+                            Toast.makeText(this, "Failed to update timetable: Please try again later.", Toast.LENGTH_LONG).show()
+                            WidgetUpdater.refresh(this)
+                            sendCancellationNotification(subject, whenText, normalizedDay, noticeId, targetBatchId)
+                        }
+                } else {
+                    WidgetUpdater.refresh(this)
+                    sendCancellationNotification(subject, whenText, normalizedDay, noticeId, targetBatchId)
                 }
-
-                if (updatedCount > 0) {
-                    batch.commit().addOnSuccessListener {
-                        WidgetUpdater.refresh(this)
-                    }.addOnFailureListener { e ->
-                        Toast.makeText(this, "Failed to update timetable: ${e.message}", Toast.LENGTH_LONG).show()
-                    }
-                }
+            }
+            .addOnFailureListener {
+                WidgetUpdater.refresh(this)
+                sendCancellationNotification(subject, whenText, normalizedDay, noticeId, targetBatchId)
             }
     }
 
@@ -741,7 +784,7 @@ class PostNoticeActivity : AppCompatActivity() {
         }
 
         val selectedSubject = com.shuaib.classmate.utils.SubjectList.subjects.find {
-            it.name.equals(rawSubject, true) || it.fullName.equals(rawSubject, true) || it.code.equals(rawSubject, true)
+            it.name.equals(rawSubject, true) || it.fullName.equals(rawSubject, true) || it.code.equals(rawSubject, true) || SubjectList.isSameCourse(it.fullName, rawSubject)
         }?.fullName ?: rawSubject
 
         val isToday = binding.rbToday.isChecked
@@ -780,6 +823,7 @@ class PostNoticeActivity : AppCompatActivity() {
             "targetDay" to targetDayString,
             "substituteTeacher" to subTeacher,
             "substituteDate" to targetDate,
+            "submissionDate" to targetDate,
             "createdAt" to FieldValue.serverTimestamp(),
             "updatedAt" to FieldValue.serverTimestamp(),
             "isPinned" to false,
@@ -792,21 +836,44 @@ class PostNoticeActivity : AppCompatActivity() {
         newNoticeRef.set(noticeData)
         
         db.collection("timetable")
-            .document(targetDayString)
+            .document(targetDayString.lowercase())
             .collection("periods")
-            .whereEqualTo("subject", selectedSubject)
             .get()
             .addOnSuccessListener { snapshot ->
-                val batch = db.batch()
-                snapshot.documents.forEach { doc ->
-                    batch.update(doc.reference, mapOf(
-                        "isSubstitute" to true,
-                        "substituteTeacher" to subTeacher,
-                        "substituteDate" to targetDate
-                    ))
+                val matchingSubjectDocs = snapshot.documents.filter { doc ->
+                    val docSubject = doc.getString("subject") ?: ""
+                    SubjectList.isSameCourse(docSubject, selectedSubject)
                 }
-                batch.commit().addOnFailureListener { e ->
-                    Toast.makeText(this, "Failed to update timetable: ${e.message}", Toast.LENGTH_LONG).show()
+                val docsToUpdate = matchingSubjectDocs.filter { doc ->
+                    val docBatch = doc.getString("batch") ?: ""
+                    targetBatchId.equals("all", ignoreCase = true) ||
+                        docBatch.isBlank() ||
+                        docBatch.equals("all", ignoreCase = true) ||
+                        docBatch.equals(targetBatchId, ignoreCase = true) ||
+                        (currentUserSemester.isNotBlank() && docBatch.equals(currentUserSemester, ignoreCase = true))
+                }.ifEmpty { matchingSubjectDocs }
+
+                if (docsToUpdate.isNotEmpty()) {
+                    val batch = db.batch()
+                    docsToUpdate.forEach { doc ->
+                        batch.update(doc.reference, mapOf(
+                            "isSubstitute" to true,
+                            "substituteTeacher" to subTeacher,
+                            "substituteDate" to targetDate
+                        ))
+                    }
+                    batch.commit().addOnSuccessListener {
+                        lifecycleScope.launch {
+                            runCatching {
+                                com.shuaib.classmate.repositories.TimetableRepository
+                                    .getInstance(applicationContext)
+                                    .syncDayFromFirestore(targetDayString.lowercase(), com.google.firebase.firestore.Source.SERVER)
+                            }
+                            WidgetUpdater.refresh(this@PostNoticeActivity)
+                        }
+                    }.addOnFailureListener {
+                        Toast.makeText(this, "Failed to update timetable: Please try again later.", Toast.LENGTH_LONG).show()
+                    }
                 }
             }
             

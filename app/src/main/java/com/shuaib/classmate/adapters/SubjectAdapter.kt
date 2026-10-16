@@ -34,7 +34,7 @@ class SubjectAdapter(
             tvSubjectName.text = subject.name
             SubjectVisuals.applyTo(iconContainer, ivSubjectIcon, subject.name, radiusDp = 13f)
 
-            val count = pdfCounts[subject.name] ?: 0
+            val count = pdfCounts[subject.name] ?: pdfCounts[subject.fullName] ?: (if (subject.code.isNotBlank()) pdfCounts[subject.code] else null) ?: 0
             val fileText = when (count) {
                 0 -> "No resources"
                 1 -> "1 resource"

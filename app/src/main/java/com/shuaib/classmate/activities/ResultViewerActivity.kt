@@ -84,7 +84,7 @@ class ResultViewerActivity : AppCompatActivity() {
             .addOnFailureListener { e ->
                 binding.progressBar.visibility = View.GONE
                 binding.swipeRefresh.isRefreshing = false
-                Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Error: Please try again later.", Toast.LENGTH_SHORT).show()
             }
     }
 

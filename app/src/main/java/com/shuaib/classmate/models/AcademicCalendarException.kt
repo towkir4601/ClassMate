@@ -9,6 +9,7 @@ data class AcademicCalendarException(
     val startDate: String = "",
     val endDate: String = "",
     val scope: String = SCOPE_ALL_CLASSES,
+    val targetBatches: List<String> = emptyList(),
     val reason: String = "",
     val isActive: Boolean = true,
     val showHolidayBriefing: Boolean = false,
@@ -22,6 +23,7 @@ data class AcademicCalendarException(
         const val TYPE_HOLIDAY = "HOLIDAY"
         const val TYPE_CLASS_SUSPENDED = "CLASS_SUSPENDED"
         const val SCOPE_ALL_CLASSES = "ALL_CLASSES"
+        const val SCOPE_SPECIFIC_BATCHES = "SPECIFIC_BATCHES"
 
         val SUPPORTED_TYPES = setOf(TYPE_VACATION, TYPE_HOLIDAY, TYPE_CLASS_SUSPENDED)
     }

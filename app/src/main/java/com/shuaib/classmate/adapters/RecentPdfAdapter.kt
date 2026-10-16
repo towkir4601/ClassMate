@@ -27,6 +27,7 @@ class RecentPdfAdapter(
 
     var onDeleteClick: ((PdfFile) -> Unit)? = null
     var onFavoriteClick: ((PdfFile) -> Unit)? = null
+    var onShareClick: ((PdfFile) -> Unit)? = null
 
     inner class ViewHolder(val binding: ItemRecentPdfBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -70,13 +71,13 @@ class RecentPdfAdapter(
             }
 
             root.setOnLongClickListener {
+                it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                 if (isAdmin) {
-                    it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                     onDeleteClick?.invoke(pdf)
-                    true
                 } else {
-                    false
+                    onShareClick?.invoke(pdf) ?: com.shuaib.classmate.utils.LibraryShareHelper.sharePdfLink(root.context, pdf)
                 }
+                true
             }
 
             root.applyClickAnimation {

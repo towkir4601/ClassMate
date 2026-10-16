@@ -26,6 +26,7 @@ import com.shuaib.classmate.models.PdfFile
 import com.shuaib.classmate.storage.LibraryUrlOpener
 import com.shuaib.classmate.utils.LibrarySystemBars
 import com.shuaib.classmate.utils.PdfDialogHelper
+import com.shuaib.classmate.utils.Subject
 import com.shuaib.classmate.utils.SubjectList
 import com.shuaib.classmate.utils.ThemeColors
 import com.shuaib.classmate.utils.applyClickAnimation
@@ -111,7 +112,12 @@ class SubjectPdfListFragment : Fragment() {
             .addOnSuccessListener { doc ->
                 if (_binding == null) return@addOnSuccessListener
                 val favorites = doc.get("favoriteSubjects") as? List<String> ?: emptyList()
-                isFavorite = favorites.contains(args.subjectName)
+                val subjectInfo = SubjectList.subjects.find { it.name.equals(args.subjectName, true) || it.fullName.equals(args.subjectName, true) }
+                isFavorite = favorites.any { fav ->
+                    fav.equals(args.subjectName, true) ||
+                    (subjectInfo != null && fav.equals(subjectInfo.fullName, true)) ||
+                    (subjectInfo != null && fav.equals(subjectInfo.name, true))
+                }
                 updateFavoriteIcon()
 
                 favoritePdfIds = (doc.get("favoritePdfIds") as? List<String> ?: emptyList()).toSet()
@@ -152,6 +158,10 @@ class SubjectPdfListFragment : Fragment() {
 
     private fun renderFilters() {
         if (_binding == null) return
+        if (args.isQuestionBank) {
+            (binding.resourceChipContainer.parent as View).visibility = View.GONE
+            return
+        }
         binding.resourceChipContainer.removeAllViews()
         lockParentSwipeWhileTouching(binding.resourceChipContainer.parent as View)
         Filter.values().forEach { filter ->
@@ -192,6 +202,7 @@ class SubjectPdfListFragment : Fragment() {
                 val canUploadPdf = doc.getBoolean("permissions.canUploadPDF") ?: false
                 val canUploadLibrary = doc.getBoolean("permissions.canUploadLibrary") ?: false
                 isAdmin = role == "superadmin" || role == "admin" || canUploadPdf || canUploadLibrary
+                currentUserBatch = doc.getString("batch") ?: ""
                 onComplete()
             }
             .addOnFailureListener { onComplete() }
@@ -229,11 +240,24 @@ class SubjectPdfListFragment : Fragment() {
         val uid = auth.currentUser?.uid
         if (uid != null) {
             db.collection("users").document(uid).get().addOnSuccessListener { doc ->
-                currentUserBatch = doc.getString("batch") ?: ""
+                currentUserBatch = doc.getString("batch") ?: currentUserBatch
                 val role = doc.getString("role") ?: "student"
-                isAdmin = (role == "superadmin")
-                fetchLibraryFiles()
+                val canUploadPdf = doc.getBoolean("permissions.canUploadPDF") ?: false
+                val canUploadLibrary = doc.getBoolean("permissions.canUploadLibrary") ?: false
+                isAdmin = role == "superadmin" || role == "admin" || canUploadPdf || canUploadLibrary
+                ensureSubjectsAndFetchFiles()
             }.addOnFailureListener {
+                ensureSubjectsAndFetchFiles()
+            }
+        } else {
+            ensureSubjectsAndFetchFiles()
+        }
+    }
+
+    private fun ensureSubjectsAndFetchFiles() {
+        if (SubjectList.subjects.isEmpty()) {
+            SubjectList.fetchSubjects {
+                if (_binding == null) return@fetchSubjects
                 fetchLibraryFiles()
             }
         } else {
@@ -242,20 +266,40 @@ class SubjectPdfListFragment : Fragment() {
     }
 
     private fun fetchLibraryFiles() {
-        db.collection("library_files")
-            .whereEqualTo("subject", args.subjectName)
-            .whereEqualTo("isDeleted", false)
-            .get()
-            .addOnSuccessListener { snapshot ->
+        val subjectInfo = SubjectList.subjects.find {
+            it.name.equals(args.subjectName, ignoreCase = true) ||
+            it.fullName.equals(args.subjectName, ignoreCase = true) ||
+            (it.code.isNotBlank() && it.code.equals(args.subjectName, ignoreCase = true))
+        }
+
+        val targetCollection = if (args.isQuestionBank && subjectInfo?.type != "question_bank") "question_bank" else "library_files"
+
+        val queryTasks = if (args.isQuestionBank) {
+            listOf(
+                db.collection("question_bank").whereEqualTo("isDeleted", false).get(),
+                db.collection("library_files").whereEqualTo("isDeleted", false).get()
+            )
+        } else {
+            listOf(
+                db.collection(targetCollection).whereEqualTo("isDeleted", false).get()
+            )
+        }
+
+        com.google.android.gms.tasks.Tasks.whenAllSuccess<com.google.firebase.firestore.QuerySnapshot>(queryTasks)
+            .addOnSuccessListener { snapshots ->
                 if (_binding == null) return@addOnSuccessListener
                 binding.shimmerView.stopShimmer()
                 binding.shimmerView.isVisible = false
                 binding.rvSubjectPdfs.isVisible = true
                 binding.swipeRefresh.isRefreshing = false
 
-                allResources = snapshot.documents.map { doc -> doc.toPdfFile() }
+                val allDocs = snapshots.flatMap { it.documents }
+                val rawPdfs = allDocs.map { it.toPdfFile() }.distinctBy { it.id }
+
+                allResources = rawPdfs
                     .filterNot { it.isDeleted }
-                    .filter { isAdmin || it.batch.isEmpty() || it.batch == currentUserBatch }
+                    .filter { isAdmin || it.batch.isBlank() || it.batch.equals("all", ignoreCase = true) || it.batch.equals(currentUserBatch, ignoreCase = true) }
+                    .filter { pdf -> isSubjectMatch(pdf, args.subjectName, subjectInfo) }
                     .sortedByDescending { it.timestamp ?: it.createdAt }
 
                 binding.tvSubjectCode.text = "${subjectCode()} - ${allResources.size} resources"
@@ -267,8 +311,32 @@ class SubjectPdfListFragment : Fragment() {
                 binding.shimmerView.isVisible = false
                 binding.rvSubjectPdfs.isVisible = true
                 binding.swipeRefresh.isRefreshing = false
-                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                android.util.Log.e("SubjectPdfList", "Failed to fetch files", e)
+                Toast.makeText(context, "Error: Please try again later.", Toast.LENGTH_SHORT).show()
             }
+    }
+
+    private fun isSubjectMatch(pdf: PdfFile, targetSubjectName: String, subjectInfo: Subject?): Boolean {
+        val s = pdf.subject.trim()
+        val target = targetSubjectName.trim()
+
+        if (s.equals(target, ignoreCase = true)) return true
+
+        if (subjectInfo != null) {
+            if (s.equals(subjectInfo.name.trim(), ignoreCase = true)) return true
+            if (s.equals(subjectInfo.fullName.trim(), ignoreCase = true)) return true
+            if (subjectInfo.code.isNotBlank() && s.equals(subjectInfo.code.trim(), ignoreCase = true)) return true
+            if (subjectInfo.code.isNotBlank() && pdf.courseCode.trim().equals(subjectInfo.code.trim(), ignoreCase = true)) return true
+        }
+
+        if (SubjectList.isSameCourse(s, target)) return true
+        if (subjectInfo != null && SubjectList.isSameCourse(s, subjectInfo.fullName)) return true
+        if (subjectInfo != null && SubjectList.isSameCourse(s, subjectInfo.name)) return true
+        if (pdf.courseCode.isNotBlank() && subjectInfo != null && subjectInfo.code.isNotBlank()) {
+            if (SubjectList.isSameCourse(pdf.courseCode, subjectInfo.code)) return true
+        }
+
+        return false
     }
 
     private fun applyResourceFilter() {
@@ -291,7 +359,8 @@ class SubjectPdfListFragment : Fragment() {
                 .addOnFailureListener {
                     favoritePdfIds = wasFavoritePdfIds
                     pdfAdapter.updateList(allResources.filter { matchesFilter(it) }, favoritePdfIds)
-                    Toast.makeText(context, "Save failed: ${it.message}", Toast.LENGTH_SHORT).show()
+                    android.util.Log.e("SubjectPdfList", "Save favorite failed", it)
+                    Toast.makeText(context, "Save failed. Please try again.", Toast.LENGTH_SHORT).show()
                 }
         } else {
             favoritePdfIds = favoritePdfIds - pdf.id
@@ -300,7 +369,8 @@ class SubjectPdfListFragment : Fragment() {
                 .addOnFailureListener {
                     favoritePdfIds = wasFavoritePdfIds
                     pdfAdapter.updateList(allResources.filter { matchesFilter(it) }, favoritePdfIds)
-                    Toast.makeText(context, "Remove failed: ${it.message}", Toast.LENGTH_SHORT).show()
+                    android.util.Log.e("SubjectPdfList", "Remove favorite failed", it)
+                    Toast.makeText(context, "Remove failed. Please try again.", Toast.LENGTH_SHORT).show()
                 }
         }
 
@@ -358,8 +428,11 @@ class SubjectPdfListFragment : Fragment() {
     }
 
     private fun updatePdfBatch(pdf: PdfFile, newBatch: String) {
+        val subjectInfo = SubjectList.subjects.find { it.name.equals(args.subjectName, ignoreCase = true) || it.fullName.equals(args.subjectName, ignoreCase = true) }
+        val targetCollection = if (args.isQuestionBank && subjectInfo?.type != "question_bank") "question_bank" else "library_files"
+        
         binding.progressBar.visibility = View.VISIBLE
-        db.collection("library_files").document(pdf.id)
+        db.collection(targetCollection).document(pdf.id)
             .update(
                 mapOf(
                     "batch" to newBatch,
@@ -371,15 +444,33 @@ class SubjectPdfListFragment : Fragment() {
                 Toast.makeText(context, "Batch updated successfully", Toast.LENGTH_SHORT).show()
                 fetchPdfs()
             }
-            .addOnFailureListener { e ->
-                binding.progressBar.visibility = View.GONE
-                Toast.makeText(context, "Update failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            .addOnFailureListener {
+                val fallbackCollection = if (targetCollection == "question_bank") "library_files" else "question_bank"
+                db.collection(fallbackCollection).document(pdf.id)
+                    .update(
+                        mapOf(
+                            "batch" to newBatch,
+                            "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                        )
+                    )
+                    .addOnSuccessListener {
+                        binding.progressBar.visibility = View.GONE
+                        Toast.makeText(context, "Batch updated successfully", Toast.LENGTH_SHORT).show()
+                        fetchPdfs()
+                    }
+                    .addOnFailureListener {
+                        binding.progressBar.visibility = View.GONE
+                        Toast.makeText(context, "Update failed: Please try again later.", Toast.LENGTH_SHORT).show()
+                    }
             }
     }
 
     private fun deletePdf(pdf: PdfFile) {
+        val subjectInfo = SubjectList.subjects.find { it.name.equals(args.subjectName, ignoreCase = true) || it.fullName.equals(args.subjectName, ignoreCase = true) }
+        val targetCollection = if (args.isQuestionBank && subjectInfo?.type != "question_bank") "question_bank" else "library_files"
+        
         binding.progressBar.visibility = View.VISIBLE
-        db.collection("library_files").document(pdf.id)
+        db.collection(targetCollection).document(pdf.id)
             .update(
                 mapOf(
                     "isDeleted" to true,
@@ -393,9 +484,25 @@ class SubjectPdfListFragment : Fragment() {
                 fetchPdfs()
             }
             .addOnFailureListener {
-                if (_binding == null) return@addOnFailureListener
-                binding.progressBar.visibility = View.GONE
-                Toast.makeText(context, "Failed to delete", Toast.LENGTH_SHORT).show()
+                val fallbackCollection = if (targetCollection == "question_bank") "library_files" else "question_bank"
+                db.collection(fallbackCollection).document(pdf.id)
+                    .update(
+                        mapOf(
+                            "isDeleted" to true,
+                            "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                        )
+                    )
+                    .addOnSuccessListener {
+                        if (_binding == null) return@addOnSuccessListener
+                        binding.progressBar.visibility = View.GONE
+                        Toast.makeText(context, "Deleted successfully", Toast.LENGTH_SHORT).show()
+                        fetchPdfs()
+                    }
+                    .addOnFailureListener {
+                        if (_binding == null) return@addOnFailureListener
+                        binding.progressBar.visibility = View.GONE
+                        Toast.makeText(context, "Failed to delete", Toast.LENGTH_SHORT).show()
+                    }
             }
     }
 

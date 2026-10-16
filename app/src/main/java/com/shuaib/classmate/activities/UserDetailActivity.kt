@@ -124,12 +124,12 @@ class UserDetailActivity : AppCompatActivity() {
                     }
                     .addOnFailureListener { e ->
                         binding.progressBar.visibility = View.GONE
-                        Toast.makeText(this, "Could not load user: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, "Could not load user: Please try again later.", Toast.LENGTH_SHORT).show()
                     }
             }
             .addOnFailureListener { e ->
                 binding.progressBar.visibility = View.GONE
-                Toast.makeText(this, "Could not verify admin: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Could not verify admin: Please try again later.", Toast.LENGTH_SHORT).show()
             }
     }
 
@@ -203,6 +203,8 @@ class UserDetailActivity : AppCompatActivity() {
             updates["permissions"] = alignedPermissions
         }
 
+        updates["updatedAt"] = com.google.firebase.Timestamp.now()
+
         binding.progressBar.visibility = View.VISIBLE
         binding.btnSave.isEnabled = false
         firestore.collection("users").document(targetUser.uid)
@@ -215,9 +217,11 @@ class UserDetailActivity : AppCompatActivity() {
                 overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
             }
             .addOnFailureListener { e ->
+                android.util.Log.e("UserDetailActivity", "Failed to update user access", e)
                 binding.progressBar.visibility = View.GONE
                 binding.btnSave.isEnabled = true
-                Toast.makeText(this, "Update failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                val msg = e.localizedMessage ?: "Please try again later."
+                Toast.makeText(this, "Update failed: $msg", Toast.LENGTH_LONG).show()
             }
     }
 

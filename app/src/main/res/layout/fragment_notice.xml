@@ -235,7 +235,7 @@
                             android:id="@+id/tvNoticeTitle"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:fontFamily="serif"
+                            
                             android:includeFontPadding="false"
                             android:maxLines="1"
                             android:text="@string/nav_notices"

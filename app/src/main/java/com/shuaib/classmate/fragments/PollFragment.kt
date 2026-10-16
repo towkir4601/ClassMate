@@ -148,7 +148,7 @@ class PollFragment : Fragment() {
             .addOnSuccessListener { refreshPollsOnce() }
             .addOnFailureListener { e ->
                 Toast.makeText(context,
-                    "Vote failed: ${e.message}",
+                    "Vote failed: Please try again later.",
                     Toast.LENGTH_SHORT).show()
             }
     }

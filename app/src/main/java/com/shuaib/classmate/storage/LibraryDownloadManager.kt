@@ -19,8 +19,13 @@ object LibraryDownloadManager {
     private const val TAG = "LibraryDownload"
     private const val DOWNLOADS_DIR = "library_downloads"
 
+    fun sanitizeFileId(rawId: String): String {
+        return rawId.replace(Regex("[^a-zA-Z0-9_-]"), "_").ifBlank { "file" }
+    }
+
     fun isDownloaded(context: Context, fileId: String): Boolean {
-        val file = File(getDownloadsDir(context), "$fileId.pdf")
+        val safeId = sanitizeFileId(fileId)
+        val file = File(getDownloadsDir(context), "$safeId.pdf")
         return file.exists() && file.length() > 0
     }
 
@@ -166,8 +171,9 @@ object LibraryDownloadManager {
                             return
                         }
 
-                        val file = File(dir, "${pdfFile.id}.pdf")
-                        val tempFile = File(dir, "${pdfFile.id}.download")
+                        val safeId = sanitizeFileId(pdfFile.id)
+                        val file = File(dir, "$safeId.pdf")
+                        val tempFile = File(dir, "$safeId.download")
                         if (tempFile.exists()) tempFile.delete()
 
                         body.byteStream().use { inputStream ->
@@ -207,7 +213,8 @@ object LibraryDownloadManager {
                         onSuccess()
                     } catch (e: Exception) {
                         Log.e(TAG, "Error writing file to storage", e)
-                        File(getDownloadsDir(context), "${pdfFile.id}.download").delete()
+                        val safeId = sanitizeFileId(pdfFile.id)
+                        File(getDownloadsDir(context), "$safeId.download").delete()
                         onFailure(e)
                     }
                 }
@@ -217,8 +224,9 @@ object LibraryDownloadManager {
 
     fun deleteDownload(context: Context, fileId: String) {
         val dir = getDownloadsDir(context)
-        val file = File(dir, "$fileId.pdf")
-        val metaFile = File(dir, "$fileId.json")
+        val safeId = sanitizeFileId(fileId)
+        val file = File(dir, "$safeId.pdf")
+        val metaFile = File(dir, "$safeId.json")
         if (file.exists()) file.delete()
         if (metaFile.exists()) metaFile.delete()
         Log.d(TAG, "Deleted offline cache for file: $fileId")
@@ -226,7 +234,8 @@ object LibraryDownloadManager {
 
     fun openLocalFile(context: Context, pdfFile: PdfFile) {
         val dir = getDownloadsDir(context)
-        val file = File(dir, "${pdfFile.id}.pdf")
+        val safeId = sanitizeFileId(pdfFile.id)
+        val file = File(dir, "$safeId.pdf")
         if (!file.exists() || file.length() == 0L) {
             Toast.makeText(context, "Offline copy not found or empty", Toast.LENGTH_SHORT).show()
             return
@@ -294,7 +303,8 @@ object LibraryDownloadManager {
     private fun saveMetadata(context: Context, pdf: PdfFile, cachedSizeBytes: Long) {
         val dir = getDownloadsDir(context)
         if (!dir.exists()) dir.mkdirs()
-        val metaFile = File(dir, "${pdf.id}.json")
+        val safeId = sanitizeFileId(pdf.id)
+        val metaFile = File(dir, "$safeId.json")
         val json = JSONObject().apply {
             put("id", pdf.id)
             put("title", pdf.title)

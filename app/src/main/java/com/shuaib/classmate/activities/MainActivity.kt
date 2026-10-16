@@ -43,6 +43,10 @@ import com.shuaib.classmate.R
 import com.shuaib.classmate.chat.ChatNotificationHelper
 import com.shuaib.classmate.chat.ChatRepository
 import com.shuaib.classmate.databinding.ActivityMainBinding
+import com.shuaib.classmate.fragments.HomeFragment
+import com.shuaib.classmate.fragments.AcademicsFragment
+import com.shuaib.classmate.fragments.CampusFragment
+import com.shuaib.classmate.fragments.CommunityFragment
 import com.shuaib.classmate.fragments.FriendsFragment
 import com.shuaib.classmate.fragments.NoticeFragment
 import com.shuaib.classmate.fragments.PdfLibraryFragment
@@ -78,10 +82,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var appPrefs: AppPreferences
 
     private val mainTabs = listOf(
-        R.id.nav_timetable,
-        R.id.nav_notices,
-        R.id.nav_chat,
-        R.id.nav_pdf,
+        R.id.nav_home,
+        R.id.nav_academics,
+        R.id.nav_campus,
+        R.id.nav_community,
         R.id.nav_profile
     )
     private var isAdmin = false
@@ -150,15 +154,26 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        val navHostFragment = supportFragmentManager
-            .findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
+        val navHostFragment = (supportFragmentManager
+            .findFragmentById(R.id.nav_host_fragment) as? NavHostFragment)
+            ?: supportFragmentManager.fragments.filterIsInstance<NavHostFragment>().firstOrNull()
+
         if (navHostFragment != null) {
             navController = navHostFragment.navController
             setupChildNavigationOverlay()
         } else {
-            Log.e("MainActivity", "NavHostFragment not found!")
-            finish()
-            return
+            Log.w("MainActivity", "NavHostFragment not found in layout, initializing fallback NavHost")
+            try {
+                val fallbackNavHost = NavHostFragment.create(R.navigation.nav_graph)
+                supportFragmentManager.beginTransaction()
+                    .replace(R.id.nav_host_fragment, fallbackNavHost)
+                    .setPrimaryNavigationFragment(fallbackNavHost)
+                    .commitNowAllowingStateLoss()
+                navController = fallbackNavHost.navController
+                setupChildNavigationOverlay()
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Failed to initialize fallback NavHostFragment", e)
+            }
         }
 
         setupViewPager()
@@ -172,12 +187,13 @@ class MainActivity : AppCompatActivity() {
                 navController.currentDestination?.id
             }
 
-            if (currentTabId == R.id.nav_timetable) {
-                if (isViewingRoutineInTimetable) {
-                    startActivity(Intent(this, TimetableManagementActivity::class.java))
-                } else {
-                    startActivity(Intent(this, BusScheduleManagementActivity::class.java))
+            if (currentTabId == R.id.nav_academics || currentTabId == R.id.nav_timetable) {
+                val intent = Intent(this, TimetableManagementActivity::class.java).apply {
+                    putExtra("SELECTED_SEMESTER", TimetableFragment.currentActiveSemester)
                 }
+                startActivity(intent)
+            } else if (currentTabId == R.id.nav_campus) {
+                startActivity(Intent(this, BusScheduleManagementActivity::class.java))
             }
         }
 
@@ -201,12 +217,12 @@ class MainActivity : AppCompatActivity() {
                     if (!popped) {
                         binding.navHostFragment.isVisible = false
                         binding.mainViewPager.isVisible = true
-                        showMainTab(childParentTabId ?: R.id.nav_timetable)
+                        showMainTab(childParentTabId ?: R.id.nav_home)
                     }
                 } else {
                     val currentTabId = mainTabs.getOrNull(binding.mainViewPager.currentItem)
-                    if (currentTabId != R.id.nav_timetable) {
-                        showMainTab(R.id.nav_timetable)
+                    if (currentTabId != R.id.nav_home) {
+                        showMainTab(R.id.nav_home)
                     } else {
                         isEnabled = false
                         onBackPressedDispatcher.onBackPressed()
@@ -252,6 +268,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupChildNavigationOverlay() {
+        if (!::navController.isInitialized) return
         navController.addOnDestinationChangedListener { _, destination, _ ->
             val destinationId = destination.id
             if (resettingChildBackStack) return@addOnDestinationChangedListener
@@ -320,12 +337,12 @@ class MainActivity : AppCompatActivity() {
         override fun getItemCount(): Int = mainTabs.size
         override fun createFragment(position: Int): androidx.fragment.app.Fragment {
             return when (mainTabs[position]) {
-                R.id.nav_timetable -> TimetableFragment()
-                R.id.nav_notices -> NoticeFragment()
-                R.id.nav_chat -> com.shuaib.classmate.chat.ChatTabsFragment()
-                R.id.nav_pdf -> PdfLibraryFragment()
+                R.id.nav_home -> HomeFragment()
+                R.id.nav_academics -> AcademicsFragment()
+                R.id.nav_campus -> CampusFragment()
+                R.id.nav_community -> CommunityFragment()
                 R.id.nav_profile -> ProfileFragment()
-                else -> TimetableFragment()
+                else -> HomeFragment()
             }
         }
     }
@@ -345,6 +362,18 @@ class MainActivity : AppCompatActivity() {
                 if (!doc.exists()) return@addOnSuccessListener
                 
                 try {
+                    // Check if account has been deleted or deactivated
+                    val isDeleted = doc.getBoolean("isDeleted") ?: false
+                    if (isDeleted) {
+                        auth.signOut()
+                        val intent = Intent(this@MainActivity, LoginActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        }
+                        startActivity(intent)
+                        finish()
+                        return@addOnSuccessListener
+                    }
+
                     // Manual parsing to prevent crashes if Firestore field types (like approved) are wrong
                     val role = doc.getString("role") ?: "student"
                     val batch = doc.getString("batch") ?: ""
@@ -352,11 +381,36 @@ class MainActivity : AppCompatActivity() {
                     
                     val r = role.trim().lowercase()
                     isAdmin = (r == "superadmin" || r == "admin" || permissions.values.any { it == true })
+
+                    // Verify approval status for non-admin accounts
+                    val approvedVal = doc.get("approved")
+                    val isApproved = when (approvedVal) {
+                        is Boolean -> approvedVal
+                        is String -> approvedVal.toBoolean()
+                        else -> false
+                    }
+                    if (r != "superadmin" && r != "admin" && !isApproved) {
+                        val intent = Intent(this@MainActivity, PendingApprovalActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        }
+                        startActivity(intent)
+                        finish()
+                        return@addOnSuccessListener
+                    }
                     
                     try {
                         com.onesignal.OneSignal.User.addTag("role", r)
                         com.onesignal.OneSignal.User.addTag("batch", batch)
-                        AppPreferences(this@MainActivity).setUserBatch(batch)
+                        val prefs = AppPreferences(this@MainActivity)
+                        prefs.setUserBatch(batch)
+                        prefs.setUserRole(r)
+                        prefs.setUserName(doc.getString("name") ?: "")
+                        val semester = doc.getString("semester") ?: ""
+                        prefs.setUserSemester(semester)
+                        com.onesignal.OneSignal.User.addTag("semester", semester)
+                        
+                        val teacherCode = doc.getString("teacherCode") ?: ""
+                        prefs.setTeacherCode(teacherCode)
                     } catch (e: Exception) {
                         Log.e("MainActivity", "Error setting OneSignal tag", e)
                     }
@@ -375,12 +429,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateFabVisibility(destinationId: Int) {
-        // Show ONLY in timetable page and ONLY for admins, hide for notice, library, profile, and chat
-        binding.fabGlobalAdd.isVisible = isAdmin && destinationId == R.id.nav_timetable
+        binding.fabGlobalAdd.isVisible = isAdmin && (destinationId == R.id.nav_academics || destinationId == R.id.nav_timetable)
     }
 
     private fun updateBottomChromeVisibility(destinationId: Int) {
-        bottomChromeAllowed = destinationId in MAIN_TAB_DESTINATIONS && destinationId != R.id.nav_chat
+        bottomChromeAllowed = destinationId in MAIN_TAB_DESTINATIONS && destinationId != R.id.nav_community && destinationId != R.id.nav_chat
         bottomChromeHiddenByScroll = false
         clearBottomChromeScrollBehavior()
         binding.bottomNav.animate().cancel()
@@ -627,7 +680,12 @@ class MainActivity : AppCompatActivity() {
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 1 -> startActivity(Intent(this, PostNoticeActivity::class.java))
-                2 -> startActivity(Intent(this, TimetableManagementActivity::class.java))
+                2 -> {
+                    val intent = Intent(this, TimetableManagementActivity::class.java).apply {
+                        putExtra("SELECTED_SEMESTER", TimetableFragment.currentActiveSemester)
+                    }
+                    startActivity(intent)
+                }
                 3 -> startActivity(Intent(this, CreatePollActivity::class.java))
                 4 -> startActivity(Intent(this, PdfUploadActivity::class.java))
             }
@@ -765,7 +823,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateNoticeBadge(count: Int) {
-        val badge = binding.bottomNav.getOrCreateBadge(R.id.nav_notices)
+        val badge = binding.bottomNav.getOrCreateBadge(R.id.nav_campus)
         if (count > 0) {
             badge.isVisible = true
             badge.number = count
@@ -773,7 +831,7 @@ class MainActivity : AppCompatActivity() {
             badge.backgroundColor = ThemeColors.error(this)
             badge.badgeTextColor = ThemeColors.onPrimary(this)
         } else {
-            binding.bottomNav.removeBadge(R.id.nav_notices)
+            binding.bottomNav.removeBadge(R.id.nav_campus)
         }
     }
 
@@ -781,7 +839,7 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             com.shuaib.classmate.chat.ChatRepository.rooms.collect { rooms ->
                 val unread = com.shuaib.classmate.chat.ChatUnreadManager.getTotalUnread(rooms, auth.currentUser?.uid ?: "")
-                val badge = binding.bottomNav.getOrCreateBadge(R.id.nav_chat)
+                val badge = binding.bottomNav.getOrCreateBadge(R.id.nav_community)
                 if (unread > 0) {
                     badge.isVisible = true
                     badge.number = unread
@@ -798,15 +856,16 @@ class MainActivity : AppCompatActivity() {
 
         when (tab) {
             "chat" -> {
-                showMainTab(R.id.nav_chat)
+                openChildDestination(R.id.nav_community, R.id.nav_chat)
             }
-            "notices" -> showMainTab(R.id.nav_notices)
-            "timetable" -> showMainTab(R.id.nav_timetable)
+            "notices" -> openChildDestination(R.id.nav_campus, R.id.nav_notices)
+            "timetable" -> showMainTab(R.id.nav_academics)
             "pdf_library" -> {
-                showMainTab(R.id.nav_pdf)
                 if (subject != null) {
                     val bundle = bundleOf("subjectName" to subject)
-                    openChildDestination(R.id.nav_pdf, R.id.fragment_subject_pdf_list, bundle)
+                    openChildDestination(R.id.nav_academics, R.id.fragment_subject_pdf_list, bundle)
+                } else {
+                    openChildDestination(R.id.nav_academics, R.id.nav_pdf)
                 }
             }
         }
@@ -849,24 +908,28 @@ class MainActivity : AppCompatActivity() {
         private const val BOTTOM_CHROME_ANIMATION_MS = 220L
 
         private val MAIN_TAB_DESTINATIONS = setOf(
-            R.id.nav_timetable,
-            R.id.nav_notices,
-            R.id.nav_chat,
-            R.id.nav_pdf,
+            R.id.nav_home,
+            R.id.nav_academics,
+            R.id.nav_campus,
+            R.id.nav_community,
             R.id.nav_profile
         )
 
         private val TAB_DESTINATION_MAP = mapOf(
-            R.id.nav_timetable to R.id.nav_timetable,
-            R.id.nav_notices to R.id.nav_notices,
-            R.id.nav_chat to R.id.nav_chat,
-            R.id.fragment_group_chat to R.id.nav_chat,
-            R.id.fragment_dm_list to R.id.nav_chat,
-            R.id.fragment_dm_chat to R.id.nav_chat,
-            R.id.nav_pdf to R.id.nav_pdf,
-            R.id.fragment_library_all_files to R.id.nav_pdf,
-            R.id.fragment_library_search to R.id.nav_pdf,
-            R.id.fragment_subject_pdf_list to R.id.nav_pdf,
+            R.id.nav_home to R.id.nav_home,
+            R.id.nav_academics to R.id.nav_academics,
+            R.id.nav_timetable to R.id.nav_academics,
+            R.id.nav_campus to R.id.nav_campus,
+            R.id.nav_community to R.id.nav_community,
+            R.id.nav_notices to R.id.nav_campus,
+            R.id.nav_chat to R.id.nav_community,
+            R.id.fragment_group_chat to R.id.nav_community,
+            R.id.fragment_dm_list to R.id.nav_community,
+            R.id.fragment_dm_chat to R.id.nav_community,
+            R.id.nav_pdf to R.id.nav_academics,
+            R.id.fragment_library_all_files to R.id.nav_academics,
+            R.id.fragment_library_search to R.id.nav_academics,
+            R.id.fragment_subject_pdf_list to R.id.nav_academics,
             R.id.nav_profile to R.id.nav_profile
         )
     }
@@ -915,20 +978,21 @@ class MainActivity : AppCompatActivity() {
         val chatRoomId = intent.getStringExtra(ChatNotificationHelper.KEY_ROOM_ID)
             ?: intent.getStringExtra("roomId")
         chatRoomId?.let { roomId ->
-            val roomType = intent.getStringExtra(ChatNotificationHelper.KEY_ROOM_TYPE)
-                ?: intent.getStringExtra("roomType")
-            val senderName = intent.getStringExtra(ChatNotificationHelper.KEY_SENDER_NAME)
-                ?: intent.getStringExtra("senderName")
-
-            showMainTab(R.id.nav_chat)
+            openChildDestination(R.id.nav_community, R.id.nav_chat)
             return
         }
 
         // Handle OneSignal / Other Notifications
         intent.getStringExtra("OPEN_TAB")?.let { tab ->
             when (tab) {
-                "notices" -> showMainTab(R.id.nav_notices)
-                "polls" -> showMainTab(R.id.nav_notices)
+                "notices" -> openChildDestination(R.id.nav_campus, R.id.nav_notices)
+                "polls" -> openChildDestination(R.id.nav_community, R.id.nav_polls)
+                "timetable" -> {
+                    intent.getStringExtra("OPEN_DAY")?.takeIf { it.isNotBlank() }?.let { day ->
+                        NotificationRouter.pendingDay = day
+                    }
+                    showMainTab(R.id.nav_academics)
+                }
             }
         }
     }

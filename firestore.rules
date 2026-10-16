@@ -21,21 +21,21 @@ service cloud.firestore {
     }
 
     function getRole() {
-      return userExists() && "role" in getUser() ? getUser().role : null;
+      return userExists() && "role" in getUser() && getUser().role is string ? getUser().role.lower() : "";
     }
 
     function isSuperAdmin() {
-      return isLoggedIn() && (getRole() == "superadmin" || getRole() == "Superadmin" || getRole() == "SUPERADMIN");
+      return isLoggedIn() && getRole() == "superadmin";
     }
 
     function isAdmin() {
-      return isLoggedIn() &&
-        (getRole().lower() == "admin" || getRole().lower() == "superadmin");
+      return isLoggedIn() && (getRole() == "admin" || getRole() == "superadmin");
     }
 
     function hasPermission(permissionKey) {
       return userExists() &&
         "permissions" in getUser() &&
+        getUser().permissions is map &&
         permissionKey in getUser().permissions &&
         getUser().permissions[permissionKey] == true;
     }
@@ -71,6 +71,10 @@ service cloud.firestore {
 
     function isStudent() {
       return isLoggedIn() && getRole() == "student";
+    }
+
+    function isTeacher() {
+      return isLoggedIn() && getRole() == "teacher";
     }
 
     function noticeLikeId(noticeId) {
@@ -169,6 +173,9 @@ service cloud.firestore {
         && (!("role" in request.resource.data) || request.resource.data.role in ["student", "teacher"])
         && (!("authProvider" in request.resource.data) ||
             request.resource.data.authProvider in ["email", "google"])
+        // ── Security Invariant: users cannot self-approve or create their document as deleted ──
+        && (!("approved" in request.resource.data) || request.resource.data.approved == false)
+        && (!("isDeleted" in request.resource.data) || request.resource.data.isDeleted == false)
         && noElevatedCreatePermissions(request);
     }
 
@@ -246,13 +253,13 @@ service cloud.firestore {
           "photoUrl",
           "studentId",
           "batch",
+          "semester",
+          "teacherCode",
           "whatsappNumber",
           "presentAddress",
           "permanentAddress",
           "fatherName",
           "motherName",
-          "isDeleted",
-          "approved",
           "department",
           "authProvider",
           "updatedAt",
@@ -293,6 +300,9 @@ service cloud.firestore {
             !("batch" in resource.data) ||
             resource.data.batch == "" ||
             resource.data.batch == null)
+        // ── Security Invariant: regular users cannot modify approved or isDeleted status ──
+        && (!("approved" in request.resource.data.diff(resource.data).affectedKeys()))
+        && (!("isDeleted" in request.resource.data.diff(resource.data).affectedKeys()))
         && validOwnPermissionsUpdate();
     }
 
@@ -468,7 +478,7 @@ service cloud.firestore {
     function validQbProvider() {
       return !("provider" in request.resource.data) ||
         request.resource.data.provider in [
-          "github_releases", "external_link", "telegram", ""
+          "github_releases", "external_link", "telegram", "github", "external", ""
         ];
     }
 
@@ -502,8 +512,22 @@ service cloud.firestore {
         "createdAt",
         "updatedAt",
         "isDeleted",
-        "batch"
+        "batch",
+        "fileType",
+        "mimeType",
+        "fileId",
+        "githubAssetId",
+        "githubAssetName",
+        "courseType",
+        "description"
       ])
+      && (!("description" in request.resource.data) || request.resource.data.description is string)
+      && (!("fileType" in request.resource.data) || request.resource.data.fileType is string)
+      && (!("mimeType" in request.resource.data) || request.resource.data.mimeType is string)
+      && (!("fileId" in request.resource.data) || request.resource.data.fileId is string)
+      && (!("githubAssetId" in request.resource.data) || request.resource.data.githubAssetId is number)
+      && (!("githubAssetName" in request.resource.data) || request.resource.data.githubAssetName is string)
+      && (!("courseType" in request.resource.data) || request.resource.data.courseType is string)
       && request.resource.data.title is string
       && request.resource.data.title.size() > 0
       && request.resource.data.title.size() <= 200
@@ -606,6 +630,7 @@ service cloud.firestore {
           "startDate",
           "endDate",
           "scope",
+          "targetBatches",
           "reason",
           "isActive",
           "showHolidayBriefing",
@@ -622,7 +647,8 @@ service cloud.firestore {
         && request.resource.data.endDate is string
         && request.resource.data.endDate.matches("^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
         && request.resource.data.endDate >= request.resource.data.startDate
-        && request.resource.data.scope == "ALL_CLASSES"
+        && request.resource.data.scope in ["ALL_CLASSES", "SPECIFIC_BATCHES"]
+        && (!("targetBatches" in request.resource.data) || request.resource.data.targetBatches is list)
         && request.resource.data.reason is string
         && request.resource.data.reason.size() <= 500
         && request.resource.data.isActive is bool
@@ -646,6 +672,18 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
     }
 
+    function isDocSuperAdmin(docData) {
+      return "role" in docData &&
+        docData.role is string &&
+        docData.role.lower() == "superadmin";
+    }
+
+    function isDocAdminOrSuperAdmin(docData) {
+      return "role" in docData &&
+        docData.role is string &&
+        (docData.role.lower() == "admin" || docData.role.lower() == "superadmin");
+    }
+
     function validManagerUserUpdate() {
       return canManageUsers()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
@@ -653,7 +691,20 @@ service cloud.firestore {
           "permissions",
           "approved",
           "updatedAt"
-        ]);
+        ])
+        && (!("approved" in request.resource.data) || request.resource.data.approved is bool)
+        && (!("role" in request.resource.data) || request.resource.data.role is string)
+        && (!("permissions" in request.resource.data) || request.resource.data.permissions is map)
+        && (
+          isSuperAdmin() ||
+          (
+            // Caller is a manager/admin, but NOT superadmin:
+            // a) Cannot set role to superadmin
+            (!("role" in request.resource.data) || request.resource.data.role.lower() != "superadmin")
+            // b) Cannot modify a user document whose current role is superadmin
+            && !isDocSuperAdmin(resource.data)
+          )
+        );
     }
 
     match /config/{doc} {
@@ -679,7 +730,7 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["favoriteSubjects"])
             && request.resource.data.favoriteSubjects is list);
 
-      allow delete: if isLoggedIn() && (isSuperAdmin() || canManageUsers());
+      allow delete: if isLoggedIn() && (isSuperAdmin() || (canManageUsers() && !isDocAdminOrSuperAdmin(resource.data)));
 
       match /ai_chat_history/{messageId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
@@ -1031,12 +1082,26 @@ service cloud.firestore {
         && roomId == ("group_batch_" + getUser().batch);
     }
 
+    // ── Helper: check if user is a participant in a direct message (DM) room ──
+    function isDmParticipant(roomId) {
+      return roomId.matches("^dm_" + request.auth.uid + "_[a-zA-Z0-9_-]+$")
+        || roomId.matches("^dm_[a-zA-Z0-9_-]+_" + request.auth.uid + "$")
+        || (resource != null && "member1Id" in resource.data && (resource.data.member1Id == request.auth.uid || resource.data.member2Id == request.auth.uid));
+    }
+
     function canAccessChatRoom(roomId) {
-      // Direct messages: allow if logged in
+      // Direct messages: strictly limited to the two participants (prevents DM snoop)
+      // group_main: accessible if user's batch matches, user has no batch, or user is teacher/admin
       // group_batch_X: only allow if user's batch matches X
-      // No exceptions — even superadmin needs a matching batch for group chat
       return isLoggedIn() && (
-        !roomId.matches("group_.*") ||
+        (roomId.matches("^dm_.*") && isDmParticipant(roomId)) ||
+        (roomId == "group_main" && (
+          isAdmin() ||
+          isSuperAdmin() ||
+          getRole() == "teacher" ||
+          userBatchMatchesRoom(roomId) ||
+          (userExists() && (!("batch" in getUser()) || getUser().batch == "" || getUser().batch == null || getUser().batch == "main"))
+        )) ||
         userBatchMatchesRoom(roomId)
       );
     }
@@ -1074,6 +1139,179 @@ service cloud.firestore {
       allow create: if canUploadPdf();
       allow update: if canUploadPdf();
       allow delete: if isAdmin() || isSuperAdmin();
+    }
+
+    // ── Lost & Found Items ────────────────────────────────────────────────────
+    match /lost_and_found/{itemId} {
+      // 1. Any logged-in user can read lost and found posts
+      allow read: if isLoggedIn();
+
+      // 2. Any logged-in user can report an item as long as reporterId matches their UID
+      allow create: if isLoggedIn()
+        && request.resource.data.reporterId == request.auth.uid;
+
+      // 3. Post creator or admins/superadmins can update the item (e.g. mark as resolved)
+      allow update: if isLoggedIn() && (
+        resource.data.reporterId == request.auth.uid ||
+        isAdmin() ||
+        isSuperAdmin()
+      );
+
+      // 4. Post creator, admins/superadmins, unassigned items, or any logged-in user for expired items (> 7 days) can delete
+      allow delete: if isLoggedIn() && (
+        !("reporterId" in resource.data) ||
+        resource.data.reporterId == "" ||
+        resource.data.reporterId == request.auth.uid ||
+        isAdmin() ||
+        isSuperAdmin() ||
+        resource.data.timestamp < request.time - duration.value(7, 'd')
+      );
+    }
+
+    // ── Urgent Blood Requests ────────────────────────────────────────────────
+    match /blood_requests/{requestId} {
+      // 1. Any logged-in user can read active blood requests
+      allow read: if isLoggedIn();
+
+      // 2. Any logged-in user can create a blood request for themselves or a patient
+      allow create: if isLoggedIn()
+        && request.resource.data.requesterId == request.auth.uid;
+
+      // 3. Request creator, admins, or superadmins can update (e.g. mark as fulfilled)
+      allow update: if isLoggedIn() && (
+        resource.data.requesterId == request.auth.uid ||
+        isAdmin() ||
+        isSuperAdmin()
+      );
+
+      // 4. Request creator, admins, or superadmins can delete
+      allow delete: if isLoggedIn() && (
+        resource.data.requesterId == request.auth.uid ||
+        isAdmin() ||
+        isSuperAdmin()
+      );
+    }
+
+    // ── Campus Clubs, Events & Registrations ─────────────────────────────────
+
+    function isClubExecutiveData(clubData) {
+      return ("presidentId" in clubData && clubData.presidentId == request.auth.uid) ||
+             ("gsId" in clubData && clubData.gsId == request.auth.uid) ||
+             ("agsId" in clubData && clubData.agsId == request.auth.uid);
+    }
+
+    function isClubExecutive(clubId) {
+      return exists(/databases/$(database)/documents/campus_clubs/$(clubId)) &&
+        isClubExecutiveData(get(/databases/$(database)/documents/campus_clubs/$(clubId)).data);
+    }
+
+    function isEventExpired() {
+      return ("eventDateMillis" in resource.data &&
+              resource.data.eventDateMillis is number &&
+              resource.data.eventDateMillis > 0 &&
+              resource.data.eventDateMillis < request.time.toMillis());
+    }
+
+    match /campus_clubs/{clubId} {
+      // 1. Any logged-in user can view campus clubs
+      allow read: if isLoggedIn();
+
+      // 2. Only Superadmin can register new clubs
+      allow create: if isSuperAdmin();
+
+      // 3. Update: users joining/leaving (memberUids), superadmin, or club executives (President, GS, AGS)
+      allow update: if isLoggedIn() && (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberUids']) ||
+        isSuperAdmin() ||
+        isClubExecutiveData(resource.data)
+      );
+
+      // 4. Delete: Superadmin or club president
+      allow delete: if isSuperAdmin() || (
+        isLoggedIn() &&
+        "presidentId" in resource.data &&
+        resource.data.presidentId == request.auth.uid
+      );
+    }
+
+    match /campus_events/{eventId} {
+      // 1. Any logged-in user can view campus events
+      allow read: if isLoggedIn();
+
+      // 2. Create: Superadmin, event creator, or organizing club executive
+      allow create: if isLoggedIn() && (
+        isSuperAdmin() ||
+        ("creatorId" in request.resource.data && request.resource.data.creatorId == request.auth.uid) ||
+        ("clubId" in request.resource.data && isClubExecutive(request.resource.data.clubId))
+      );
+
+      // 3. Update: users registering (registeredUserIds), superadmin, event creator, or organizing club executive
+      allow update: if isLoggedIn() && (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['registeredUserIds']) ||
+        isSuperAdmin() ||
+        ("creatorId" in resource.data && resource.data.creatorId == request.auth.uid) ||
+        ("clubId" in resource.data && isClubExecutive(resource.data.clubId))
+      );
+
+      // 4. Delete: Superadmin, creator, organizing club executive, or expired events
+      allow delete: if isLoggedIn() && (
+        isSuperAdmin() ||
+        ("creatorId" in resource.data && resource.data.creatorId == request.auth.uid) ||
+        ("clubId" in resource.data && isClubExecutive(resource.data.clubId)) ||
+        isEventExpired()
+      );
+    }
+
+    match /event_registrations/{registrationId} {
+      // 1. Read: own registration, superadmin, or executive of the organizing club
+      allow read: if isLoggedIn() && (
+        ("userId" in resource.data && resource.data.userId == request.auth.uid) ||
+        isSuperAdmin() ||
+        ("clubId" in resource.data && isClubExecutive(resource.data.clubId))
+      );
+
+      // 2. Create: student submitting own registration request
+      allow create: if isLoggedIn() &&
+        "userId" in request.resource.data &&
+        request.resource.data.userId == request.auth.uid;
+
+      // 3. Update: superadmin or club executive confirming/approving registrations
+      allow update: if isLoggedIn() && (
+        isSuperAdmin() ||
+        ("clubId" in resource.data && isClubExecutive(resource.data.clubId))
+      );
+
+      // 4. Delete: student cancelling own registration or superadmin
+      allow delete: if isLoggedIn() && (
+        ("userId" in resource.data && resource.data.userId == request.auth.uid) ||
+        isSuperAdmin()
+      );
+    }
+
+    match /club_membership_requests/{requestId} {
+      // 1. Read: own request, superadmin, or executive of the target club
+      allow read: if isLoggedIn() && (
+        ("userId" in resource.data && resource.data.userId == request.auth.uid) ||
+        isSuperAdmin() ||
+        ("clubId" in resource.data && isClubExecutive(resource.data.clubId))
+      );
+
+      // 2. Create: student submitting own membership request
+      allow create: if isLoggedIn() &&
+        "userId" in request.resource.data &&
+        request.resource.data.userId == request.auth.uid;
+
+      // 3. Update: superadmin or club executive approving requests
+      allow update: if isLoggedIn() && (
+        isSuperAdmin() ||
+        ("clubId" in resource.data && isClubExecutive(resource.data.clubId))
+      );
+
+      // 4. Delete: student cancelling own request or superadmin
+      allow delete: if isLoggedIn() && (
+        ("userId" in resource.data && resource.data.userId == request.auth.uid) ||
+        isSuperAdmin()
+      );
     }
 
     match /{document=**} {

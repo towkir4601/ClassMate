@@ -21,48 +21,8 @@ import java.util.*
 class EveningBriefWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
-        val firestore = FirebaseFirestore.getInstance()
-        val auth = FirebaseAuth.getInstance()
-        val uid = auth.currentUser?.uid ?: return Result.success()
-
-        val calendar = Calendar.getInstance()
-        calendar.add(Calendar.DAY_OF_YEAR, 1) // Tomorrow
-        val tomorrowName = when (calendar.get(Calendar.DAY_OF_WEEK)) {
-            Calendar.SATURDAY -> "saturday"
-            Calendar.SUNDAY -> "sunday"
-            Calendar.MONDAY -> "monday"
-            Calendar.TUESDAY -> "tuesday"
-            Calendar.WEDNESDAY -> "wednesday"
-            Calendar.THURSDAY -> "thursday"
-            else -> "friday"
-        }
-
-        try {
-            if (AcademicCalendarRepository(firestore).areAllClassesSuspended(LocalDate.now().plusDays(1))) {
-                return Result.success()
-            }
-
-            // 1. Fetch Tomorrow's Classes
-            val classesSnapshot = firestore.collection("timetable").document(tomorrowName)
-                .collection("periods")
-                .orderBy("startTime")
-                .get()
-                .await()
-
-            val calendarTomorrow = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 1) }
-            val tomorrowDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(calendarTomorrow.time)
-            val periods = classesSnapshot.toObjects(Period::class.java).filter {
-                it.cancelDate != tomorrowDate
-            }
-
-            if (periods.isNotEmpty()) {
-                showBriefNotification(periods)
-            }
-
-            return Result.success()
-        } catch (e: Exception) {
-            return Result.retry()
-        }
+        // Replaced by the 12:00 AM midnight daily class update notification for students.
+        return Result.success()
     }
 
     private fun showBriefNotification(periods: List<Period>) {

@@ -16,17 +16,122 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import androidx.work.WorkManager
 import java.util.concurrent.TimeUnit
 
 class TimetableRepository private constructor(private val context: Context) {
     private val timetableDao = ClassMateDatabase.getInstance(context).timetableDao()
+    private val noticeDao = ClassMateDatabase.getInstance(context).noticeDao()
     private val db = FirestoreManager.db
+    private val healedPeriodKeys = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
 
     fun observePeriods(day: String): Flow<List<Period>> {
-        return timetableDao.observePeriods(day.lowercase())
-            .map { entities -> entities.map { it.toPeriod(DateHelper.today()) } }
+        val normalizedDay = day.lowercase()
+        return kotlinx.coroutines.flow.combine(
+            timetableDao.observePeriods(normalizedDay),
+            noticeDao.observeCancelNotices()
+        ) { entities, noticeEntities ->
+            val today = DateHelper.today()
+            val activeCancelNotices = noticeEntities
+                .map { it.toNotice() }
+                .filter { it.isCancel && !it.isDeleted }
+                .mapNotNull { notice ->
+                    val cancelDate = com.shuaib.classmate.utils.SubjectList.effectiveCancelDate(notice)
+                    val cancelDay = com.shuaib.classmate.utils.SubjectList.dayOfWeekFromIso(cancelDate)
+                    if (cancelDate.isNotBlank() && cancelDay == normalizedDay) {
+                        val subj = notice.subject.takeIf { it.isNotBlank() && !it.equals("General", true) }
+                            ?: notice.body.substringBefore(" class has been cancelled", "")
+                        if (subj.isNotBlank()) Pair(subj, cancelDate) else null
+                    } else {
+                        null
+                    }
+                }
+
+            entities.map { entity ->
+                val noticeCancelDate = activeCancelNotices
+                    .firstOrNull { (subj, _) ->
+                        com.shuaib.classmate.utils.SubjectList.isSameCourse(entity.subject, subj)
+                    }
+                    ?.second
+
+                val resolvedCancelDate = if (!noticeCancelDate.isNullOrBlank()) {
+                    if (entity.cancelDate != noticeCancelDate && entity.id.isNotBlank()) {
+                        val healKey = "$normalizedDay:${entity.id}:$noticeCancelDate"
+                        if (healedPeriodKeys.add(healKey)) {
+                            db.collection("timetable")
+                                .document(normalizedDay)
+                                .collection("periods")
+                                .document(entity.id)
+                                .update(
+                                    mapOf(
+                                        "isCancelled" to true,
+                                        "cancelDate" to noticeCancelDate
+                                    )
+                                )
+                        }
+                    }
+                    noticeCancelDate
+                } else {
+                    entity.cancelDate
+                }
+                entity.copy(cancelDate = resolvedCancelDate).toPeriod(today)
+            }
+        }
+    }
+
+    suspend fun getPeriodsForDay(day: String): List<Period> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        val normalizedDay = day.lowercase()
+        var entities = timetableDao.getPeriodsSync(normalizedDay)
+        if (entities.isEmpty()) {
+            runCatching { syncDayFromFirestore(normalizedDay) }
+            entities = timetableDao.getPeriodsSync(normalizedDay)
+        }
+        val today = DateHelper.today()
+        entities.map { it.toPeriod(today) }.sortedBy { DateHelper.parseTimeToMinutes(it.startTime) }
+    }
+
+    fun startRealtimeDaySync(
+        day: String,
+        scope: kotlinx.coroutines.CoroutineScope
+    ): com.google.firebase.firestore.ListenerRegistration {
+        val normalizedDay = day.lowercase()
+        return db.collection("timetable")
+            .document(normalizedDay)
+            .collection("periods")
+            .orderBy("startTime")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null || snapshot == null) return@addSnapshotListener
+                scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                    val periods = snapshot.documents.map { doc ->
+                        Period(
+                            id = doc.id,
+                            subject = doc.getString("subject") ?: "",
+                            teacher = doc.getString("teacher") ?: "",
+                            startTime = doc.getString("startTime") ?: "",
+                            endTime = doc.getString("endTime") ?: "",
+                            room = doc.getString("room") ?: "",
+                            cancelDate = doc.getString("cancelDate") ?: "",
+                            substituteTeacher = doc.getString("substituteTeacher") ?: "",
+                            substituteDate = doc.getString("substituteDate") ?: "",
+                            overrideDate = doc.getString("overrideDate") ?: "",
+                            overrideRoom = doc.getString("overrideRoom") ?: "",
+                            overrideStartTime = doc.getString("overrideStartTime") ?: "",
+                            overrideEndTime = doc.getString("overrideEndTime") ?: "",
+                            isTemporary = doc.getBoolean("isTemporary") ?: false,
+                            temporaryDate = doc.getString("temporaryDate") ?: "",
+                            batch = doc.getString("batch") ?: ""
+                        )
+                    }
+                    val entities = periods.map { TimetableEntity.fromPeriod(normalizedDay, it) }
+                    if (snapshot.metadata.isFromCache) {
+                        if (entities.isNotEmpty()) timetableDao.upsertAll(entities)
+                    } else {
+                        timetableDao.replaceDay(normalizedDay, entities)
+                    }
+                }
+            }
     }
 
     suspend fun syncDayFromFirestore(day: String, source: Source = Source.DEFAULT) {

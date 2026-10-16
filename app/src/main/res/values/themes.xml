@@ -22,6 +22,10 @@
         <!-- Navigation Bar -->
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightNavigationBar">true</item>
+
+        <!-- Dialogs -->
+        <item name="materialAlertDialogTheme">@style/Theme.ClassMate.Dialog</item>
+        <item name="alertDialogTheme">@style/Theme.ClassMate.Dialog</item>
     </style>
 
     <!-- Splash theme — prevents white flash -->
@@ -41,9 +45,25 @@
         <item name="android:windowLightStatusBar">false</item>
     </style>
 
-    <style name="Theme.ClassMate.Dialog" parent="Theme.Material3.Light.Dialog">
-        <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:background">@color/cm_surface</item>
+    <style name="Theme.ClassMate.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:backgroundDimAmount">0.5</item>
+        <item name="colorSurface">@color/cm_surface</item>
+        <item name="colorOnSurface">@color/cm_text_primary</item>
+        <item name="colorOnSurfaceVariant">@color/cm_text_secondary</item>
+        <item name="colorPrimary">@color/cm_primary</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.ClassMate.Dialog.Button.Positive</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.ClassMate.Dialog.Button.Negative</item>
+    </style>
+
+    <style name="Widget.ClassMate.Dialog.Button.Positive" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/cm_error</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Widget.ClassMate.Dialog.Button.Negative" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/cm_text_secondary</item>
+        <item name="android:textStyle">bold</item>
     </style>
 
     <style name="Theme.ClassMate.TimePicker" parent="Theme.Material3.Light.Dialog">

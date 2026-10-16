@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.View
 import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
@@ -59,7 +60,11 @@ class AdminPanelActivity : AppCompatActivity() {
     }
 
     private fun checkPermissionsAndSetupUI() {
-        val uid = auth.currentUser?.uid ?: return
+        val uid = auth.currentUser?.uid ?: run {
+            Toast.makeText(this@AdminPanelActivity, "Authentication required", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
 
         firestore.collection("users").document(uid).get()
             .addOnSuccessListener { document ->
@@ -72,15 +77,28 @@ class AdminPanelActivity : AppCompatActivity() {
                         permissions = permissions
                     )
                     val isSuperAdmin = role == "superadmin"
+                    val hasAnyAdminAccess = isSuperAdmin || role == "admin" || role == "teacher" ||
+                            user.canManageUsers() || user.canPostNotices() || user.canEditTimetable() ||
+                            user.canEditCalendar() || user.canEditBusSchedule() || user.canCreatePolls()
+                    if (!hasAnyAdminAccess) {
+                        Toast.makeText(this@AdminPanelActivity, "Access restricted.", Toast.LENGTH_SHORT).show()
+                        finish()
+                        return@addOnSuccessListener
+                    }
+
                     binding.btnTestTelegram.visibility = if (isSuperAdmin) View.VISIBLE else View.GONE
                     setupClickListeners(user)
                     animateEntry()
                 } catch (e: Exception) {
-                    Toast.makeText(this@AdminPanelActivity, "Error parsing user: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Log.e("AdminPanel", "Error parsing user data", e)
+                    Toast.makeText(this@AdminPanelActivity, "Error loading admin panel. Please try again later.", Toast.LENGTH_SHORT).show()
+                    finish()
                 }
             }
             .addOnFailureListener { e ->
-                Toast.makeText(this@AdminPanelActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                Log.e("AdminPanel", "Error loading permissions", e)
+                Toast.makeText(this@AdminPanelActivity, "Error loading permissions. Please try again later.", Toast.LENGTH_SHORT).show()
+                finish()
             }
     }
 
@@ -98,7 +116,10 @@ class AdminPanelActivity : AppCompatActivity() {
         if (user.canEditTimetable()) {
             binding.cardEditTimetable.visibility = View.VISIBLE
             binding.cardEditTimetable.applyClickAnimation {
-                startActivity(Intent(this, TimetableManagementActivity::class.java))
+                val intent = Intent(this, TimetableManagementActivity::class.java).apply {
+                    putExtra("SELECTED_SEMESTER", com.shuaib.classmate.fragments.TimetableFragment.currentActiveSemester)
+                }
+                startActivity(intent)
                 overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
             }
 
@@ -215,8 +236,9 @@ class AdminPanelActivity : AppCompatActivity() {
                             "✅ Telegram connected!",
                             Toast.LENGTH_LONG).show()
                     } else {
+                        android.util.Log.e("TELEGRAM_TEST", "Test failed: $response")
                         Toast.makeText(this@AdminPanelActivity,
-                            "❌ Failed: $response",
+                            "❌ Connection failed. Please check bot settings.",
                             Toast.LENGTH_LONG).show()
                     }
                 }
@@ -226,7 +248,7 @@ class AdminPanelActivity : AppCompatActivity() {
                     "Error: ${e.message}")
                 Handler(Looper.getMainLooper()).post {
                     Toast.makeText(this@AdminPanelActivity,
-                        "Error: ${e.message}",
+                        "Error: Please try again later.",
                         Toast.LENGTH_LONG).show()
                 }
             }
@@ -263,10 +285,16 @@ class AdminPanelActivity : AppCompatActivity() {
 
     
     private fun parseAndUploadCsv(uri: android.net.Uri) {
+        val currentUid = auth.currentUser?.uid
+        if (currentUid == null) {
+            Toast.makeText(this, "Authentication required", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         // First, ask user for confirmation
         MaterialAlertDialogBuilder(this, R.style.Theme_ClassMate_Dialog)
             .setTitle("⚠️ Replace Timetable?")
-            .setMessage("This will replace the existing timetable with the new CSV data. Are you sure?")
+            .setMessage("This will replace the routine for the batches included in the new CSV. Are you sure?")
             .setPositiveButton("Yes, Upload") { _, _ ->
                 performCsvUpload(uri)
             }
@@ -275,6 +303,11 @@ class AdminPanelActivity : AppCompatActivity() {
     }
 
     private fun performCsvUpload(uri: android.net.Uri) {
+        val currentUid = auth.currentUser?.uid ?: run {
+            Toast.makeText(this, "Authentication required", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val progressDialog = MaterialAlertDialogBuilder(this, R.style.Theme_ClassMate_Dialog)
             .setTitle("Uploading Routine")
             .setMessage("Parsing and uploading to Firestore...")
@@ -366,9 +399,12 @@ class AdminPanelActivity : AppCompatActivity() {
                     throw IOException("No valid entries found in CSV. Please check the file format.")
                 }
 
+                // Determine all unique batches included in the uploaded CSV
+                val batchesInCsv = periodsByDay.values.flatten().map { it.batch.trim().lowercase() }.filter { it.isNotBlank() }.toSet()
+
                 val db = FirebaseFirestore.getInstance()
 
-                // Step 1: Clear old timetable data for the days being uploaded (Chunked for safety)
+                // Step 1: Clear old timetable data only for the days and batches being uploaded
                 for (day in periodsByDay.keys) {
                     val oldPeriods = db.collection("timetable").document(day)
                         .collection("periods").get().await()
@@ -377,14 +413,18 @@ class AdminPanelActivity : AppCompatActivity() {
                     var deleteCount = 0
                     
                     for (doc in oldPeriods.documents) {
-                        deleteBatch.delete(doc.reference)
-                        deleteCount++
-                        
-                        // Firestore batch limit is 500, we use 450 to be safe
-                        if (deleteCount >= 450) {
-                            deleteBatch.commit().await()
-                            deleteBatch = db.batch()
-                            deleteCount = 0
+                        val oldBatch = doc.getString("batch")?.trim()?.lowercase() ?: ""
+                        // Only delete old periods that belong to the batches being updated
+                        if (batchesInCsv.isEmpty() || batchesInCsv.contains(oldBatch)) {
+                            deleteBatch.delete(doc.reference)
+                            deleteCount++
+                            
+                            // Firestore batch limit is 500, we use 450 to be safe
+                            if (deleteCount >= 450) {
+                                deleteBatch.commit().await()
+                                deleteBatch = db.batch()
+                                deleteCount = 0
+                            }
                         }
                     }
                     if (deleteCount > 0) {
@@ -436,9 +476,10 @@ class AdminPanelActivity : AppCompatActivity() {
                     if (!isFinishing && !isDestroyed && progressDialog.isShowing) {
                         progressDialog.dismiss()
                     }
+                    Log.e("AdminPanel", "Error uploading routine CSV", e)
                     Toast.makeText(
                         this@AdminPanelActivity,
-                        "❌ Error: ${e.message}",
+                        "❌ Error uploading routine. Please check the CSV format.",
                         Toast.LENGTH_LONG
                     ).show()
                 }

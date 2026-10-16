@@ -41,6 +41,8 @@ class EditProfileActivity : AppCompatActivity() {
                     binding.etPhone.setText(doc.getString("phone") ?: "")
                     binding.etWhatsApp.setText(doc.getString("whatsappNumber") ?: "")
                     binding.etBatch.setText(doc.getString("batch") ?: "")
+                    binding.etSemester.setText(doc.getString("semester") ?: "")
+                    binding.etTeacherCode.setText(doc.getString("teacherCode") ?: "")
                     originalBatch = doc.getString("batch") ?: ""
                     
                     // Lock batch field if already set — prevent batch change fraud
@@ -59,6 +61,8 @@ class EditProfileActivity : AppCompatActivity() {
                     if (doc.getString("role") == "teacher") {
                         (binding.etStudentId.parent as? android.view.View)?.visibility = android.view.View.GONE
                         (binding.etBatch.parent as? android.view.View)?.visibility = android.view.View.GONE
+                        (binding.etSemester.parent as? android.view.View)?.visibility = android.view.View.GONE
+                        binding.tilTeacherCode.visibility = android.view.View.VISIBLE
                         (binding.etFatherName.parent as? android.view.View)?.visibility = android.view.View.GONE
                         (binding.etMotherName.parent as? android.view.View)?.visibility = android.view.View.GONE
                         (binding.etPresentAddress.parent as? android.view.View)?.visibility = android.view.View.GONE
@@ -75,12 +79,16 @@ class EditProfileActivity : AppCompatActivity() {
         val uid = auth.currentUser?.uid ?: return
         
         val newBatch = binding.etBatch.text.toString().trim()
+        val newSemester = binding.etSemester.text.toString().trim()
+        val newTeacherCode = binding.etTeacherCode.text.toString().trim().uppercase()
         val updates = hashMapOf<String, Any>(
             "name" to binding.etName.text.toString().trim(),
             "studentId" to binding.etStudentId.text.toString().trim(),
             "department" to binding.etDepartment.text.toString().trim(),
             "phone" to binding.etPhone.text.toString().trim(),
             "whatsappNumber" to binding.etWhatsApp.text.toString().trim(),
+            "semester" to newSemester,
+            "teacherCode" to newTeacherCode,
             "fatherName" to binding.etFatherName.text.toString().trim(),
             "motherName" to binding.etMotherName.text.toString().trim(),
             "presentAddress" to binding.etPresentAddress.text.toString().trim(),
@@ -101,6 +109,15 @@ class EditProfileActivity : AppCompatActivity() {
         db.collection("users").document(uid)
             .set(updates, SetOptions.merge())
             .addOnSuccessListener {
+                try {
+                    com.onesignal.OneSignal.User.addTag("semester", newSemester)
+                    val prefs = com.shuaib.classmate.utils.AppPreferences(this)
+                    prefs.setUserSemester(newSemester)
+                    prefs.setTeacherCode(newTeacherCode)
+                } catch (e: Exception) {
+                    // ignore
+                }
+
                 if (originalBatch.isBlank() && newBatch.isNotBlank()) {
                     try {
                         com.onesignal.OneSignal.User.addTag("batch", newBatch)

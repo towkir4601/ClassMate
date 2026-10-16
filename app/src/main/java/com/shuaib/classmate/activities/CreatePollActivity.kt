@@ -142,9 +142,19 @@ class CreatePollActivity : AppCompatActivity() {
             return
         }
 
-        val validOptions = options.filter { it.isNotBlank() }
+        if (question.length > 500) {
+            binding.etQuestion.error = "Question too long (max 500 characters)"
+            return
+        }
+
+        val validOptions = options.map { it.trim() }.filter { it.isNotBlank() }
         if (validOptions.size < 2) {
             Toast.makeText(this, "At least 2 options required", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (validOptions.any { it.length > 200 }) {
+            Toast.makeText(this, "Options cannot exceed 200 characters each", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -192,7 +202,7 @@ class CreatePollActivity : AppCompatActivity() {
         }.addOnFailureListener { e ->
             binding.progressBar.isVisible = false
             binding.btnPublish.isEnabled = true
-            Toast.makeText(this, "Failed: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Failed: Please try again later.", Toast.LENGTH_LONG).show()
         }
     }
 }

@@ -179,6 +179,7 @@ class ClassMateApp : Application() {
                 NotificationRouter.pendingTab = when (type) {
                     "chat_message" -> "chat"
                     "resource" -> "pdf_library"
+                    "schedule_update", "timetable" -> "timetable"
                     "poll" -> "notices"
                     else -> "notices"   // cancellation, substitute, assignment, deadline, exam → notices
                 }
@@ -316,39 +317,22 @@ class ClassMateApp : Application() {
         CoroutineScope(Dispatchers.Default).launch {
             val workManager = WorkManager.getInstance(this@ClassMateApp)
 
-            // Daily Timetable Sync
-            val syncWorkRequest = PeriodicWorkRequestBuilder<DailySchedulerWorker>(
-                24, TimeUnit.HOURS
-            ).build()
+            // Cancel legacy per-period/hourly class reminders and old 8 AM / 8 PM briefings
+            workManager.cancelUniqueWork("DailyTimetableSync")
+            workManager.cancelUniqueWork("MorningBriefing")
+            workManager.cancelUniqueWork("EveningBriefing")
+            workManager.cancelAllWorkByTag(com.shuaib.classmate.utils.ClassReminderWorkCoordinator.CLASS_REMINDER_TAG)
 
-            workManager.enqueueUniquePeriodicWork(
-                "DailyTimetableSync",
-                ExistingPeriodicWorkPolicy.KEEP,
-                syncWorkRequest
-            )
-
-            // Morning Briefing at 8:00 AM
-            val morningBriefRequest = PeriodicWorkRequestBuilder<MorningBriefWorker>(
+            // Single daily notification at 12:00 AM midnight for next day's class updates (students only)
+            val midnightBriefRequest = PeriodicWorkRequestBuilder<MorningBriefWorker>(
                 24, TimeUnit.HOURS
-            ).setInitialDelay(calculateDelayUntil8AM(), TimeUnit.MILLISECONDS)
+            ).setInitialDelay(calculateDelayUntilMidnight(), TimeUnit.MILLISECONDS)
             .build()
 
             workManager.enqueueUniquePeriodicWork(
-                "MorningBriefing",
-                ExistingPeriodicWorkPolicy.KEEP,
-                morningBriefRequest
-            )
-
-            // Evening Briefing at 8:00 PM for next day's schedule
-            val eveningBriefRequest = PeriodicWorkRequestBuilder<com.shuaib.classmate.workers.EveningBriefWorker>(
-                24, TimeUnit.HOURS
-            ).setInitialDelay(calculateDelayUntil8PM(), TimeUnit.MILLISECONDS)
-            .build()
-
-            workManager.enqueueUniquePeriodicWork(
-                "EveningBriefing",
-                ExistingPeriodicWorkPolicy.KEEP,
-                eveningBriefRequest
+                "MidnightClassUpdateBriefing",
+                ExistingPeriodicWorkPolicy.UPDATE,
+                midnightBriefRequest
             )
 
             val offlineSyncRequest = OneTimeWorkRequestBuilder<OfflineSyncWorker>()
@@ -368,36 +352,16 @@ class ClassMateApp : Application() {
         }
     }
 
-    private fun calculateDelayUntil8AM(): Long {
+    private fun calculateDelayUntilMidnight(): Long {
         val now = Calendar.getInstance()
         val target = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 8)
+            set(Calendar.HOUR_OF_DAY, 0) // 12:00 AM Midnight
             set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
+            add(Calendar.DAY_OF_YEAR, 1)
         }
-
-        if (target.before(now)) {
-            target.add(Calendar.DAY_OF_YEAR, 1)
-        }
-
-        return target.timeInMillis - now.timeInMillis
-    }
-
-    private fun calculateDelayUntil8PM(): Long {
-        val now = Calendar.getInstance()
-        val target = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 20) // 8:00 PM
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-
-        if (target.before(now)) {
-            target.add(Calendar.DAY_OF_YEAR, 1)
-        }
-
-        return target.timeInMillis - now.timeInMillis
+        return (target.timeInMillis - now.timeInMillis).coerceAtLeast(1000L)
     }
 
     companion object {

@@ -386,10 +386,10 @@ class LoginActivity : AppCompatActivity() {
                 val currentUser = FirebaseAuth.getInstance().currentUser
                 val isGoogleAuth = currentUser?.providerData?.any { it.providerId == "google.com" } == true
                 
-                if (approved && (currentUser?.isEmailVerified == true || isGoogleAuth)) {
+                if (approved) {
                     navigateToMain()
                 } else {
-                    // User not approved or not verified - show pending screen
+                    // User not approved - show pending screen
                     setLoading(false)
                     startActivity(Intent(this, PendingApprovalActivity::class.java))
                     finishAffinity()

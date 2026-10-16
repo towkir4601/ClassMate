@@ -64,6 +64,11 @@ object PdfDialogHelper {
             dialog.dismiss()
             LibraryUrlOpener.open(context, pdf)
         }
+
+        sheet.btnShareLink.setOnClickListener {
+            dialog.dismiss()
+            LibraryShareHelper.sharePdfLink(context, pdf)
+        }
         
         sheet.btnDownload.setOnClickListener {
             sheet.tvDownloadLabel.text = "Downloading..."
@@ -89,7 +94,8 @@ object PdfDialogHelper {
                     activity.runOnUiThread {
                         sheet.btnDownload.isEnabled = true
                         sheet.tvDownloadLabel.text = "Make Available Offline"
-                        Toast.makeText(context, "Download failed: ${error.message}", Toast.LENGTH_LONG).show()
+                        android.util.Log.e("PdfDialogHelper", "Download failed", error)
+                        Toast.makeText(context, "Download failed. Please try again later.", Toast.LENGTH_LONG).show()
                     }
                 }
             )

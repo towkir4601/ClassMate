@@ -1,6 +1,3 @@
-/*
- * C:/Users/USER/AndroidStudioProjects/ClassMate/app/src/main/java/com/shuaib/classmate/utils/NotificationSender.kt
- */
 package com.shuaib.classmate.utils
 
 import kotlinx.coroutines.CoroutineScope
@@ -33,15 +30,26 @@ object NotificationSender {
         onSuccess: () -> Unit = {},
         onFailure: (String) -> Unit = {}
     ) {
-        val targetBuilder: org.json.JSONObject.() -> Unit = if (targetBatch.isNotBlank() && targetBatch != "all") {
+        val targetBuilder: org.json.JSONObject.() -> Unit = if (targetBatch.isNotBlank() && !targetBatch.equals("all", ignoreCase = true)) {
             {
                 val filters = org.json.JSONArray().apply {
                     put(org.json.JSONObject().put("field", "tag").put("key", "batch").put("relation", "=").put("value", targetBatch))
+                    put(org.json.JSONObject().put("operator", "AND"))
+                    put(org.json.JSONObject().put("field", "tag").put("key", "role").put("relation", "!=").put("value", "teacher"))
+                    put(org.json.JSONObject().put("operator", "OR"))
+                    put(org.json.JSONObject().put("field", "tag").put("key", "semester").put("relation", "=").put("value", targetBatch))
+                    put(org.json.JSONObject().put("operator", "AND"))
+                    put(org.json.JSONObject().put("field", "tag").put("key", "role").put("relation", "!=").put("value", "teacher"))
                 }
                 put("filters", filters)
             }
         } else {
-            { put("included_segments", org.json.JSONArray().put("All")) }
+            { 
+                val filters = org.json.JSONArray().apply {
+                    put(org.json.JSONObject().put("field", "tag").put("key", "role").put("relation", "!=").put("value", "teacher"))
+                }
+                put("filters", filters)
+            }
         }
 
         sendOneSignal(
@@ -50,27 +58,6 @@ object NotificationSender {
             type = type,
             extraData = extraData,
             targetBuilder = targetBuilder,
-            onSuccess = onSuccess,
-            onFailure = onFailure
-        )
-    }
-
-    fun sendToPlayers(
-        playerIds: List<String>,
-        title: String,
-        message: String,
-        type: String,
-        extraData: Map<String, String> = emptyMap(),
-        onSuccess: () -> Unit = {},
-        onFailure: (String) -> Unit = {}
-    ) {
-        if (playerIds.isEmpty()) return
-        sendOneSignal(
-            title = title,
-            message = message,
-            type = type,
-            extraData = extraData,
-            targetBuilder = { put("include_subscription_ids", org.json.JSONArray(playerIds)) },
             onSuccess = onSuccess,
             onFailure = onFailure
         )
@@ -87,16 +74,17 @@ object NotificationSender {
         val bodyText = messageText.ifBlank { "Photo" }.take(100)
         val data = mapOf("roomId" to roomId, "senderId" to senderId)
         if (roomId.startsWith("group_")) {
-            val batch = roomId.removePrefix("group_batch_")
-            val targetBuilder: org.json.JSONObject.() -> Unit = if (batch.isNotBlank() && batch != roomId.removePrefix("group_")) {
-                {
+            val targetBuilder: org.json.JSONObject.() -> Unit
+            if (roomId.startsWith("group_batch_")) {
+                val batch = roomId.removePrefix("group_batch_")
+                targetBuilder = {
                     val filters = org.json.JSONArray().apply {
                         put(org.json.JSONObject().put("field", "tag").put("key", "batch").put("relation", "=").put("value", batch))
                     }
                     put("filters", filters)
                 }
             } else {
-                { put("included_segments", org.json.JSONArray(listOf("All"))) }
+                targetBuilder = { put("included_segments", org.json.JSONArray().put("All")) }
             }
             sendOneSignal(
                 title = "Class Group",
@@ -115,39 +103,24 @@ object NotificationSender {
             .document(uid)
             .get()
             .addOnSuccessListener { doc ->
-                // Always use external_id alias because OneSignal.login(uid) is used in the app.
-                // This is much more reliable than the saved oneSignalPlayerId which might be stale or v3 format.
-                sendToExternalUser(
-                    externalUserId = uid,
+                val playerId = doc.getString("oneSignalPlayerId")
+                sendOneSignal(
                     title = senderName,
                     message = bodyText,
                     type = "chat_message",
                     extraData = data,
+                    targetBuilder = {
+                        if (playerId != null) {
+                            put("include_player_ids", org.json.JSONArray().put(playerId))
+                        } else {
+                            put("include_aliases", org.json.JSONObject().put("external_id", org.json.JSONArray().put(uid)))
+                        }
+                        put("target_channel", "push")
+                    },
                     onFailure = onFailure
                 )
             }
             .addOnFailureListener { onFailure(it.message ?: "Failed to load target user") }
-    }
-
-    private fun sendToExternalUser(
-        externalUserId: String,
-        title: String,
-        message: String,
-        type: String,
-        extraData: Map<String, String> = emptyMap(),
-        onFailure: (String) -> Unit = {}
-    ) {
-        sendOneSignal(
-            title = title,
-            message = message,
-            type = type,
-            extraData = extraData,
-            targetBuilder = {
-                put("include_aliases", JSONObject().put("external_id", org.json.JSONArray().put(externalUserId)))
-                put("target_channel", "push")
-            },
-            onFailure = onFailure
-        )
     }
 
     private fun sendOneSignal(
@@ -205,7 +178,6 @@ object NotificationSender {
         }
     }
 
-    // New Assignment Alert
     fun sendAssignmentAlert(
         subject: String,
         topic: String,
@@ -221,7 +193,6 @@ object NotificationSender {
         onFailure = onFailure
     )
 
-    // New Poll Alert
     fun sendPollAlert(
         question: String,
         targetBatch: String = "all",
@@ -236,7 +207,6 @@ object NotificationSender {
         onFailure = onFailure
     )
 
-    // New resource alert
     fun sendResourceAlert(
         title: String,
         subject: String,
@@ -253,7 +223,6 @@ object NotificationSender {
         onFailure = onFailure
     )
 
-    // Normal notice
     fun sendNoticeAlert(
         title: String,
         body: String,
@@ -271,7 +240,6 @@ object NotificationSender {
         onFailure = onFailure
     )
 
-    // Class cancellation
     fun sendCancellationAlert(
         subject: String,
         whenText: String,
@@ -292,7 +260,6 @@ object NotificationSender {
         onFailure = onFailure
     )
 
-    // Substitute
     fun sendSubstituteAlert(
         subject: String,
         substituteTeacher: String,
@@ -318,7 +285,23 @@ object NotificationSender {
         onFailure = onFailure
     )
 
-    // Academic Calendar Holiday Alert
+    fun sendScheduleUpdateAlert(
+        subject: String,
+        details: String,
+        day: String = "",
+        targetBatch: String = "all",
+        onSuccess: () -> Unit = {},
+        onFailure: (String) -> Unit = {}
+    ) = sendToAll(
+        title = "⏰ Class Time/Room Updated",
+        message = "$subject: $details",
+        type = "schedule_update",
+        extraData = mapOf("subject" to subject, "day" to day),
+        targetBatch = targetBatch.ifBlank { "all" },
+        onSuccess = onSuccess,
+        onFailure = onFailure
+    )
+
     fun sendHolidayAlert(
         title: String,
         reason: String,
@@ -333,7 +316,6 @@ object NotificationSender {
         onFailure = onFailure
     )
 
-    // Registration alert for Admins
     fun sendRegistrationAlert(
         userName: String,
         studentId: String,

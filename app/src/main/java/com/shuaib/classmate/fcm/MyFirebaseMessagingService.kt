@@ -29,6 +29,12 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             return
         }
 
+        val userRole = com.shuaib.classmate.utils.AppPreferences(applicationContext).getUserRole()
+        if (userRole.equals("teacher", ignoreCase = true)) {
+            Log.d("FCM", "User is a teacher, skipping push notification.")
+            return
+        }
+
         // If the message is from OneSignal, let OneSignal SDK handle it
         if (remoteMessage.data.containsKey("custom")) {
             Log.d("FCM", "Message is from OneSignal, skipping manual notification.")

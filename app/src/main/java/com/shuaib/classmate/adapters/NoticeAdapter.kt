@@ -1013,7 +1013,7 @@ class NoticeAdapter(
             binding.btnDelete.setOnClickListener {
                 HapticHelper.heavyClick(it)
                 it.animateSpringScale(1.1f)
-                AlertDialog.Builder(itemView.context, R.style.Theme_ClassMate_Dialog)
+                com.google.android.material.dialog.MaterialAlertDialogBuilder(itemView.context, R.style.Theme_ClassMate_Dialog)
                     .setTitle("Delete Poll?")
                     .setMessage("This action cannot be undone.")
                     .setPositiveButton("Delete") { _, _ -> onPollDelete(poll.id) }

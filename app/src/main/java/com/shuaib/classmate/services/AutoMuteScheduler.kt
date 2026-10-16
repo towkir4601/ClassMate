@@ -34,9 +34,13 @@ object AutoMuteScheduler {
 
                 // Check for today's academic calendar exceptions (holidays/cancellations)
                 val todayDate = try { LocalDate.now() } catch (e: Exception) { null }
-                if (todayDate != null && calendarRepository.areAllClassesSuspended(todayDate)) {
-                    Log.d(TAG, "All classes are suspended today due to academic calendar exception. Skipping alarms.")
-                    return@launch
+                if (todayDate != null) {
+                    val userBatch = prefs.getUserSemester()
+                    if (calendarRepository.areAllClassesSuspended(todayDate) ||
+                        (userBatch.isNotBlank() && calendarRepository.isClassSuspendedForBatch(todayDate, userBatch))) {
+                        Log.d(TAG, "Classes are suspended today for this user. Skipping auto-mute alarms.")
+                        return@launch
+                    }
                 }
 
                 val todayDay = DateHelper.todayDayString()
@@ -44,7 +48,18 @@ object AutoMuteScheduler {
                 
                 val db = ClassMateDatabase.getInstance(context)
                 val periodEntities = db.timetableDao().getPeriodsSync(todayDay)
-                val periods = periodEntities.map { it.toPeriod(todayDateStr) }
+                
+                val userRole = prefs.getUserRole()
+                val teacherCode = prefs.getTeacherCode()
+                val userBatch = prefs.getUserSemester()
+                
+                val periods = periodEntities.map { it.toPeriod(todayDateStr) }.filter { period ->
+                    if (userRole == "teacher") {
+                        teacherCode.isNotBlank() && period.teacher == teacherCode
+                    } else {
+                        userBatch.isNotBlank() && period.batch == userBatch
+                    }
+                }
 
                 if (periods.isEmpty()) {
                     Log.d(TAG, "No timetable periods scheduled for $todayDay today.")
@@ -59,6 +74,12 @@ object AutoMuteScheduler {
                     if (period.isCancelled) {
                         Log.d(TAG, "Period ${period.subject} is cancelled today. Skipping mute scheduling.")
                         return@forEach
+                    }
+                    if (todayDate != null && period.batch.isNotBlank()) {
+                        if (calendarRepository.isClassSuspendedForBatch(todayDate, period.batch)) {
+                            Log.d(TAG, "Period ${period.subject} for batch ${period.batch} is suspended today. Skipping.")
+                            return@forEach
+                        }
                     }
 
                     val startCal = parseTimeToCalendar(period.startTime)
@@ -168,13 +189,31 @@ object AutoMuteScheduler {
     }
 
     private fun parseTimeToCalendar(timeStr: String): Calendar? {
+        if (timeStr.isBlank()) return null
         return try {
-            val parts = timeStr.split(":")
-            val hour = parts[0].toInt()
-            val minute = parts[1].toInt()
+            var localTime: java.time.LocalTime? = null
+            try {
+                localTime = java.time.LocalTime.parse(timeStr)
+            } catch (e: Exception) {
+                try {
+                    val formatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a", java.util.Locale.US)
+                    localTime = java.time.LocalTime.parse(timeStr.uppercase(java.util.Locale.US), formatter)
+                } catch (e2: Exception) {
+                    try {
+                        val formatter2 = java.time.format.DateTimeFormatter.ofPattern("hh:mm a", java.util.Locale.US)
+                        localTime = java.time.LocalTime.parse(timeStr.uppercase(java.util.Locale.US), formatter2)
+                    } catch (e3: Exception) {
+                        val cleanStr = timeStr.substringBefore(" ").trim()
+                        localTime = java.time.LocalTime.parse(cleanStr)
+                    }
+                }
+            }
+
+            if (localTime == null) return null
+            
             Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, hour)
-                set(Calendar.MINUTE, minute)
+                set(Calendar.HOUR_OF_DAY, localTime.hour)
+                set(Calendar.MINUTE, localTime.minute)
                 set(Calendar.SECOND, 0)
                 set(Calendar.MILLISECOND, 0)
             }

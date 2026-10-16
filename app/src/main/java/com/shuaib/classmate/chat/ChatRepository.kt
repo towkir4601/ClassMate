@@ -428,7 +428,16 @@ object ChatRepository {
             senderName = map["senderName"] as? String ?: "User",
             senderAvatarUrl = map["senderAvatarUrl"] as? String ?: "",
             text = map["text"] as? String ?: "",
-            timestamp = (map["timestamp"] as? Number)?.toLong() ?: 0L,
+            timestamp = run {
+                val rawTs = map["timestamp"]
+                val parsedTs = when (rawTs) {
+                    is Number -> rawTs.toLong()
+                    is com.google.firebase.Timestamp -> rawTs.toDate().time
+                    is java.util.Date -> rawTs.time
+                    else -> 0L
+                }
+                if (parsedTs in 1..9999999999L) parsedTs * 1000L else if (parsedTs <= 0L) System.currentTimeMillis() else parsedTs
+            },
             isDeleted = map["isDeleted"] as? Boolean ?: false,
             replyToId = map["replyToId"] as? String,
             replyToText = map["replyToText"] as? String,

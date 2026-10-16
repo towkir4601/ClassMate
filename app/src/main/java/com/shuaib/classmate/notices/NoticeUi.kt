@@ -64,7 +64,9 @@ object NoticeUi {
             assignmentId = doc.getString("assignmentId").orEmpty(),
             subject = doc.getString("subject") ?: doc.getString("targetSubject").orEmpty(),
             topic = doc.getString("topic").orEmpty(),
-            submissionDate = doc.getString("submissionDate").orEmpty(),
+            submissionDate = doc.getString("submissionDate")?.takeIf { it.isNotBlank() }
+                ?: doc.getString("cancelDate")?.takeIf { it.isNotBlank() }
+                ?: doc.getString("substituteDate").orEmpty(),
             deadlineType = doc.getString("deadlineType") ?: "assignment",
             pdfId = doc.getString("pdfId").orEmpty(),
             readCount = (doc.getLong("readCount") ?: 0L).toInt(),

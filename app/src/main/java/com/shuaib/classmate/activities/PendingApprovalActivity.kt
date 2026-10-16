@@ -56,7 +56,8 @@ class PendingApprovalActivity : AppCompatActivity() {
             auth.currentUser?.sendEmailVerification()?.addOnSuccessListener {
                 Toast.makeText(this, "Verification email sent!", Toast.LENGTH_SHORT).show()
             }?.addOnFailureListener {
-                Toast.makeText(this, "Failed to send email: ${it.message}", Toast.LENGTH_SHORT).show()
+                android.util.Log.e("PendingApproval", "Failed to send verification email", it)
+                Toast.makeText(this, "Failed to send verification email. Please try again later.", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -78,8 +79,8 @@ class PendingApprovalActivity : AppCompatActivity() {
             handler.postDelayed(emailCheckRunnable, 5000)
         } else {
             showApprovalWaitingState()
-            startApprovalListener()
         }
+        startApprovalListener()
     }
 
     private fun showEmailVerificationState() {
@@ -178,10 +179,12 @@ class PendingApprovalActivity : AppCompatActivity() {
         // Also check on resume as a fallback
         auth.currentUser?.reload()?.addOnCompleteListener {
             val user = auth.currentUser ?: return@addOnCompleteListener
-            if (user.isEmailVerified && approvalListener == null) {
+            if (user.isEmailVerified) {
                 showApprovalWaitingState()
-                startApprovalListener()
-            } else if (!user.isEmailVerified) {
+                if (approvalListener == null) {
+                    startApprovalListener()
+                }
+            } else {
                 // Make sure polling is running
                 handler.removeCallbacks(emailCheckRunnable)
                 handler.postDelayed(emailCheckRunnable, 5000)

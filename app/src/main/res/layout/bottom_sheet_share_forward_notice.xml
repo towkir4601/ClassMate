@@ -54,7 +54,7 @@
             android:background="@drawable/bg_notice_badge"
             android:gravity="center"
             android:paddingHorizontal="10dp"
-            android:textColor="@color/cm_primary_soft"
+            android:textColor="@color/cm_primary"
             android:textSize="11sp"
             android:textStyle="bold" />
 

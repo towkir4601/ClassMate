@@ -44,7 +44,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:ellipsize="end"
-                android:fontFamily="serif"
+                
                 android:maxLines="1"
                 android:textColor="@color/cm_text_primary"
                 android:textSize="15sp"

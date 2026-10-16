@@ -75,6 +75,14 @@
                     android:inputType="none" />
             </com.google.android.material.textfield.TextInputLayout>
         </LinearLayout>
+        
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSelectBatches"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Target: All Batches (Click to change)"
+            style="@style/Widget.Material3.Button.OutlinedButton" />
 
         <com.google.android.material.textfield.TextInputLayout
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"

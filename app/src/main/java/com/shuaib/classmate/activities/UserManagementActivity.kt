@@ -81,7 +81,11 @@ class UserManagementActivity : AppCompatActivity() {
     }
 
     private fun fetchCurrentUser() {
-        val currentUid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val currentUid = FirebaseAuth.getInstance().currentUser?.uid ?: run {
+            Toast.makeText(this, "Authentication required", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
         binding.progressBar.visibility = View.VISIBLE
         firestore.collection("users").document(currentUid).get()
             .addOnSuccessListener { doc ->
@@ -228,8 +232,10 @@ class UserManagementActivity : AppCompatActivity() {
 
             }
             .addOnFailureListener { e ->
+                android.util.Log.e("UserManagementActivity", "Failed to $action user", e)
                 binding.progressBar.visibility = View.GONE
-                Toast.makeText(this, "Failed to $action user: ${e.message}", Toast.LENGTH_SHORT).show()
+                val msg = e.localizedMessage ?: "Please try again later."
+                Toast.makeText(this, "Failed to $action user: $msg", Toast.LENGTH_LONG).show()
             }
     }
 
@@ -292,8 +298,10 @@ class UserManagementActivity : AppCompatActivity() {
 
             }
             .addOnFailureListener { e ->
+                android.util.Log.e("UserManagementActivity", "Failed to update role", e)
                 binding.progressBar.visibility = View.GONE
-                Toast.makeText(this, "Failed to update role: ${e.message}", Toast.LENGTH_SHORT).show()
+                val msg = e.localizedMessage ?: "Please try again later."
+                Toast.makeText(this, "Failed to update role: $msg", Toast.LENGTH_LONG).show()
             }
     }
 
@@ -320,7 +328,7 @@ class UserManagementActivity : AppCompatActivity() {
             }
             .addOnFailureListener { e ->
                 binding.progressBar.visibility = View.GONE
-                Toast.makeText(this, "Failed to delete user: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Failed to delete user: Please try again later.", Toast.LENGTH_SHORT).show()
             }
     }
 

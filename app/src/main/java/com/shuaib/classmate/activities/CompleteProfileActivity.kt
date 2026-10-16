@@ -118,7 +118,8 @@ class CompleteProfileActivity : AppCompatActivity() {
         firestore.collection("users").document(uid)
             .set(data, SetOptions.merge())
             .addOnFailureListener {
-                Toast.makeText(this, "Failed to save data: ${it.message}", Toast.LENGTH_SHORT).show()
+                android.util.Log.e("CompleteProfile", "Failed to save profile data", it)
+                Toast.makeText(this, "Failed to save profile. Please try again later.", Toast.LENGTH_SHORT).show()
             }
     }
 
