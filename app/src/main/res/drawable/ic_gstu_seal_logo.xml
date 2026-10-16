@@ -1,0 +1,53 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="72dp"
+    android:height="72dp"
+    android:viewportWidth="72"
+    android:viewportHeight="72">
+    <!-- Green Background Square with subtle rounded corners -->
+    <path
+        android:fillColor="#0B7B3E"
+        android:pathData="M6,0 H66 A6,6 0 0,1 72,6 V66 A6,6 0 0,1 66,72 H6 A6,6 0 0,1 0,66 V6 A6,6 0 0,1 6,0 Z" />
+    
+    <!-- Outer White Circle Ring -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.8"
+        android:pathData="M36,10 A26,26 0 1,1 35.9,10 Z" />
+
+    <!-- Inner White Circle Ring -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M36,15 A21,21 0 1,1 35.9,15 Z" />
+
+    <!-- Inner Green Core -->
+    <path
+        android:fillColor="#0B7B3E"
+        android:pathData="M36,18 A18,18 0 1,1 35.9,18 Z" />
+
+    <!-- University Open Book in White -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="0.8"
+        android:pathData="M36,44 C31,40 24,40 22,41 V32 C24,31 31,31 36,35 C41,31 48,31 50,32 V41 C48,40 41,40 36,44 Z" />
+
+    <!-- Center Book Divider -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#0B7B3E"
+        android:strokeWidth="1.2"
+        android:pathData="M36,35 V44" />
+
+    <!-- Torch Flame above Book -->
+    <path
+        android:fillColor="#FFD700"
+        android:strokeColor="#E11D48"
+        android:strokeWidth="0.8"
+        android:pathData="M36,23 C33,26 34,29 36,32 C38,29 39,26 36,23 Z" />
+
+    <!-- Subtext Stars / Dots -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M20,36 A1.5,1.5 0 1,1 20,33 A1.5,1.5 0 1,1 20,36 Z M52,36 A1.5,1.5 0 1,1 52,33 A1.5,1.5 0 1,1 52,36 Z" />
+</vector>

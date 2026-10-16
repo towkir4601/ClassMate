@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Liquid Glass Custom Styles -->
+    <style name="GlassTextInputLayout" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="boxStrokeColor">#4DFFFFFF</item>
+        <item name="boxStrokeWidth">1.5dp</item>
+        <item name="boxBackgroundColor">#1AFFFFFF</item>
+        <item name="boxCornerRadiusTopStart">32dp</item>
+        <item name="boxCornerRadiusTopEnd">32dp</item>
+        <item name="boxCornerRadiusBottomStart">32dp</item>
+        <item name="boxCornerRadiusBottomEnd">32dp</item>
+        <item name="hintTextColor">#FFFFFF</item>
+        <item name="android:textColorHint">#B3FFFFFF</item>
+        <item name="endIconTint">#B3FFFFFF</item>
+        <item name="startIconTint">#B3FFFFFF</item>
+    </style>
+    
+    <style name="GlassTextInputEditText" parent="Widget.MaterialComponents.TextInputEditText.OutlinedBox">
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+</resources>

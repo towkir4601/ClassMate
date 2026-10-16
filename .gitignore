@@ -30,3 +30,4 @@ library*.xml
 notice*.xml
 *.hprof
 *.apk
+firebase-debug.log

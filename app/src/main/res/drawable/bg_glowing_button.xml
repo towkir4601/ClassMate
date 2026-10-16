@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Glow effect using a larger stroke and soft gradient, if possible, but simplest is solid dark with bright orange border -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#2A223B" /> <!-- Dark inner color blending with background -->
+            <corners android:radius="100dp" />
+            <stroke android:width="1.5dp" android:color="#FF7A00" /> <!-- Glowing orange border -->
+        </shape>
+    </item>
+</layer-list>
