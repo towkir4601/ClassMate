@@ -5,29 +5,49 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import androidx.appcompat.app.AppCompatActivity
-import dagger.hilt.android.AndroidEntryPoint
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Source
-import com.shuaib.classmate.models.User
+import com.shuaib.classmate.R
+import com.shuaib.classmate.ui.SplashScreen
 import com.shuaib.classmate.utils.AppPreferences
+import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class SplashActivity : AppCompatActivity() {
 
     private val handler = Handler(Looper.getMainLooper())
     private var hasNavigated = false
-    private var isReady = false
+    private var pendingDestination: Class<*>? = null
+    private var minLoopCompleted = false
+    private lateinit var splashScreenComponent: SplashScreen
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
 
-        // Keep system splash screen visible until routing is determined
-        splashScreen.setKeepOnScreenCondition { !isReady }
+        setContentView(R.layout.activity_splash)
 
+        splashScreenComponent = findViewById(R.id.splashScreenComponent)
+
+        // Listen for when 1 full loop (4 seconds) finishes
+        splashScreenComponent.setOnLoopListener { loopCount ->
+            if (loopCount >= 1) {
+                minLoopCompleted = true
+                tryNavigateIfReady()
+            }
+        }
+
+        // Auto dismiss callback
+        splashScreenComponent.setOnDismissListener {
+            minLoopCompleted = true
+            tryNavigateIfReady()
+        }
+
+        // Start 4-second animation
+        splashScreenComponent.play()
+
+        // Concurrently check user status in the background
         checkUserStatus()
     }
 
@@ -37,11 +57,11 @@ class SplashActivity : AppCompatActivity() {
         val currentUser = auth.currentUser
 
         if (!prefs.isOnboardingComplete()) {
-            navigate(OnboardingActivity::class.java)
+            setResolvedDestination(OnboardingActivity::class.java)
         } else if (currentUser != null) {
             fetchProfileAndRoute(currentUser.uid)
         } else {
-            navigate(LoginActivity::class.java)
+            setResolvedDestination(LoginActivity::class.java)
         }
     }
 
@@ -49,8 +69,8 @@ class SplashActivity : AppCompatActivity() {
         val userRef = FirebaseFirestore.getInstance().collection("users").document(uid)
 
         val timeoutRunnable = Runnable {
-            if (!hasNavigated) {
-                navigate(MainActivity::class.java)
+            if (pendingDestination == null) {
+                setResolvedDestination(MainActivity::class.java)
             }
         }
         handler.postDelayed(timeoutRunnable, 3000)
@@ -76,12 +96,12 @@ class SplashActivity : AppCompatActivity() {
                 if (doc.exists()) {
                     routeFromProfile(doc)
                 } else {
-                    navigate(MainActivity::class.java)
+                    setResolvedDestination(MainActivity::class.java)
                 }
             }
             .addOnFailureListener {
                 handler.removeCallbacks(timeoutRunnable)
-                navigate(MainActivity::class.java)
+                setResolvedDestination(MainActivity::class.java)
             }
     }
 
@@ -96,23 +116,39 @@ class SplashActivity : AppCompatActivity() {
             }
             
             if (role == "superadmin" || role == "admin" || approved) {
-                navigate(MainActivity::class.java)
+                setResolvedDestination(MainActivity::class.java)
             } else {
-                navigate(PendingApprovalActivity::class.java)
+                setResolvedDestination(PendingApprovalActivity::class.java)
             }
         } catch (e: Exception) {
             android.util.Log.e("SplashActivity", "Error parsing profile: ${e.message}")
-            navigate(MainActivity::class.java)
+            setResolvedDestination(MainActivity::class.java)
         }
     }
 
-    private fun navigate(destination: Class<*>) {
-        if (hasNavigated || isFinishing) return
-        hasNavigated = true
-        isReady = true // Release system splash screen
-        startActivity(Intent(this, destination))
-        finish()
-        overridePendingTransition(0, 0)
+    private fun setResolvedDestination(destination: Class<*>) {
+        pendingDestination = destination
+        tryNavigateIfReady()
+    }
+
+    private fun tryNavigateIfReady() {
+        val destination = pendingDestination ?: return
+        if (minLoopCompleted && !hasNavigated && !isFinishing) {
+            hasNavigated = true
+            startActivity(Intent(this, destination))
+            finish()
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        splashScreenComponent.pause()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        splashScreenComponent.resume()
     }
 
     override fun onDestroy() {

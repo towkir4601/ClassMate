@@ -1,0 +1,101 @@
+[2026-10-17T14:30:49.520Z] INFO  [Installer] Checking Jolli Memory status
+[2026-10-17T14:31:11.718Z] INFO  [StorageFactory] StorageFactory.create: route=uncutover, projectPath=d:\projects\GSTU GO\ClassMate
+[2026-10-17T14:31:12.348Z] INFO  [RepoProfile] manual-disable read → false (by=migrate:legacy-marker, pid=10140, cwd=d:\projects\GSTU GO\ClassMate, profile=d:\projects\GSTU GO\ClassMate\.jolli\jollimemory\profile.json, raw: userDisabled=undefined manuallyDisabled=undefined fence=none)
+[2026-10-17T14:31:13.801Z] INFO  [Installer] Checking Jolli Memory status
+[2026-10-17T14:31:13.931Z] INFO  [StorageFactory] StorageFactory.create: route=uncutover, projectPath=d:\projects\GSTU GO\ClassMate
+[2026-10-17T14:31:14.717Z] INFO  [SchemaV5Migration] Storage backend not initialized yet — skipping schema v5 migration (no data to migrate)
+[2026-10-17T14:31:14.717Z] INFO  [activate] Schema v5 migration: alreadyDone=false fresh=true migrated=0 skipped=0
+[2026-10-17T14:31:21.259Z] INFO  [Installer] Status: enabled=false, claude=false, git=false, geminiHook=false, hermesHook=false, worktreeHooks=false, sessions=2, summaries=0, codex=true/true, gemini=true/true, enabledWorktrees=0, opencode=true/true, cursor=false/true, copilot=true/true, copilotChat=true, cline=true/true
+[2026-10-17T14:31:21.264Z] INFO  [Installer] Status: enabled=false, claude=false, git=false, geminiHook=false, hermesHook=false, worktreeHooks=false, sessions=2, summaries=0, codex=true/true, gemini=true/true, enabledWorktrees=0, opencode=true/true, cursor=false/true, copilot=true/true, copilotChat=true, cline=true/true
+[2026-10-17T14:31:21.305Z] INFO  [initialLoad] All panels loaded — updating status bar
+[2026-10-17T14:31:21.475Z] INFO  [Installer] Checking Jolli Memory status
+[2026-10-17T14:31:21.475Z] INFO  [Installer] Checking Jolli Memory status
+[2026-10-17T14:31:32.534Z] INFO  [Installer] Status: enabled=false, claude=false, git=false, geminiHook=false, hermesHook=false, worktreeHooks=false, sessions=2, summaries=0, codex=true/true, gemini=true/true, enabledWorktrees=0, opencode=true/true, cursor=false/true, copilot=true/true, copilotChat=true, cline=true/true
+[2026-10-17T14:31:32.689Z] INFO  [Installer] Status: enabled=false, claude=false, git=false, geminiHook=false, hermesHook=false, worktreeHooks=false, sessions=2, summaries=0, codex=true/true, gemini=true/true, enabledWorktrees=0, opencode=true/true, cursor=false/true, copilot=true/true, copilotChat=true, cline=true/true
+[2026-10-17T14:31:33.115Z] INFO  [Installer] Checking Jolli Memory status
+[2026-10-17T14:31:33.168Z] INFO  [StorageFactory] StorageFactory.create: route=uncutover, projectPath=d:\projects\GSTU GO\ClassMate
+[2026-10-17T14:31:47.940Z] INFO  [Installer] Status: enabled=false, claude=false, git=false, geminiHook=false, hermesHook=false, worktreeHooks=false, sessions=2, summaries=0, codex=true/true, gemini=true/true, enabledWorktrees=0, opencode=true/true, cursor=false/true, copilot=true/true, copilotChat=true, cline=true/true
+[2026-10-17T14:31:47.968Z] INFO  [RepoProfile] manual-disable read → false (by=manuallyDisabled, pid=10140, cwd=d:\projects\GSTU GO\ClassMate, profile=d:\projects\GSTU GO\ClassMate\.jolli\jollimemory\profile.json, raw: userDisabled=undefined manuallyDisabled=false fence=none)
+[2026-10-17T14:31:47.969Z] INFO  [activate] Auto-enabling Jolli Memory (no opt-out recorded)
+[2026-10-17T14:31:47.969Z] INFO  [bridge] enable() called
+[2026-10-17T14:31:47.999Z] INFO  [Installer] Installing Jolli Memory hooks
+[2026-10-17T14:31:48.525Z] INFO  [DispatchScripts] Wrote resolve-dist-path, run-hook, and run-cli scripts to C:\Users\Hp\.jolli\jollimemory
+[2026-10-17T14:31:48.611Z] INFO  [DistPathWriter] Wrote dist-paths/antigravity-ide (version=0.99.18, distDir=c:\Users\Hp\.antigravity-ide\extensions\jolli.jollimemory-vscode-0.99.18-universal\dist)
+[2026-10-17T14:31:49.011Z] INFO  [SkillInstaller] Wrote SKILL.md (revision 3) to D:\projects\GSTU GO\ClassMate\.agents\skills\jolli-recall\SKILL.md
+[2026-10-17T14:31:49.134Z] INFO  [SkillInstaller] Wrote SKILL.md (revision 3) to D:\projects\GSTU GO\ClassMate\.agents\skills\jolli-search\SKILL.md
+[2026-10-17T14:31:49.185Z] INFO  [SkillInstaller] Wrote SKILL.md (revision 6) to D:\projects\GSTU GO\ClassMate\.agents\skills\jolli-local-run\SKILL.md
+[2026-10-17T14:31:49.321Z] INFO  [Installer] Checking Jolli Memory status
+[2026-10-17T14:31:49.362Z] INFO  [SkillInstaller] Wrote SKILL.md (revision 5) to D:\projects\GSTU GO\ClassMate\.agents\skills\jolli-remote-run\SKILL.md
+[2026-10-17T14:31:49.654Z] INFO  [SkillInstaller] Wrote SKILL.md (revision 9) to D:\projects\GSTU GO\ClassMate\.agents\skills\jolli\SKILL.md
+[2026-10-17T14:31:50.097Z] INFO  [GitExclude] Updated D:\projects\GSTU GO\ClassMate\.git\info\exclude with 7 Jolli skill exclude paths
+[2026-10-17T14:31:50.180Z] INFO  [McpRegistration] Registered MCP server in D:\projects\GSTU GO\ClassMate\.mcp.json
+[2026-10-17T14:31:50.540Z] INFO  [JsonMcpWriter] MCP server already registered in C:\Users\Hp\.gemini\settings.json — no write needed
+[2026-10-17T14:31:50.586Z] INFO  [CodexTomlWriter] Codex MCP server already registered in C:\Users\Hp\.codex\config.toml — no write needed
+[2026-10-17T14:31:50.623Z] INFO  [JsonMcpWriter] MCP server already registered in C:\Users\Hp\.config\opencode\opencode.json — no write needed
+[2026-10-17T14:31:50.660Z] INFO  [JsonMcpWriter] MCP server already registered in C:\Users\Hp\.copilot\mcp-config.json — no write needed
+[2026-10-17T14:31:50.698Z] INFO  [JsonMcpWriter] MCP server already registered in C:\Users\Hp\AppData\Roaming\Code\User\mcp.json — no write needed
+[2026-10-17T14:31:50.775Z] INFO  [JsonMcpWriter] MCP server already registered in C:\Users\Hp\AppData\Roaming\Code\User\globalStorage\saoudrizwan.claude-dev\settings\cline_mcp_settings.json — no write needed
+[2026-10-17T14:31:50.848Z] INFO  [JsonMcpWriter] MCP server already registered in C:\Users\Hp\.gemini\config\mcp_config.json — no write needed
+[2026-10-17T14:31:50.975Z] INFO  [GitHookInstaller] Git post-commit hook installed
+[2026-10-17T14:31:51.023Z] INFO  [GitHookInstaller] Git post-rewrite hook installed
+[2026-10-17T14:31:51.067Z] INFO  [GitHookInstaller] Git prepare-commit-msg hook installed
+[2026-10-17T14:31:51.094Z] INFO  [GitHookInstaller] Git post-merge hook installed
+[2026-10-17T14:31:51.127Z] INFO  [GitHookInstaller] Git pre-push hook installed
+[2026-10-17T14:31:51.212Z] INFO  [GeminiHookInstaller] Gemini AfterAgent hook installed
+[2026-10-17T14:31:51.222Z] INFO  [Installer] Skipping v5 migration on vscode-extension source — Extension.ts owns it with UI
+[2026-10-17T14:31:51.222Z] INFO  [Installer] Installation complete
+[2026-10-17T14:31:51.241Z] INFO  [Installer] Checking Jolli Memory status
+[2026-10-17T14:31:53.224Z] INFO  [Installer] Status: enabled=false, claude=false, git=false, geminiHook=false, hermesHook=false, worktreeHooks=false, sessions=2, summaries=0, codex=true/true, gemini=true/true, enabledWorktrees=1, opencode=true/true, cursor=false/true, copilot=true/true, copilotChat=true, cline=true/true
+[2026-10-17T14:31:54.729Z] INFO  [Installer] Status: enabled=true, claude=true, git=true, geminiHook=true, hermesHook=false, worktreeHooks=true, sessions=2, summaries=0, codex=true/true, gemini=true/true, enabledWorktrees=1, opencode=true/true, cursor=false/true, copilot=true/true, copilotChat=true, cline=true/true
+[2026-10-17T14:31:54.848Z] INFO  [Installer] Checking Jolli Memory status
+[2026-10-17T14:31:56.747Z] INFO  [Installer] Status: enabled=true, claude=true, git=true, geminiHook=true, hermesHook=false, worktreeHooks=true, sessions=2, summaries=0, codex=true/true, gemini=true/true, enabledWorktrees=1, opencode=true/true, cursor=false/true, copilot=true/true, copilotChat=true, cline=true/true
+[2026-10-17T16:20:57.987Z] INFO  [deactivate] Jolli Memory extension deactivating
+[2026-10-18T02:14:04.876Z] INFO  [activate] Activating JolliMemory extension {"workspaceRoot":"d:\\projects\\GSTU GO\\ClassMate","extensionPath":"c:\\Users\\Hp\\.antigravity-ide\\extensions\\jolli.jollimemory-vscode-0.99.18-universal"}
+[2026-10-18T02:14:05.153Z] INFO  [initialLoad] Loading all panels
+[2026-10-18T02:14:48.717Z] INFO  [RepoProfile] manual-disable read → false (by=manuallyDisabled, pid=15492, cwd=d:\projects\GSTU GO\ClassMate, profile=d:\projects\GSTU GO\ClassMate\.jolli\jollimemory\profile.json, raw: userDisabled=undefined manuallyDisabled=false fence=none)
+[2026-10-18T02:14:49.097Z] INFO  [PlanService] detectPlans found 0 plans (0 in registry)
+[2026-10-18T02:14:49.097Z] INFO  [NoteService] detectNotes found 0 notes (0 in registry)
+[2026-10-18T02:14:49.098Z] INFO  [references] detectReferences(*) found 0 (0 in registry)
+[2026-10-18T02:14:49.098Z] INFO  [SkillProjection] projectActiveSkills: 0 active (0 in registry)
+[2026-10-18T02:14:54.843Z] INFO  [StorageFactory] StorageFactory.create: route=uncutover, projectPath=d:\projects\GSTU GO\ClassMate
+[2026-10-18T02:14:55.186Z] INFO  [Installer] Checking Jolli Memory status
+[2026-10-18T02:14:55.186Z] INFO  [Installer] Checking Jolli Memory status
+[2026-10-18T02:14:55.767Z] INFO  [StorageFactory] StorageFactory.create: route=uncutover, projectPath=d:\projects\GSTU GO\ClassMate
+[2026-10-18T02:14:56.440Z] INFO  [StorageFactory] StorageFactory.create: route=uncutover, projectPath=d:\projects\GSTU GO\ClassMate
+[2026-10-18T02:14:57.355Z] INFO  [SchemaV5Migration] Storage backend not initialized yet — skipping schema v5 migration (no data to migrate)
+[2026-10-18T02:14:57.355Z] INFO  [activate] Schema v5 migration: alreadyDone=false fresh=true migrated=0 skipped=0
+[2026-10-18T02:15:18.352Z] INFO  [Installer] Status: enabled=true, claude=true, git=true, geminiHook=true, hermesHook=false, worktreeHooks=true, sessions=3, summaries=0, codex=true/true, gemini=true/true, enabledWorktrees=1, opencode=true/true, cursor=false/true, copilot=true/true, copilotChat=true, cline=true/true
+[2026-10-18T02:15:18.382Z] INFO  [Installer] Checking Jolli Memory status
+[2026-10-18T02:15:18.416Z] INFO  [Installer] Status: enabled=true, claude=true, git=true, geminiHook=true, hermesHook=false, worktreeHooks=true, sessions=3, summaries=0, codex=true/true, gemini=true/true, enabledWorktrees=1, opencode=true/true, cursor=false/true, copilot=true/true, copilotChat=true, cline=true/true
+[2026-10-18T02:15:18.433Z] INFO  [initialLoad] All panels loaded — updating status bar
+[2026-10-18T02:15:18.433Z] INFO  [Installer] Checking Jolli Memory status
+[2026-10-18T02:15:19.601Z] INFO  [Installer] Status: enabled=true, claude=true, git=true, geminiHook=true, hermesHook=false, worktreeHooks=true, sessions=3, summaries=0, codex=true/true, gemini=true/true, enabledWorktrees=1, opencode=true/true, cursor=false/true, copilot=true/true, copilotChat=true, cline=true/true
+[2026-10-18T02:15:19.907Z] INFO  [Installer] Status: enabled=true, claude=true, git=true, geminiHook=true, hermesHook=false, worktreeHooks=true, sessions=3, summaries=0, codex=true/true, gemini=true/true, enabledWorktrees=1, opencode=true/true, cursor=false/true, copilot=true/true, copilotChat=true, cline=true/true
+[2026-10-18T02:15:19.925Z] INFO  [Installer] Checking Jolli Memory status
+[2026-10-18T02:15:19.997Z] INFO  [StorageFactory] StorageFactory.create: route=uncutover, projectPath=d:\projects\GSTU GO\ClassMate
+[2026-10-18T02:15:22.125Z] INFO  [Installer] Status: enabled=true, claude=true, git=true, geminiHook=true, hermesHook=false, worktreeHooks=true, sessions=3, summaries=0, codex=true/true, gemini=true/true, enabledWorktrees=1, opencode=true/true, cursor=false/true, copilot=true/true, copilotChat=true, cline=true/true
+[2026-10-18T02:30:52.259Z] INFO  [deactivate] Jolli Memory extension deactivating
+[2026-10-18T02:31:54.257Z] INFO  [activate] Activating JolliMemory extension {"workspaceRoot":"d:\\projects\\GSTU GO\\ClassMate","extensionPath":"c:\\Users\\Hp\\.antigravity-ide\\extensions\\jolli.jollimemory-vscode-0.99.18-universal"}
+[2026-10-18T02:31:54.600Z] INFO  [initialLoad] Loading all panels
+[2026-10-18T02:32:26.143Z] INFO  [RepoProfile] manual-disable read → false (by=manuallyDisabled, pid=16976, cwd=d:\projects\GSTU GO\ClassMate, profile=d:\projects\GSTU GO\ClassMate\.jolli\jollimemory\profile.json, raw: userDisabled=undefined manuallyDisabled=false fence=none)
+[2026-10-18T02:32:26.430Z] INFO  [PlanService] detectPlans found 0 plans (0 in registry)
+[2026-10-18T02:32:26.430Z] INFO  [NoteService] detectNotes found 0 notes (0 in registry)
+[2026-10-18T02:32:26.430Z] INFO  [references] detectReferences(*) found 0 (0 in registry)
+[2026-10-18T02:32:26.430Z] INFO  [SkillProjection] projectActiveSkills: 0 active (0 in registry)
+[2026-10-18T02:32:29.618Z] INFO  [StorageFactory] StorageFactory.create: route=uncutover, projectPath=d:\projects\GSTU GO\ClassMate
+[2026-10-18T02:32:30.522Z] INFO  [Installer] Checking Jolli Memory status
+[2026-10-18T02:32:30.522Z] INFO  [Installer] Checking Jolli Memory status
+[2026-10-18T02:32:40.618Z] INFO  [StorageFactory] StorageFactory.create: route=uncutover, projectPath=d:\projects\GSTU GO\ClassMate
+[2026-10-18T02:32:42.466Z] INFO  [StorageFactory] StorageFactory.create: route=uncutover, projectPath=d:\projects\GSTU GO\ClassMate
+[2026-10-18T02:32:45.292Z] INFO  [SchemaV5Migration] Storage backend not initialized yet — skipping schema v5 migration (no data to migrate)
+[2026-10-18T02:32:45.293Z] INFO  [activate] Schema v5 migration: alreadyDone=false fresh=true migrated=0 skipped=0
+[2026-10-18T02:32:50.007Z] INFO  [Installer] Status: enabled=true, claude=true, git=true, geminiHook=true, hermesHook=false, worktreeHooks=true, sessions=4, summaries=0, codex=true/true, gemini=true/true, enabledWorktrees=1, opencode=true/true, cursor=false/true, copilot=true/true, copilotChat=true, cline=true/true
+[2026-10-18T02:32:50.043Z] INFO  [initialLoad] All panels loaded — updating status bar
+[2026-10-18T02:32:50.088Z] INFO  [Installer] Checking Jolli Memory status
+[2026-10-18T02:32:50.322Z] INFO  [Installer] Status: enabled=true, claude=true, git=true, geminiHook=true, hermesHook=false, worktreeHooks=true, sessions=4, summaries=0, codex=true/true, gemini=true/true, enabledWorktrees=1, opencode=true/true, cursor=false/true, copilot=true/true, copilotChat=true, cline=true/true
+[2026-10-18T02:32:50.324Z] INFO  [Installer] Checking Jolli Memory status
+[2026-10-18T02:32:52.198Z] INFO  [Installer] Status: enabled=true, claude=true, git=true, geminiHook=true, hermesHook=false, worktreeHooks=true, sessions=4, summaries=0, codex=true/true, gemini=true/true, enabledWorktrees=1, opencode=true/true, cursor=false/true, copilot=true/true, copilotChat=true, cline=true/true
+[2026-10-18T02:32:53.027Z] INFO  [Installer] Status: enabled=true, claude=true, git=true, geminiHook=true, hermesHook=false, worktreeHooks=true, sessions=4, summaries=0, codex=true/true, gemini=true/true, enabledWorktrees=1, opencode=true/true, cursor=false/true, copilot=true/true, copilotChat=true, cline=true/true
+[2026-10-18T02:32:53.031Z] INFO  [Installer] Checking Jolli Memory status
+[2026-10-18T02:32:53.084Z] INFO  [StorageFactory] StorageFactory.create: route=uncutover, projectPath=d:\projects\GSTU GO\ClassMate
+[2026-10-18T02:32:55.277Z] INFO  [Installer] Status: enabled=true, claude=true, git=true, geminiHook=true, hermesHook=false, worktreeHooks=true, sessions=4, summaries=0, codex=true/true, gemini=true/true, enabledWorktrees=1, opencode=true/true, cursor=false/true, copilot=true/true, copilotChat=true, cline=true/true

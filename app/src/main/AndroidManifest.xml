@@ -25,7 +25,7 @@
         android:name=".ClassMateApp"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
-        android:label="ClassMate"
+        android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.ClassMate"
@@ -35,7 +35,7 @@
         <activity
             android:name=".activities.SplashActivity"
             android:exported="true"
-            android:theme="@style/Theme.ClassMate.Starting"
+            android:theme="@style/Theme.ClassMate.Splash"
             android:screenOrientation="portrait"
             tools:ignore="LockedOrientationActivity">
             <intent-filter>
