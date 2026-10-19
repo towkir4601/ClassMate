@@ -35,7 +35,7 @@
         <activity
             android:name=".activities.SplashActivity"
             android:exported="true"
-            android:theme="@style/Theme.ClassMate.Splash"
+            android:theme="@style/Theme.ClassMate.Starting"
             android:screenOrientation="portrait"
             tools:ignore="LockedOrientationActivity">
             <intent-filter>

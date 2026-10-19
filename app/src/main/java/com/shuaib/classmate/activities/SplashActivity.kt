@@ -4,7 +4,9 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
@@ -24,7 +26,14 @@ class SplashActivity : AppCompatActivity() {
     private lateinit var splashScreenComponent: SplashScreen
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+
+        val splashInitTime = SystemClock.uptimeMillis()
+        // Show app icon starting screen for ~800ms before revealing loading screen
+        splashScreen.setKeepOnScreenCondition {
+            SystemClock.uptimeMillis() - splashInitTime < 800L
+        }
 
         setContentView(R.layout.activity_splash)
 
@@ -58,6 +67,8 @@ class SplashActivity : AppCompatActivity() {
 
         if (!prefs.isOnboardingComplete()) {
             setResolvedDestination(OnboardingActivity::class.java)
+        } else if (prefs.isGuestMode()) {
+            setResolvedDestination(MainActivity::class.java)
         } else if (currentUser != null) {
             fetchProfileAndRoute(currentUser.uid)
         } else {

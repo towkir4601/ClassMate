@@ -28,11 +28,11 @@
         <item name="alertDialogTheme">@style/Theme.ClassMate.Dialog</item>
     </style>
 
-    <!-- Splash theme — prevents white flash -->
+    <!-- Starting splash theme with white-sky blue background and GSTU Go app icon -->
     <style name="Theme.ClassMate.Starting" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/cm_background</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_classmate_logo</item>
-        <item name="windowSplashScreenAnimationDuration">350</item>
+        <item name="windowSplashScreenBackground">#FFFFFF</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
+        <item name="windowSplashScreenAnimationDuration">500</item>
         <item name="postSplashScreenTheme">@style/Theme.ClassMate.Splash</item>
     </style>
 
@@ -42,7 +42,7 @@
         <item name="android:windowContentOverlay">@null</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 
     <style name="Theme.ClassMate.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">

@@ -146,4 +146,13 @@ class AppPreferences(context: Context) {
             .putStringSet("deleted_lost_found_ids", current)
             .apply()
     }
+
+    fun isGuestMode(): Boolean =
+        prefs.getBoolean("is_guest_mode", false)
+
+    fun setGuestMode(enabled: Boolean) {
+        prefs.edit()
+            .putBoolean("is_guest_mode", enabled)
+            .apply()
+    }
 }
