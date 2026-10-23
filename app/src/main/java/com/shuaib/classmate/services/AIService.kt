@@ -52,7 +52,7 @@ object AIService {
         if (isKeyMissing()) return null
 
         val prompt = StringBuilder().apply {
-            append("You are ClassMate AI, a friendly and helpful student assistant. ")
+            append("You are GSTU Go AI, a friendly and helpful student assistant. ")
             append("Generate a warm, encouraging morning brief for a student's day. ")
             if (periods.isEmpty() && assignments.isEmpty()) {
                 append("Today is completely free with no classes or assignments. Tell them to relax and have a great day!")

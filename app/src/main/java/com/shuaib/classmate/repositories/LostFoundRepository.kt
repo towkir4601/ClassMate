@@ -116,19 +116,25 @@ class LostFoundRepository {
     }
 
     fun getAllActiveItems(onResult: (List<LostFoundItem>) -> Unit) {
+        // Legacy call - routes to getApprovedItems for backward compat
+        getApprovedItems(onResult)
+    }
+
+    /** Public view: Returns only admin-approved, unresolved, non-expired items */
+    fun getApprovedItems(onResult: (List<LostFoundItem>) -> Unit) {
         val nowMs = System.currentTimeMillis()
         val sevenDaysMs = 7L * 24 * 60 * 60 * 1000L
         val cutoffMs = nowMs - sevenDaysMs
 
         collection
             .whereEqualTo("isResolved", false)
+            .whereEqualTo("approved", true)
             .orderBy("timestamp", Query.Direction.DESCENDING)
             .get()
             .addOnSuccessListener { snapshot ->
                 val activeList = mutableListOf<LostFoundItem>()
                 if (snapshot != null && !snapshot.isEmpty) {
                     val expiredDocs = mutableListOf<com.google.firebase.firestore.DocumentSnapshot>()
-
                     for (doc in snapshot.documents) {
                         val item = doc.toObject(LostFoundItem::class.java)?.copy(id = doc.id) ?: continue
                         if (isDeletedLocally(item.id)) continue
@@ -139,18 +145,14 @@ class LostFoundRepository {
                             activeList.add(item)
                         }
                     }
-
-                    // Auto delete expired items from Firestore (> 7 days old)
                     if (expiredDocs.isNotEmpty()) {
                         val batch = firestore.batch()
-                        for (doc in expiredDocs) {
-                            batch.delete(doc.reference)
-                        }
+                        expiredDocs.forEach { batch.delete(it.reference) }
                         batch.commit()
                     }
                 }
-
-                val localActive = localItems.filter { !it.isResolved && !isDeletedLocally(it.id) }
+                // Local items: show only approved ones (or ones just created by admin)
+                val localActive = localItems.filter { it.approved && !it.isResolved && !isDeletedLocally(it.id) }
                 val availableSamples = sampleItems.filter { !isDeletedLocally(it.id) }
                 val merged = (localActive + activeList + availableSamples)
                     .filter { !isDeletedLocally(it.id) && !it.isResolved }
@@ -158,12 +160,30 @@ class LostFoundRepository {
                 onResult(merged)
             }
             .addOnFailureListener {
-                val localActive = localItems.filter { !it.isResolved && !isDeletedLocally(it.id) }
+                val localActive = localItems.filter { it.approved && !it.isResolved && !isDeletedLocally(it.id) }
                 val availableSamples = sampleItems.filter { !isDeletedLocally(it.id) }
                 val merged = (localActive + availableSamples)
                     .filter { !isDeletedLocally(it.id) && !it.isResolved }
                     .distinctBy { it.id }
                 onResult(merged)
+            }
+    }
+
+    /** Admin moderation view: Returns only PENDING (not yet approved) items */
+    fun getPendingItems(onResult: (List<LostFoundItem>) -> Unit) {
+        collection
+            .whereEqualTo("isResolved", false)
+            .whereEqualTo("pendingApproval", true)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val pending = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(LostFoundItem::class.java)?.copy(id = doc.id)
+                }?.filter { !isDeletedLocally(it.id) } ?: emptyList()
+                onResult(pending)
+            }
+            .addOnFailureListener {
+                onResult(emptyList())
             }
     }
 
@@ -173,21 +193,22 @@ class LostFoundRepository {
         onFailure: (Exception) -> Unit
     ) {
         val docRef = collection.document()
+        // Generate a short unique share token for deep linking
+        val shareToken = docRef.id.take(8).uppercase()
         val toSave = item.copy(
             id = docRef.id,
             timestamp = Timestamp.now(),
-            isResolved = false
+            isResolved = false,
+            approved = false,
+            pendingApproval = true,
+            shareToken = shareToken
         )
-        // Store in local active cache so it is immediately visible even if cloud rules reject
+        // Store in local cache; do NOT show in public feed until approved
         localItems.removeAll { it.id == toSave.id }
-        localItems.add(0, toSave)
 
         docRef.set(toSave)
             .addOnSuccessListener { onSuccess(docRef.id) }
-            .addOnFailureListener {
-                // Return success so user is not blocked by missing cloud rules deployment
-                onSuccess(docRef.id)
-            }
+            .addOnFailureListener { onSuccess(docRef.id) }
     }
 
     fun markResolved(

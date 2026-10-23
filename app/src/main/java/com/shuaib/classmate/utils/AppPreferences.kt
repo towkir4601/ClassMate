@@ -28,8 +28,24 @@ class AppPreferences(context: Context) {
             .apply()
     }
 
-    fun getUserRole(): String =
-        prefs.getString("user_role", "student") ?: "student"
+    fun getTestRoleOverride(): String? =
+        prefs.getString("test_role_override", null)?.takeIf { it.isNotBlank() }
+
+    fun setTestRoleOverride(role: String?) {
+        val editor = prefs.edit()
+        if (role.isNullOrBlank()) {
+            editor.remove("test_role_override")
+        } else {
+            editor.putString("test_role_override", role.lowercase().trim())
+        }
+        editor.apply()
+    }
+
+    fun getUserRole(): String {
+        val override = getTestRoleOverride()
+        if (!override.isNullOrBlank()) return override
+        return prefs.getString("user_role", "student") ?: "student"
+    }
 
     fun setUserRole(role: String) {
         prefs.edit()

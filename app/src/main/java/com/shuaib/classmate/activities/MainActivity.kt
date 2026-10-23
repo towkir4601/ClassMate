@@ -375,12 +375,13 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     // Manual parsing to prevent crashes if Firestore field types (like approved) are wrong
-                    val role = doc.getString("role") ?: "student"
+                    val docRole = doc.getString("role") ?: "student"
                     val batch = doc.getString("batch") ?: ""
-                    val permissions = doc.get("permissions") as? Map<String, Boolean> ?: emptyMap()
+                    val effectiveRole = com.shuaib.classmate.utils.UserRoleHelper.getEffectiveRole(this@MainActivity, docRole)
+                    val permissions = com.shuaib.classmate.utils.UserRoleHelper.getEffectivePermissions(this@MainActivity, effectiveRole, doc.get("permissions"))
                     
-                    val r = role.trim().lowercase()
-                    isAdmin = (r == "superadmin" || r == "admin" || permissions.values.any { it == true })
+                    val r = effectiveRole.trim().lowercase()
+                    isAdmin = (r == "superadmin" || r == "admin" || r == "teacher" || r == "club_admin" || r == "cr" || permissions.values.any { it == true })
 
                     // Verify approval status for non-admin accounts
                     val approvedVal = doc.get("approved")
@@ -389,7 +390,7 @@ class MainActivity : AppCompatActivity() {
                         is String -> approvedVal.toBoolean()
                         else -> false
                     }
-                    if (r != "superadmin" && r != "admin" && !isApproved) {
+                    if (r != "superadmin" && r != "admin" && !isApproved && !com.shuaib.classmate.utils.UserRoleHelper.isTestRoleActive(this@MainActivity)) {
                         val intent = Intent(this@MainActivity, PendingApprovalActivity::class.java).apply {
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         }

@@ -49,7 +49,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="ClassMate AI"
+                    android:text="GSTU Go AI"
                     android:textColor="@color/cm_text_primary"
                     android:textSize="20sp"
                     android:textStyle="bold" />
@@ -117,7 +117,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Welcome to ClassMate AI"
+                    android:text="Welcome to GSTU Go AI"
                     android:textColor="@color/cm_text_primary"
                     android:textSize="22sp"
                     android:textStyle="bold"
@@ -378,7 +378,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="ClassMate AI is thinking"
+                            android:text="GSTU Go AI is thinking"
                             android:textColor="@color/cm_text_secondary"
                             android:textSize="12sp"
                             android:textStyle="italic" />

@@ -38,6 +38,7 @@ import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.SetOptions
 import com.shuaib.classmate.R
 import com.shuaib.classmate.activities.MainActivity
+import com.shuaib.classmate.utils.UserRoleHelper
 import com.shuaib.classmate.activities.PostNoticeActivity
 import com.shuaib.classmate.adapters.NoticeAdapter
 import com.shuaib.classmate.adapters.NoticeGroupHeader
@@ -129,7 +130,7 @@ class NoticeFragment : Fragment() {
                         currentUserName = doc.getString("name") ?: ""
                         currentUserStudentId = doc.getString("studentId") ?: ""
                         currentUserBatch = doc.getString("batch") ?: ""
-                        currentUserRole = doc.getString("role") ?: "student"
+                        currentUserRole = UserRoleHelper.getEffectiveRole(requireContext(), doc.getString("role"))
                         renderFeed() // Re-render after fetching batch
                     }
                 }
@@ -860,15 +861,28 @@ class NoticeFragment : Fragment() {
     }
 
     private fun checkAdminAccess() {
+        val ctx = context ?: return
+        if (UserRoleHelper.isTestRoleActive(ctx)) {
+            val role = UserRoleHelper.getEffectiveRole(ctx)
+            val permissions = UserRoleHelper.getEffectivePermissions(ctx, role)
+            currentUserRole = role
+            isAdmin = (role == "superadmin" || role == "admin" || role == "teacher" ||
+                       role == "club_admin" || role == "cr" || permissions["canPostNotices"] == true)
+            binding.btnPostNotice.isVisible = isAdmin
+            binding.btnEmptyPost.isVisible = isAdmin && allNotices.isEmpty() && allPolls.isEmpty()
+            return
+        }
+
         val uid = auth.currentUser?.uid ?: return
         db.collection("users").document(uid).get()
             .addOnSuccessListener { doc ->
                 try {
-                    val role = doc.getString("role") ?: "student"
+                    val role = UserRoleHelper.getEffectiveRole(ctx, doc.getString("role"))
                     currentUserRole = role
-                    val permissions = doc.get("permissions") as? Map<String, Boolean> ?: emptyMap()
+                    val permissions = UserRoleHelper.getEffectivePermissions(ctx, role, doc.get("permissions"))
                     
-                    isAdmin = (role == "superadmin" || role == "admin" || role == "teacher" || permissions["canPostNotices"] == true)
+                    isAdmin = (role == "superadmin" || role == "admin" || role == "teacher" ||
+                               role == "club_admin" || role == "cr" || permissions["canPostNotices"] == true)
                     binding.btnPostNotice.isVisible = isAdmin
                     binding.btnEmptyPost.isVisible = isAdmin && allNotices.isEmpty() && allPolls.isEmpty()
                 } catch (e: Exception) {

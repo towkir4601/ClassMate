@@ -644,6 +644,209 @@
             </LinearLayout>
 
             <!-- ═══════════════════════════════════════════════════ -->
+            <!-- GENERATE ROUTINE CARD (superadmin / admin only)     -->
+            <!-- ═══════════════════════════════════════════════════ -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardGenerateRoutine"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="8dp"
+                android:visibility="gone"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="3dp"
+                app:strokeWidth="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_hero_next_class"
+                    android:orientation="vertical"
+                    android:padding="18dp">
+
+                    <!-- Header row -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="14dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="⚙️  ADMIN"
+                            android:textColor="#CCFFFFFF"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.15" />
+
+                        <!-- Server ping badge -->
+                        <TextView
+                            android:id="@+id/tvServerStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_hero_badge"
+                            android:paddingHorizontal="10dp"
+                            android:paddingVertical="4dp"
+                            android:text="● CHECKING…"
+                            android:textColor="#CCFFFFFF"
+                            android:textSize="9sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.1" />
+
+                    </LinearLayout>
+
+                    <!-- Title -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Generate Class Routine"
+                        android:textColor="#FFFFFF"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Upload an Excel (.xlsx) file to regenerate the class routine via the Render backend."
+                        android:textColor="#CCFFFFFF"
+                        android:textSize="12sp"
+                        android:lineSpacingExtra="2dp"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- Action buttons row -->
+                    <HorizontalScrollView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:scrollbars="none">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="start">
+
+                            <!-- Upload Excel button (superadmin only) -->
+                            <LinearLayout
+                                android:id="@+id/btnUploadExcel"
+                                android:layout_width="wrap_content"
+                                android:layout_height="40dp"
+                                android:background="@drawable/bg_hero_action_pill"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:orientation="horizontal"
+                                android:paddingHorizontal="16dp"
+                                android:foreground="?attr/selectableItemBackground"
+                                android:visibility="gone">
+
+                                <ImageView
+                                    android:layout_width="16dp"
+                                    android:layout_height="16dp"
+                                    android:layout_marginEnd="6dp"
+                                    android:src="@drawable/ic_add"
+                                    app:tint="#FFFFFF"
+                                    android:importantForAccessibility="no" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Upload Excel"
+                                    android:textColor="#FFFFFF"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold" />
+
+                            </LinearLayout>
+
+                            <!-- View Batch button -->
+                            <LinearLayout
+                                android:id="@+id/btnViewBatch"
+                                android:layout_width="wrap_content"
+                                android:layout_height="40dp"
+                                android:layout_marginStart="10dp"
+                                android:background="@drawable/bg_hero_action_pill"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:orientation="horizontal"
+                                android:paddingHorizontal="14dp"
+                                android:foreground="?attr/selectableItemBackground">
+
+                                <ImageView
+                                    android:layout_width="16dp"
+                                    android:layout_height="16dp"
+                                    android:layout_marginEnd="6dp"
+                                    android:src="@drawable/ic_timetable"
+                                    app:tint="#FFFFFF"
+                                    android:importantForAccessibility="no" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="View Batches"
+                                    android:textColor="#FFFFFF"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold" />
+
+                            </LinearLayout>
+
+                            <!-- Check Server button -->
+                            <LinearLayout
+                                android:id="@+id/btnCheckServer"
+                                android:layout_width="wrap_content"
+                                android:layout_height="40dp"
+                                android:layout_marginStart="10dp"
+                                android:background="@drawable/bg_toggle_item_selected"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:orientation="horizontal"
+                                android:paddingHorizontal="14dp"
+                                android:foreground="?attr/selectableItemBackground">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Ping Server"
+                                    android:textColor="#FFFFFF"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold" />
+
+                            </LinearLayout>
+
+                        </LinearLayout>
+                    </HorizontalScrollView>
+
+                    <!-- Upload progress / status -->
+                    <com.google.android.material.progressindicator.LinearProgressIndicator
+                        android:id="@+id/pbUpload"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        app:indicatorColor="#FFFFFF"
+                        app:trackColor="#40FFFFFF"
+                        app:trackCornerRadius="4dp"
+                        app:trackThickness="4dp"
+                        android:indeterminate="true"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/tvUploadStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:textColor="#CCFFFFFF"
+                        android:textSize="12sp"
+                        android:visibility="gone" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ═══════════════════════════════════════════════════ -->
             <!-- EMPTY STATE                                          -->
             <!-- ═══════════════════════════════════════════════════ -->
             <LinearLayout

@@ -22,7 +22,9 @@ app/release/
 release/
 web-staging/
 build_output.txt
+build_out.txt
 build_test.log
+install_to_device.ps1
 hs_err_pid*.log
 replay_pid*.log
 current-screen.png
@@ -59,3 +61,4 @@ cropped_*.png
 other_*.png
 installed_*.png
 old_*.png
+.puku/

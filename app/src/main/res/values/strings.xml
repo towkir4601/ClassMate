@@ -153,7 +153,37 @@
     <string name="can_send_cancel">Can Send Class Cancel</string>
     <string name="can_upload_seat_plan">Can Upload Seat Plan</string>
     <string name="can_upload_result">Can Upload Result</string>
+    <string name="can_manage_club_events">Can Manage Club Events</string>
+    <string name="can_manage_lost_found">Can Moderate Lost &amp; Found</string>
     <string name="user_updated">User updated successfully</string>
+
+    <!-- Roles -->
+    <string name="role_superadmin">Super Admin</string>
+    <string name="role_admin">Dept Admin</string>
+    <string name="role_teacher">Teacher</string>
+    <string name="role_club_admin">Club Admin</string>
+    <string name="role_cr">Class Representative (CR)</string>
+    <string name="role_student">Student</string>
+
+    <!-- Lost &amp; Found -->
+    <string name="lf_pending_approval">Pending Admin Approval</string>
+    <string name="lf_approve">Approve</string>
+    <string name="lf_reject">Reject</string>
+    <string name="lf_approved_success">Post approved and published!</string>
+    <string name="lf_rejected_success">Post rejected and removed.</string>
+    <string name="lf_pending_section">Pending Moderation (%d)</string>
+    <string name="lf_submit_for_review">Submit for Review</string>
+    <string name="lf_submitted_msg">Your report has been submitted and is pending admin approval.</string>
+
+    <!-- Community Social -->
+    <string name="btn_love">Love</string>
+    <string name="btn_comment">Comment</string>
+    <string name="btn_share">Share</string>
+    <string name="comments_title">Comments</string>
+    <string name="hint_write_comment">Write a comment…</string>
+    <string name="no_comments_yet">No comments yet. Be the first!</string>
+    <string name="share_post_title">Share this post via GSTU Go</string>
+    <string name="share_link_copied">Link copied to clipboard!</string>
 
     <!-- Onboarding -->
     <string name="next">Next</string>
@@ -166,13 +196,13 @@
     <string name="onboarding_3_subtitle">Access lecture PDFs and study materials uploaded by your teachers anytime.</string>
 
     <!-- Notifications -->
-    <string name="notif_channel_name">ClassMate Announcements</string>
+    <string name="notif_channel_name">GSTU Go Announcements</string>
     <string name="notif_channel_desc">Notifications for class schedules and notices</string>
     <string name="notif_permission_title">Notification Permission Needed</string>
-    <string name="notif_permission_msg">ClassMate needs permission to show you important notices and cancellations in real-time.</string>
+    <string name="notif_permission_msg">GSTU Go needs permission to show you important notices and cancellations in real-time.</string>
 
     <!-- Widget -->
-    <string name="widget_description">ClassMate - today\'s schedule, deadlines, and latest notices</string>
+    <string name="widget_description">GSTU Go - today\'s schedule, deadlines, and latest notices</string>
 
     <!-- Chat -->
     <string name="forwarded_from_format">\u21AA Forwarded from %s</string>

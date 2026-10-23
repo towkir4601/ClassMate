@@ -22,6 +22,7 @@ import com.shuaib.classmate.R
 import com.shuaib.classmate.adapters.LostFoundAdapter
 import com.shuaib.classmate.databinding.ActivityLostFoundBinding
 import com.shuaib.classmate.models.LostFoundItem
+import com.shuaib.classmate.utils.UserRoleHelper
 import com.shuaib.classmate.repositories.LostFoundRepository
 import com.shuaib.classmate.utils.AppPreferences
 
@@ -36,6 +37,7 @@ class LostFoundActivity : AppCompatActivity() {
 
     private var currentUserId: String = ""
     private var isAdmin: Boolean = false
+    private var isModerationMode: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,8 +45,12 @@ class LostFoundActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-        val savedRole = AppPreferences(this).getUserRole()
-        isAdmin = savedRole.equals("admin", ignoreCase = true) || savedRole.equals("superadmin", ignoreCase = true)
+        isModerationMode = intent.getStringExtra("MODE") == "MODERATION"
+        val savedRole = UserRoleHelper.getEffectiveRole(this)
+        val permissions = UserRoleHelper.getEffectivePermissions(this, savedRole)
+        isAdmin = savedRole.equals("admin", ignoreCase = true) ||
+                  savedRole.equals("superadmin", ignoreCase = true) ||
+                  permissions["canManageLostFound"] == true
 
         AppPreferences(this).getDeletedLostFoundIds().forEach { id ->
             LostFoundRepository.markDeletedLocally(id)
@@ -57,14 +63,36 @@ class LostFoundActivity : AppCompatActivity() {
 
     private fun verifyAdminStatus() {
         if (currentUserId.isBlank()) return
+        if (UserRoleHelper.isTestRoleActive(this)) {
+            val role = UserRoleHelper.getEffectiveRole(this)
+            val permissions = UserRoleHelper.getEffectivePermissions(this, role)
+            val hasLFPerm = permissions["canManageLostFound"] == true
+            val newIsAdmin = role.equals("admin", true) || role.equals("superadmin", true) || hasLFPerm
+            if (newIsAdmin != isAdmin) {
+                isAdmin = newIsAdmin
+                adapter.setUserAndRole(currentUserId, isAdmin)
+                if (isModerationMode && !isAdmin) {
+                    isModerationMode = false
+                }
+            }
+            return
+        }
         FirebaseFirestore.getInstance().collection("users").document(currentUserId).get()
             .addOnSuccessListener { doc ->
                 if (doc != null && doc.exists()) {
                     val role = doc.getString("role") ?: ""
-                    val isUserAdmin = role.equals("admin", ignoreCase = true) || role.equals("superadmin", ignoreCase = true)
-                    if (isUserAdmin != isAdmin) {
-                        isAdmin = isUserAdmin
+                    val isUserAdmin = role.equals("admin", ignoreCase = true) ||
+                                     role.equals("superadmin", ignoreCase = true)
+                    val permissions = doc.get("permissions") as? Map<*, *>
+                    val hasLFPerm = permissions?.get("canManageLostFound") == true
+                    val newIsAdmin = isUserAdmin || hasLFPerm
+                    if (newIsAdmin != isAdmin) {
+                        isAdmin = newIsAdmin
                         adapter.setUserAndRole(currentUserId, isAdmin)
+                        // Reload with correct filter in case mode changed
+                        if (isModerationMode && !isAdmin) {
+                            isModerationMode = false
+                        }
                     }
                 }
             }
@@ -185,11 +213,57 @@ class LostFoundActivity : AppCompatActivity() {
 
     private fun loadData() {
         binding.swipeRefreshLostFound.isRefreshing = true
-        repo.getAllActiveItems { items ->
-            binding.swipeRefreshLostFound.isRefreshing = false
-            allItems = items
-            applyFilters()
+        if (isModerationMode && isAdmin) {
+            // Admin moderation mode: show only PENDING items
+            repo.getPendingItems { items ->
+                binding.swipeRefreshLostFound.isRefreshing = false
+                allItems = items
+                applyFilters()
+            }
+        } else {
+            // Normal mode: show only APPROVED (public) items
+            repo.getApprovedItems { items ->
+                binding.swipeRefreshLostFound.isRefreshing = false
+                allItems = items
+                applyFilters()
+            }
         }
+    }
+
+    /** Admin approves a pending Lost & Found post — makes it publicly visible */
+    fun approveItem(item: LostFoundItem) {
+        val updates = mapOf(
+            "approved" to true,
+            "pendingApproval" to false,
+            "approvedBy" to currentUserId,
+            "approvedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+        )
+        FirebaseFirestore.getInstance().collection("lost_found")
+            .document(item.id)
+            .update(updates)
+            .addOnSuccessListener {
+                Toast.makeText(this, getString(R.string.lf_approved_success), Toast.LENGTH_SHORT).show()
+                allItems = allItems.filter { it.id != item.id }
+                applyFilters()
+            }
+            .addOnFailureListener {
+                Toast.makeText(this, "Failed to approve. Try again.", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    /** Admin rejects and permanently removes a pending Lost & Found post */
+    fun rejectItem(item: LostFoundItem) {
+        FirebaseFirestore.getInstance().collection("lost_found")
+            .document(item.id)
+            .delete()
+            .addOnSuccessListener {
+                Toast.makeText(this, getString(R.string.lf_rejected_success), Toast.LENGTH_SHORT).show()
+                allItems = allItems.filter { it.id != item.id }
+                applyFilters()
+            }
+            .addOnFailureListener {
+                Toast.makeText(this, "Failed to reject. Try again.", Toast.LENGTH_SHORT).show()
+            }
     }
 
     private fun applyFilters() {
@@ -291,8 +365,8 @@ class LostFoundActivity : AppCompatActivity() {
             repo.addItem(newItem,
                 onSuccess = {
                     dialog.dismiss()
-                    Toast.makeText(this, "Report published successfully!", Toast.LENGTH_SHORT).show()
-                    loadData()
+                    Toast.makeText(this, getString(R.string.lf_submitted_msg), Toast.LENGTH_LONG).show()
+                    // Note: item will appear after admin approves it
                 },
                 onFailure = { err ->
                     btnPublish.isEnabled = true

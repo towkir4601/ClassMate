@@ -74,9 +74,9 @@ object TelegramUploader {
                         "📝 <b>Title:</b> $safeTitle\n" +
                         "📚 <b>Subject:</b> $safeSubject\n" +
                         "━━━━━━━━━━━━━━━━━━━━━\n" +
-                        "📥 <i>Available in the ClassMate App Library</i>\n" +
+                        "📥 <i>Available in the GSTU Go App Library</i>\n" +
                         "━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                        "#ClassMate #StudyMaterial"
+                        "#GSTUGo #StudyMaterial"
 
                 val requestBody = MultipartBody.Builder()
                     .setType(MultipartBody.FORM)

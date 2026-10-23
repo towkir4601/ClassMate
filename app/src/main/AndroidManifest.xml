@@ -151,6 +151,10 @@
             android:exported="false" />
 
         <activity
+            android:name=".activities.RoutineBatchActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".activities.PostNoticeActivity"
             android:exported="false" />
 
