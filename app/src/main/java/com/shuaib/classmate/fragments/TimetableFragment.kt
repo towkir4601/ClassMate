@@ -1379,7 +1379,7 @@ class TimetableFragment : Fragment() {
         // Show progress
         b.pbUpload.isVisible = true
         b.tvUploadStatus.isVisible = true
-        b.tvUploadStatus.text = "⏳ Uploading… (Render may take up to 90 s to wake)"
+        b.tvUploadStatus.text = "⏳ Uploading routine template… (it may take 1-2 minutes at first time)"
         b.btnUploadExcel.isEnabled = false
 
         viewLifecycleOwner.lifecycleScope.launch {

@@ -434,7 +434,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-                        android:text="Run the Constraint Satisfaction Problem (CSP) solver on the Render backend to compute conflict-free timetable slots."
+                        android:text="Run the Constraint Satisfaction Problem (CSP) solver algorithm to compute conflict-free timetable slots."
                         android:textColor="#CCFFFFFF"
                         android:textSize="12sp"
                         android:lineSpacingExtra="2dp" />

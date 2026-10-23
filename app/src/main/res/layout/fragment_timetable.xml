@@ -712,7 +712,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Upload an Excel (.xlsx) file to regenerate the class routine via the Render backend."
+                        android:text="Upload an Excel (.xlsx) template file to generate conflict-free class routines."
                         android:textColor="#CCFFFFFF"
                         android:textSize="12sp"
                         android:lineSpacingExtra="2dp"
@@ -788,6 +788,70 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="View Batches"
+                                    android:textColor="#FFFFFF"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold" />
+
+                            </LinearLayout>
+
+                            <!-- Download Template Drive Link button -->
+                            <LinearLayout
+                                android:id="@+id/btnTemplateDriveLink"
+                                android:layout_width="wrap_content"
+                                android:layout_height="40dp"
+                                android:layout_marginStart="10dp"
+                                android:background="@drawable/bg_toggle_item_selected"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:orientation="horizontal"
+                                android:paddingHorizontal="14dp"
+                                android:foreground="?attr/selectableItemBackground">
+
+                                <ImageView
+                                    android:layout_width="16dp"
+                                    android:layout_height="16dp"
+                                    android:layout_marginEnd="6dp"
+                                    android:src="@drawable/ic_download_outline"
+                                    app:tint="#FFFFFF"
+                                    android:importantForAccessibility="no" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Template File"
+                                    android:textColor="#FFFFFF"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold" />
+
+                            </LinearLayout>
+
+                            <!-- Routine Update Manual button -->
+                            <LinearLayout
+                                android:id="@+id/btnRoutineManual"
+                                android:layout_width="wrap_content"
+                                android:layout_height="40dp"
+                                android:layout_marginStart="10dp"
+                                android:background="@drawable/bg_toggle_item_selected"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:orientation="horizontal"
+                                android:paddingHorizontal="14dp"
+                                android:foreground="?attr/selectableItemBackground">
+
+                                <ImageView
+                                    android:layout_width="16dp"
+                                    android:layout_height="16dp"
+                                    android:layout_marginEnd="6dp"
+                                    android:src="@drawable/ic_book"
+                                    app:tint="#FFFFFF"
+                                    android:importantForAccessibility="no" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Manual"
                                     android:textColor="#FFFFFF"
                                     android:textSize="13sp"
                                     android:textStyle="bold" />

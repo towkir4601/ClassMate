@@ -290,7 +290,7 @@ class RoutineBatchActivity : AppCompatActivity() {
     private fun runCspGeneration(batchId: Int) {
         binding.pbGeneratingCsp.isVisible = true
         binding.tvCspStatus.isVisible = true
-        binding.tvCspStatus.text = "⏳ Running CSP constraint satisfaction algorithm on backend…"
+        binding.tvCspStatus.text = "⏳ Running Algorithm to solve schedule…"
         binding.btnGenerateCsp.isEnabled = false
 
         lifecycleScope.launch {
