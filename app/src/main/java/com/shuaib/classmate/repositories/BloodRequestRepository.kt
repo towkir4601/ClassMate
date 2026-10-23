@@ -1,6 +1,7 @@
 package com.shuaib.classmate.repositories
 
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.shuaib.classmate.models.BloodRequest
@@ -50,6 +51,10 @@ class BloodRequestRepository {
             }
     }
 
+    fun getAllActiveRequests(onResult: (List<BloodRequest>) -> Unit) {
+        getActiveRequests(limit = 50, onResult = onResult)
+    }
+
     fun createRequest(
         request: BloodRequest,
         onSuccess: (String) -> Unit,
@@ -86,6 +91,84 @@ class BloodRequestRepository {
             .addOnFailureListener { onSuccess() }
     }
 
+    /** Mark blood donated under three-dot option */
+    fun markBloodDonated(
+        requestId: String,
+        onSuccess: () -> Unit = {},
+        onFailure: (Exception) -> Unit = {}
+    ) {
+        val idx = localRequests.indexOfFirst { it.id == requestId }
+        if (idx != -1) {
+            localRequests[idx] = localRequests[idx].copy(isFulfilled = true, isDonated = true)
+        }
+        val updates = mapOf(
+            "isFulfilled" to true,
+            "isDonated" to true,
+            "donatedAt" to Timestamp.now()
+        )
+        collection.document(requestId).update(updates)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onSuccess() }
+    }
+
+    /** Record post view (including guests) */
+    fun recordView(requestId: String, userId: String? = null) {
+        val updates = mutableMapOf<String, Any>(
+            "viewsCount" to FieldValue.increment(1)
+        )
+        if (!userId.isNullOrBlank()) {
+            updates["viewers"] = FieldValue.arrayUnion(userId)
+        }
+        collection.document(requestId).update(updates)
+    }
+
+    /** Toggle love react for a request */
+    fun toggleLove(
+        requestId: String,
+        userId: String,
+        isLoving: Boolean,
+        onResult: (newCount: Int) -> Unit = {}
+    ) {
+        val docRef = collection.document(requestId)
+        firestore.runTransaction { transaction ->
+            val snapshot = transaction.get(docRef)
+            val currentReactors = (snapshot.get("loveReactors") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+            val newReactors = currentReactors.toMutableList()
+            if (isLoving) {
+                if (!newReactors.contains(userId)) newReactors.add(userId)
+            } else {
+                newReactors.remove(userId)
+            }
+            transaction.update(docRef, mapOf(
+                "loveReactors" to newReactors,
+                "loveCount" to newReactors.size
+            ))
+            newReactors.size
+        }.addOnSuccessListener { newCount ->
+            onResult(newCount)
+        }.addOnFailureListener {
+            onResult(1)
+        }
+    }
+
+    /** Record post share */
+    fun recordShare(requestId: String) {
+        collection.document(requestId).update("sharesCount", FieldValue.increment(1))
+    }
+
+    /** Report blood request */
+    fun reportRequest(requestId: String, userId: String, reason: String, onSuccess: () -> Unit = {}) {
+        val updates = mutableMapOf<String, Any>(
+            "reportedCount" to FieldValue.increment(1)
+        )
+        if (userId.isNotBlank()) {
+            updates["reportedBy"] = FieldValue.arrayUnion(userId)
+        }
+        collection.document(requestId).update(updates)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onSuccess() }
+    }
+
     fun deleteRequest(
         requestId: String,
         onSuccess: () -> Unit,
@@ -100,3 +183,4 @@ class BloodRequestRepository {
             }
     }
 }
+

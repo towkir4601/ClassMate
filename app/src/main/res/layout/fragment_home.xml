@@ -68,11 +68,41 @@
                     android:src="@drawable/ic_search_modern"
                     app:tint="@color/cm_text_primary" />
 
+                <FrameLayout
+                    android:id="@+id/layoutNotificationHeader"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="8dp">
+
+                    <ImageButton
+                        android:id="@+id/btnNotificationHeader"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/bg_squircle_dark"
+                        android:padding="9dp"
+                        android:src="@drawable/ic_bell_outline"
+                        app:tint="@color/cm_text_primary" />
+
+                    <TextView
+                        android:id="@+id/tvNotificationBadge"
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_gravity="top|end"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginEnd="2dp"
+                        android:background="@drawable/bg_badge_red"
+                        android:gravity="center"
+                        android:textColor="#FFFFFF"
+                        android:textSize="9.5sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+                </FrameLayout>
+
                 <com.google.android.material.imageview.ShapeableImageView
                     android:id="@+id/ivUserAvatarHeader"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
-                    android:layout_marginStart="10dp"
+                    android:layout_marginStart="8dp"
                     android:scaleType="centerCrop"
                     android:src="@drawable/ic_person"
                     app:shapeAppearanceOverlay="@style/ShapeAppearance.MaterialComponents.LargeComponent"

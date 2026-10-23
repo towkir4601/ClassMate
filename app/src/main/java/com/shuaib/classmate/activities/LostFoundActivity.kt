@@ -24,18 +24,21 @@ import com.shuaib.classmate.databinding.ActivityLostFoundBinding
 import com.shuaib.classmate.models.LostFoundItem
 import com.shuaib.classmate.utils.UserRoleHelper
 import com.shuaib.classmate.repositories.LostFoundRepository
+import com.shuaib.classmate.repositories.AppNotificationRepository
 import com.shuaib.classmate.utils.AppPreferences
 
 class LostFoundActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLostFoundBinding
     private val repo = LostFoundRepository()
+    private val notificationRepo = AppNotificationRepository()
     private var allItems = listOf<LostFoundItem>()
     private var currentFilter = "all" // "all", "lost", "found"
     private var searchQuery = ""
     private lateinit var adapter: LostFoundAdapter
 
     private var currentUserId: String = ""
+    private var currentUserName: String = "Student"
     private var isAdmin: Boolean = false
     private var isModerationMode: Boolean = false
 
@@ -44,7 +47,10 @@ class LostFoundActivity : AppCompatActivity() {
         binding = ActivityLostFoundBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        currentUserId = currentUser?.uid ?: ""
+        currentUserName = currentUser?.displayName ?: AppPreferences(this).getUserName().ifBlank { "Student" }
+
         isModerationMode = intent.getStringExtra("MODE") == "MODERATION"
         val savedRole = UserRoleHelper.getEffectiveRole(this)
         val permissions = UserRoleHelper.getEffectivePermissions(this, savedRole)
@@ -70,7 +76,7 @@ class LostFoundActivity : AppCompatActivity() {
             val newIsAdmin = role.equals("admin", true) || role.equals("superadmin", true) || hasLFPerm
             if (newIsAdmin != isAdmin) {
                 isAdmin = newIsAdmin
-                adapter.setUserAndRole(currentUserId, isAdmin)
+                adapter.setUserAndRole(currentUserId, currentUserName, isAdmin)
                 if (isModerationMode && !isAdmin) {
                     isModerationMode = false
                 }
@@ -88,7 +94,7 @@ class LostFoundActivity : AppCompatActivity() {
                     val newIsAdmin = isUserAdmin || hasLFPerm
                     if (newIsAdmin != isAdmin) {
                         isAdmin = newIsAdmin
-                        adapter.setUserAndRole(currentUserId, isAdmin)
+                        adapter.setUserAndRole(currentUserId, currentUserName, isAdmin)
                         // Reload with correct filter in case mode changed
                         if (isModerationMode && !isAdmin) {
                             isModerationMode = false
@@ -108,12 +114,19 @@ class LostFoundActivity : AppCompatActivity() {
         adapter = LostFoundAdapter(
             items = emptyList(),
             currentUserId = currentUserId,
+            currentUserName = currentUserName,
             isAdmin = isAdmin,
             onDeleteClick = { item ->
                 confirmDeleteItem(item)
             },
             onItemClick = { item ->
                 // Click item
+            },
+            onStatusChangeClick = { item, status ->
+                handleStatusChange(item, status)
+            },
+            onReportClick = { item ->
+                handleReportPost(item)
             }
         )
         binding.rvLostFound.layoutManager = LinearLayoutManager(this)
@@ -379,4 +392,75 @@ class LostFoundActivity : AppCompatActivity() {
         dialog.behavior.skipCollapsed = true
         dialog.show()
     }
+
+    private fun handleStatusChange(item: LostFoundItem, status: String) {
+        val isGiven = status == "item_given"
+        val actionTitle = if (isGiven) "Item Given" else "Item Found"
+        val confirmMessage = if (isGiven) {
+            "Confirm that this found item has been handed over to its owner? Superadmin and admins will be notified."
+        } else {
+            "Confirm that this lost item has been recovered? Superadmin and admins will be notified."
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(actionTitle)
+            .setMessage(confirmMessage)
+            .setPositiveButton("Confirm") { _, _ ->
+                repo.markItemResolved(item.id, status) {
+                    val notifType = if (isGiven) "item_given" else "item_found"
+                    val notifTitle = if (isGiven) "🎁 Item Given / Handed Over" else "🔍 Lost Item Recovered"
+                    val notifMessage = "$currentUserName marked \"${item.title}\" as ${if (isGiven) "Given to owner" else "Found / Recovered"}."
+
+                    notificationRepo.sendNotificationToAdmins(
+                        type = notifType,
+                        title = notifTitle,
+                        message = notifMessage,
+                        postId = item.id,
+                        postType = "lost_found",
+                        actorId = currentUserId,
+                        actorName = currentUserName
+                    )
+
+                    Toast.makeText(this, "Marked as $actionTitle! Admins notified.", Toast.LENGTH_LONG).show()
+                    allItems = allItems.map { if (it.id == item.id) it.copy(isResolved = true, resolvedStatus = status) else it }
+                    applyFilters()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun handleReportPost(item: LostFoundItem) {
+        if (currentUserId.isBlank()) {
+            Toast.makeText(this, "Please sign in to report a post", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val reasons = arrayOf("Spam or misleading", "Inappropriate content", "Item already returned / resolved", "Other violation")
+        var selectedIdx = 0
+
+        AlertDialog.Builder(this)
+            .setTitle("Report Post to Admins")
+            .setSingleChoiceItems(reasons, 0) { _, which ->
+                selectedIdx = which
+            }
+            .setPositiveButton("Submit Report") { _, _ ->
+                val chosenReason = reasons[selectedIdx]
+                repo.reportItem(item.id, currentUserId, chosenReason) {
+                    notificationRepo.sendNotificationToAdmins(
+                        type = "report",
+                        title = "🚨 Post Reported: Lost & Found",
+                        message = "Post \"${item.title}\" reported by $currentUserName. Reason: $chosenReason",
+                        postId = item.id,
+                        postType = "lost_found",
+                        actorId = currentUserId,
+                        actorName = currentUserName,
+                        extraNote = chosenReason
+                    )
+                    Toast.makeText(this, "Report submitted. Superadmin & admin will review it.", Toast.LENGTH_LONG).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
 }
+

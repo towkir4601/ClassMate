@@ -7,6 +7,14 @@
     android:orientation="vertical"
     android:padding="20dp">
 
+    <!-- Top Drag Handle -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="14dp"
+        android:background="@drawable/bg_handle" />
+
     <!-- Header -->
     <LinearLayout
         android:layout_width="match_parent"
@@ -15,47 +23,60 @@
         android:orientation="horizontal">
 
         <ImageView
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:background="@drawable/bg_squircle_dark"
+            android:padding="5dp"
             android:src="@drawable/ic_blood_drop"
             app:tint="@color/cm_error" />
 
-        <TextView
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
+            android:layout_marginStart="12dp"
             android:layout_weight="1"
-            android:text="Create Urgent Blood Request"
-            android:textColor="@color/cm_text_primary"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Request Blood Donor"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Broadcast emergency blood request to GSTU network"
+                android:textColor="#94A3B8"
+                android:textSize="12sp" />
+        </LinearLayout>
 
         <ImageButton
             android:id="@+id/btnCloseBloodDialog"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Close"
             android:src="@drawable/ic_close"
-            app:tint="@color/cm_text_muted" />
+            app:tint="#94A3B8" />
     </LinearLayout>
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:layout_marginBottom="14dp"
-        android:text="This emergency request will appear immediately on the Campus Portal Home screen."
-        android:textColor="@color/cm_text_muted"
-        android:textSize="12.5sp" />
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="14dp"
+        android:layout_marginBottom="16dp"
+        android:background="#2E1B20" />
 
     <!-- Blood Group Selection -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="6dp"
+        android:layout_marginBottom="8dp"
         android:text="Select Required Blood Group *"
-        android:textColor="@color/cm_text_primary"
+        android:textColor="#E2E8F0"
         android:textSize="13sp"
         android:textStyle="bold" />
 
@@ -134,24 +155,38 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:layout_marginBottom="6dp"
-        android:text="Hospital / Location *"
-        android:textColor="@color/cm_text_primary"
+        android:layout_marginTop="14dp"
+        android:text="Hospital or Location *"
+        android:textColor="#E2E8F0"
         android:textSize="13sp"
         android:textStyle="bold" />
 
-    <EditText
-        android:id="@+id/etReqHospital"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="48dp"
+        android:layout_marginTop="6dp"
         android:background="@drawable/bg_dialog_input_dark"
-        android:hint="e.g. Gopalganj 250 Bed Hospital"
-        android:inputType="textCapWords"
-        android:paddingHorizontal="14dp"
-        android:textColor="@color/cm_text_primary"
-        android:textColorHint="@color/cm_text_muted"
-        android:textSize="14sp" />
+        android:gravity="center_vertical"
+        android:paddingHorizontal="14dp">
+
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/ic_location_pin"
+            app:tint="#F87171" />
+
+        <EditText
+            android:id="@+id/etReqHospital"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginStart="10dp"
+            android:background="@null"
+            android:hint="e.g. Gopalganj 250 Bed Hospital"
+            android:inputType="textCapWords"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#64748B"
+            android:textSize="14sp" />
+    </LinearLayout>
 
     <!-- Number of Bags & Contact Phone Row -->
     <LinearLayout
@@ -168,24 +203,33 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="6dp"
                 android:text="Bags Needed"
-                android:textColor="@color/cm_text_primary"
+                android:textColor="#E2E8F0"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
-            <EditText
-                android:id="@+id/etReqBags"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
+                android:layout_marginTop="6dp"
                 android:background="@drawable/bg_dialog_input_dark"
                 android:gravity="center"
-                android:hint="1"
-                android:inputType="number"
-                android:text="1"
-                android:textColor="@color/cm_text_primary"
-                android:textColorHint="@color/cm_text_muted"
-                android:textSize="14sp" />
+                android:paddingHorizontal="8dp">
+
+                <EditText
+                    android:id="@+id/etReqBags"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@null"
+                    android:gravity="center"
+                    android:hint="1"
+                    android:inputType="number"
+                    android:text="1"
+                    android:textColor="#FFFFFF"
+                    android:textColorHint="#64748B"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
         </LinearLayout>
 
         <LinearLayout
@@ -198,57 +242,112 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="6dp"
                 android:text="Contact Phone *"
-                android:textColor="@color/cm_text_primary"
+                android:textColor="#E2E8F0"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
-            <EditText
-                android:id="@+id/etReqPhone"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
+                android:layout_marginTop="6dp"
                 android:background="@drawable/bg_dialog_input_dark"
-                android:hint="017xxxxxxxx"
-                android:inputType="phone"
-                android:paddingHorizontal="14dp"
-                android:textColor="@color/cm_text_primary"
-                android:textColorHint="@color/cm_text_muted"
-                android:textSize="14sp" />
+                android:gravity="center_vertical"
+                android:paddingHorizontal="14dp">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_phone_receiver"
+                    app:tint="#F87171" />
+
+                <EditText
+                    android:id="@+id/etReqPhone"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="10dp"
+                    android:background="@null"
+                    android:hint="017xxxxxxxx"
+                    android:inputType="phone"
+                    android:textColor="#FFFFFF"
+                    android:textColorHint="#64748B"
+                    android:textSize="14sp" />
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Urgency Note / Patient Details -->
+    <!-- Urgency Note / Reason -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:layout_marginBottom="6dp"
         android:text="Urgency / Patient Reason"
-        android:textColor="@color/cm_text_primary"
+        android:textColor="#E2E8F0"
         android:textSize="13sp"
         android:textStyle="bold" />
 
-    <EditText
-        android:id="@+id/etReqNote"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="48dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="16dp"
         android:background="@drawable/bg_dialog_input_dark"
-        android:hint="e.g. Surgery at 3 PM, urgent donor needed"
-        android:inputType="textCapSentences"
-        android:paddingHorizontal="14dp"
-        android:textColor="@color/cm_text_primary"
-        android:textColorHint="@color/cm_text_muted"
-        android:textSize="14sp" />
+        android:gravity="center_vertical"
+        android:paddingHorizontal="14dp">
+
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/ic_document_sheet"
+            app:tint="#F87171" />
+
+        <EditText
+            android:id="@+id/etReqNote"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginStart="10dp"
+            android:background="@null"
+            android:hint="e.g. Surgery at 3 PM, urgent donor needed"
+            android:inputType="textCapSentences"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#64748B"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- Info banner -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="18dp"
+        android:background="@drawable/bg_badge_accent_pill"
+        android:backgroundTint="#2E1B20"
+        android:gravity="center_vertical"
+        android:padding="10dp">
+
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/ic_blood_drop"
+            app:tint="#EF4444" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="Urgent requests appear instantly on the Home alert banner and Blood Bank."
+            android:textColor="#FCA5A5"
+            android:textSize="11.5sp" />
+    </LinearLayout>
 
     <!-- Submit Button -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnSubmitBloodRequest"
         android:layout_width="match_parent"
         android:layout_height="52dp"
-        android:layout_marginTop="20dp"
-        android:backgroundTint="@color/cm_error"
+        android:backgroundTint="#DC2626"
         android:text="🚨 Post Urgent Blood Request"
+        android:textAllCaps="false"
         android:textColor="#FFFFFF"
         android:textSize="15sp"
         android:textStyle="bold"

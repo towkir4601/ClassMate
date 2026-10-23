@@ -48,12 +48,15 @@ import com.shuaib.classmate.repositories.BloodRequestRepository
 import com.shuaib.classmate.models.TopAlertItem
 import com.shuaib.classmate.models.TopAlertType
 import com.shuaib.classmate.repositories.AcademicCalendarRepository
+import com.shuaib.classmate.repositories.AppNotificationRepository
 import com.shuaib.classmate.repositories.LostFoundRepository
 import com.shuaib.classmate.repositories.NoticeRepository
 import com.shuaib.classmate.repositories.TimetableRepository
+import com.shuaib.classmate.ui.NotificationsBottomSheet
 import com.shuaib.classmate.utils.AppPreferences
 import com.shuaib.classmate.utils.CountdownManager
 import com.shuaib.classmate.utils.DateHelper
+import com.shuaib.classmate.utils.UserRoleHelper
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
@@ -72,6 +75,8 @@ class HomeFragment : Fragment() {
     private val calendarRepo = AcademicCalendarRepository()
     private val lostFoundRepo = LostFoundRepository()
     private val bloodRequestRepo = BloodRequestRepository()
+    private val appNotificationRepo = AppNotificationRepository()
+    private var notificationListener: com.google.firebase.firestore.ListenerRegistration? = null
 
     private var todayPeriods = listOf<Period>()
     private var activeExceptions = listOf<AcademicCalendarException>()
@@ -153,13 +158,34 @@ class HomeFragment : Fragment() {
         setupClickListeners()
         setupTopAlerts()
         setupHeroCarousel()
+        setupNotificationBadgeListener()
         loadData()
 
         binding.swipeRefresh.setOnRefreshListener {
             loadData()
+            setupNotificationBadgeListener()
             viewLifecycleOwner.lifecycleScope.launch {
                 kotlinx.coroutines.delay(1000)
                 _binding?.swipeRefresh?.isRefreshing = false
+            }
+        }
+    }
+
+    private fun setupNotificationBadgeListener() {
+        val ctx = context ?: return
+        val uid = auth.currentUser?.uid ?: ""
+        val role = UserRoleHelper.getEffectiveRole(ctx)
+        val isAdmin = role.equals("admin", true) || role.equals("superadmin", true)
+
+        notificationListener?.remove()
+        notificationListener = appNotificationRepo.listenNotifications(uid, isAdmin) { notifs ->
+            if (_binding == null) return@listenNotifications
+            val unreadCount = notifs.count { !it.isRead && !it.readBy.contains(uid) }
+            if (unreadCount > 0) {
+                binding.tvNotificationBadge.visibility = View.VISIBLE
+                binding.tvNotificationBadge.text = if (unreadCount > 9) "9+" else unreadCount.toString()
+            } else {
+                binding.tvNotificationBadge.visibility = View.GONE
             }
         }
     }
@@ -199,6 +225,10 @@ class HomeFragment : Fragment() {
 
         binding.btnSearchGlobal.setOnClickListener {
             mainActivity?.openChildDestination(R.id.nav_home, R.id.fragment_library_search)
+        }
+
+        binding.btnNotificationHeader.setOnClickListener {
+            NotificationsBottomSheet.newInstance().show(childFragmentManager, NotificationsBottomSheet.TAG)
         }
 
         binding.cardNextEvent.setOnClickListener {
@@ -1455,6 +1485,7 @@ class HomeFragment : Fragment() {
                 holidayFlipperHandler.removeCallbacks(holidayFlipperRunnable)
                 holidayFlipperHandler.postDelayed(holidayFlipperRunnable, 5000)
             }
+            setupNotificationBadgeListener()
         }
     }
 
@@ -1468,6 +1499,8 @@ class HomeFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        notificationListener?.remove()
+        notificationListener = null
         countdownListener?.remove()
         countdownListener = null
         (activity as? MainActivity)?.setMainPageSwipeEnabled(true)

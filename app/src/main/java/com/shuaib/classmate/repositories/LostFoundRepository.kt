@@ -1,6 +1,7 @@
 package com.shuaib.classmate.repositories
 
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.shuaib.classmate.models.LostFoundItem
@@ -235,4 +236,75 @@ class LostFoundRepository {
                 onSuccess()
             }
     }
+
+    /** Record a post view (from guest or logged in user) */
+    fun recordView(itemId: String, userId: String? = null) {
+        val updates = mutableMapOf<String, Any>(
+            "viewsCount" to FieldValue.increment(1)
+        )
+        if (!userId.isNullOrBlank()) {
+            updates["viewers"] = FieldValue.arrayUnion(userId)
+        }
+        collection.document(itemId).update(updates)
+    }
+
+    /** Toggle love react for a logged in user */
+    fun toggleLove(
+        itemId: String,
+        userId: String,
+        isLoving: Boolean,
+        onResult: (newCount: Int) -> Unit = {}
+    ) {
+        val docRef = collection.document(itemId)
+        firestore.runTransaction { transaction ->
+            val snapshot = transaction.get(docRef)
+            val currentReactors = (snapshot.get("loveReactors") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+            val newReactors = currentReactors.toMutableList()
+            if (isLoving) {
+                if (!newReactors.contains(userId)) newReactors.add(userId)
+            } else {
+                newReactors.remove(userId)
+            }
+            transaction.update(docRef, mapOf(
+                "loveReactors" to newReactors,
+                "loveCount" to newReactors.size
+            ))
+            newReactors.size
+        }.addOnSuccessListener { newCount ->
+            onResult(newCount)
+        }.addOnFailureListener {
+            // Local fallback
+            onResult(1)
+        }
+    }
+
+    /** Record a post share */
+    fun recordShare(itemId: String) {
+        collection.document(itemId).update("sharesCount", FieldValue.increment(1))
+    }
+
+    /** Mark item resolved with specific status: "item_given" or "item_found" */
+    fun markItemResolved(itemId: String, status: String, onSuccess: () -> Unit = {}) {
+        val updates = mapOf(
+            "isResolved" to true,
+            "resolvedStatus" to status
+        )
+        collection.document(itemId).update(updates)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onSuccess() }
+    }
+
+    /** Report post for spam/inappropriate content */
+    fun reportItem(itemId: String, userId: String, reason: String, onSuccess: () -> Unit = {}) {
+        val updates = mutableMapOf<String, Any>(
+            "reportedCount" to FieldValue.increment(1)
+        )
+        if (userId.isNotBlank()) {
+            updates["reportedBy"] = FieldValue.arrayUnion(userId)
+        }
+        collection.document(itemId).update(updates)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onSuccess() }
+    }
 }
+

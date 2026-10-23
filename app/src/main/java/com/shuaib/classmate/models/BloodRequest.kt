@@ -21,10 +21,18 @@ data class BloodRequest(
     val timestamp: Timestamp? = null,
     val isFulfilled: Boolean = false,
 
-    // Social features
+    // Social & Engagement features
     val loveCount: Int = 0,
     val loveReactors: List<String> = emptyList(), // uids of users who reacted
     val commentsCount: Int = 0,
-    val shareToken: String = ""             // Unique deep-link token for this post
+    val shareToken: String = "",            // Unique deep-link token for this post
+    val sharesCount: Int = 0,
+    val viewsCount: Int = 0,
+    val viewers: List<String> = emptyList(),
+    val isDonated: Boolean = false,
+    val donatedAt: Timestamp? = null,
+    val reportedCount: Int = 0,
+    val reportedBy: List<String> = emptyList()
 )
+
 

@@ -3,38 +3,60 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/bg_lost_found_sheet"
+    android:background="@drawable/bg_dialog_rounded"
     android:orientation="vertical"
     android:padding="20dp">
 
-    <!-- Drag Handle -->
+    <!-- Top Drag Handle -->
     <View
-        android:layout_width="38dp"
+        android:layout_width="40dp"
         android:layout_height="4dp"
         android:layout_gravity="center_horizontal"
         android:layout_marginBottom="14dp"
         android:background="@drawable/bg_handle" />
 
-    <!-- Header Title with Close '✕' Button (Matching Pic 2) -->
+    <!-- Header Title with Close '✕' Button -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <TextView
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:background="@drawable/bg_squircle_dark"
+            android:padding="5dp"
+            android:src="@drawable/ic_location_pin"
+            app:tint="#6366F1" />
+
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
             android:layout_weight="1"
-            android:text="Report Lost or Found Item"
-            android:textColor="#FFFFFF"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Post Lost / Found Item"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Broadcast lost belongings to GSTU campus"
+                android:textColor="#94A3B8"
+                android:textSize="12sp" />
+        </LinearLayout>
 
         <ImageButton
             android:id="@+id/btnCloseDialog"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Close"
             android:src="@drawable/ic_close"
@@ -44,14 +66,14 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:layout_marginTop="12dp"
-        android:layout_marginBottom="14dp"
-        android:background="#2E3642" />
+        android:layout_marginTop="14dp"
+        android:layout_marginBottom="16dp"
+        android:background="#262E3B" />
 
     <!-- Type Switcher (FOUND vs LOST) -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="38dp"
+        android:layout_height="44dp"
         android:layout_marginBottom="16dp"
         android:background="@drawable/bg_lost_found_input"
         android:orientation="horizontal"
@@ -63,11 +85,11 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:background="@drawable/bg_badge_accent_pill"
-            android:backgroundTint="#2E7D32"
+            android:backgroundTint="#166534"
             android:gravity="center"
             android:text="✔  FOUND ITEM"
             android:textColor="#FFFFFF"
-            android:textSize="12sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
         <TextView
@@ -78,7 +100,7 @@
             android:gravity="center"
             android:text="🔍  LOST ITEM"
             android:textColor="#94A3B8"
-            android:textSize="12sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
     </LinearLayout>
 
@@ -86,7 +108,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Item Name / Description"
+        android:text="Item Name &amp; Description *"
         android:textColor="#E2E8F0"
         android:textSize="13sp"
         android:textStyle="bold" />
@@ -96,7 +118,7 @@
         android:layout_height="48dp"
         android:layout_marginTop="6dp"
         android:layout_marginBottom="14dp"
-        android:background="@drawable/bg_lost_found_input"
+        android:background="@drawable/bg_dialog_input_dark"
         android:gravity="center_vertical"
         android:paddingHorizontal="14dp">
 
@@ -112,7 +134,7 @@
             android:layout_height="match_parent"
             android:layout_marginStart="10dp"
             android:background="@null"
-            android:hint="e.g. Casio Calculator FX-991EX, ID Card..."
+            android:hint="e.g. Casio FX-991EX, Student ID, Wallet"
             android:inputType="textCapSentences"
             android:textColor="#FFFFFF"
             android:textColorHint="#64748B"
@@ -123,7 +145,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Location Spotted / Lost"
+        android:text="Location Spotted or Lost *"
         android:textColor="#E2E8F0"
         android:textSize="13sp"
         android:textStyle="bold" />
@@ -133,7 +155,7 @@
         android:layout_height="48dp"
         android:layout_marginTop="6dp"
         android:layout_marginBottom="14dp"
-        android:background="@drawable/bg_lost_found_input"
+        android:background="@drawable/bg_dialog_input_dark"
         android:gravity="center_vertical"
         android:paddingHorizontal="14dp">
 
@@ -149,7 +171,7 @@
             android:layout_height="match_parent"
             android:layout_marginStart="10dp"
             android:background="@null"
-            android:hint="e.g. Library 2nd Floor, Cafeteria..."
+            android:hint="e.g. Central Library 2nd floor, Cafeteria"
             android:inputType="textCapWords"
             android:textColor="#FFFFFF"
             android:textColorHint="#64748B"
@@ -160,7 +182,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Your Contact Number"
+        android:text="Contact Phone Number *"
         android:textColor="#E2E8F0"
         android:textSize="13sp"
         android:textStyle="bold" />
@@ -169,8 +191,8 @@
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:layout_marginTop="6dp"
-        android:layout_marginBottom="22dp"
-        android:background="@drawable/bg_lost_found_input"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_dialog_input_dark"
         android:gravity="center_vertical"
         android:paddingHorizontal="14dp">
 
@@ -186,20 +208,46 @@
             android:layout_height="match_parent"
             android:layout_marginStart="10dp"
             android:background="@null"
-            android:hint="e.g. 01700-123456"
+            android:hint="017xxxxxxxx or Front Desk"
             android:inputType="phone"
             android:textColor="#FFFFFF"
             android:textColorHint="#64748B"
             android:textSize="14sp" />
     </LinearLayout>
 
-    <!-- Publish Button (Matching Pic 2) -->
+    <!-- Info note -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="18dp"
+        android:background="@drawable/bg_badge_accent_pill"
+        android:backgroundTint="#1E293B"
+        android:gravity="center_vertical"
+        android:padding="10dp">
+
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/ic_bell_outline"
+            app:tint="#A5B4FC" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="Admins will review and approve your post to keep the board spam-free."
+            android:textColor="#CBD5E1"
+            android:textSize="11.5sp" />
+    </LinearLayout>
+
+    <!-- Publish Button -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnPublishReport"
         android:layout_width="match_parent"
         android:layout_height="52dp"
         android:backgroundTint="#6366F1"
-        android:text="Publish Report"
+        android:text="Publish to Lost &amp; Found"
         android:textAllCaps="false"
         android:textColor="#FFFFFF"
         android:textSize="15sp"

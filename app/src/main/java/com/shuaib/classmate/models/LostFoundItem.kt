@@ -27,14 +27,22 @@ data class LostFoundItem(
     val approvedBy: String = "",            // uid of admin who approved
     val approvedAt: Timestamp? = null,
 
-    // Social features
+    // Social & Engagement features
     val loveCount: Int = 0,
     val loveReactors: List<String> = emptyList(), // uids of users who reacted
     val commentsCount: Int = 0,
-    val shareToken: String = ""             // Unique deep-link token for this post
+    val shareToken: String = "",            // Unique deep-link token for this post
+    val sharesCount: Int = 0,
+    val viewsCount: Int = 0,
+    val viewers: List<String> = emptyList(),
+    val resolvedStatus: String = "",        // "item_given" or "item_found"
+    val reportedCount: Int = 0,
+    val reportedBy: List<String> = emptyList()
 ) {
     val isFound: Boolean get() = type.equals("found", ignoreCase = true)
     val isLost: Boolean get() = type.equals("lost", ignoreCase = true)
     val isPublic: Boolean get() = approved && !pendingApproval
+    val isItemGiven: Boolean get() = resolvedStatus.equals("item_given", ignoreCase = true)
+    val isItemFound: Boolean get() = resolvedStatus.equals("item_found", ignoreCase = true)
 }
 

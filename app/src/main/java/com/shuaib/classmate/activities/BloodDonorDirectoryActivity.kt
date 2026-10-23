@@ -1,5 +1,7 @@
 package com.shuaib.classmate.activities
 
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -13,36 +15,49 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.shuaib.classmate.R
 import com.shuaib.classmate.adapters.BloodDonorAdapter
+import com.shuaib.classmate.adapters.BloodRequestAdapter
 import com.shuaib.classmate.databinding.ActivityBloodDonorDirectoryBinding
 import com.shuaib.classmate.models.BloodRequest
 import com.shuaib.classmate.models.User
+import com.shuaib.classmate.repositories.AppNotificationRepository
 import com.shuaib.classmate.repositories.BloodRequestRepository
+import com.shuaib.classmate.utils.AppPreferences
 
 class BloodDonorDirectoryActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityBloodDonorDirectoryBinding
     private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
+    private val bloodRequestRepo = BloodRequestRepository()
+    private val notificationRepo = AppNotificationRepository()
+
     private var allDonors = listOf<User>()
+    private var allRequests = listOf<BloodRequest>()
+    private var currentTab = "requests" // "requests" or "donors"
     private var currentFilterBloodGroup = "All"
     private var searchQuery = ""
     private var donorListener: ListenerRegistration? = null
-    private lateinit var adapter: BloodDonorAdapter
 
+    private lateinit var donorAdapter: BloodDonorAdapter
+    private lateinit var requestAdapter: BloodRequestAdapter
+
+    private var currentUserId: String = ""
+    private var currentUserName: String = "Student"
     private val bloodGroups = arrayOf("A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-")
-    private val bloodRequestRepo = BloodRequestRepository()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityBloodDonorDirectoryBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        val currentUser = auth.currentUser
+        currentUserId = currentUser?.uid ?: ""
+        currentUserName = currentUser?.displayName ?: AppPreferences(this).getUserName().ifBlank { "Student" }
+
         binding.toolbar.setNavigationOnClickListener { finish() }
 
-        adapter = BloodDonorAdapter(emptyList())
-        binding.rvDonors.layoutManager = LinearLayoutManager(this)
-        binding.rvDonors.adapter = adapter
-
+        setupAdapters()
+        setupTabs()
         setupFilterChips()
         setupSearch()
         setupActionButtons()
@@ -64,12 +79,68 @@ class BloodDonorDirectoryActivity : AppCompatActivity() {
         }
 
         binding.swipeRefresh.setOnRefreshListener {
+            loadBloodRequests()
             loadDonors()
             loadActiveEmergencyBanner()
         }
 
+        loadBloodRequests()
         loadDonors()
         loadActiveEmergencyBanner()
+    }
+
+    private fun setupAdapters() {
+        donorAdapter = BloodDonorAdapter(emptyList())
+        binding.rvDonors.layoutManager = LinearLayoutManager(this)
+        binding.rvDonors.adapter = donorAdapter
+
+        requestAdapter = BloodRequestAdapter(
+            requests = emptyList(),
+            currentUserId = currentUserId,
+            currentUserName = currentUserName,
+            onBloodDonatedClick = { req -> handleBloodDonated(req) },
+            onReportClick = { req -> handleReportBloodRequest(req) }
+        )
+        binding.rvBloodRequests.layoutManager = LinearLayoutManager(this)
+        binding.rvBloodRequests.adapter = requestAdapter
+    }
+
+    private fun setupTabs() {
+        binding.tabBloodRequests.setOnClickListener {
+            switchTab("requests")
+        }
+        binding.tabDonors.setOnClickListener {
+            switchTab("donors")
+        }
+        switchTab("requests")
+    }
+
+    private fun switchTab(tab: String) {
+        currentTab = tab
+        if (tab == "requests") {
+            binding.tabBloodRequests.setBackgroundResource(R.drawable.bg_badge_accent_pill)
+            binding.tabBloodRequests.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#7F1D1D"))
+            binding.tabBloodRequests.setTextColor(Color.WHITE)
+
+            binding.tabDonors.background = null
+            binding.tabDonors.setTextColor(Color.parseColor("#94A3B8"))
+
+            binding.rvBloodRequests.visibility = View.VISIBLE
+            binding.rvDonors.visibility = View.GONE
+            binding.scrollBloodChips.visibility = View.GONE
+        } else {
+            binding.tabDonors.setBackgroundResource(R.drawable.bg_badge_accent_pill)
+            binding.tabDonors.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#374151"))
+            binding.tabDonors.setTextColor(Color.WHITE)
+
+            binding.tabBloodRequests.background = null
+            binding.tabBloodRequests.setTextColor(Color.parseColor("#94A3B8"))
+
+            binding.rvDonors.visibility = View.VISIBLE
+            binding.rvBloodRequests.visibility = View.GONE
+            binding.scrollBloodChips.visibility = View.VISIBLE
+        }
+        applyFilters()
     }
 
     private fun setupFilterChips() {
@@ -194,7 +265,7 @@ class BloodDonorDirectoryActivity : AppCompatActivity() {
 
             btnSubmit.isEnabled = false
 
-            val request = com.shuaib.classmate.models.BloodRequest(
+            val request = BloodRequest(
                 bloodGroup = selectedBlood,
                 hospitalName = hospital,
                 contactPhone = phone,
@@ -208,7 +279,8 @@ class BloodDonorDirectoryActivity : AppCompatActivity() {
                 request,
                 onSuccess = {
                     dialog.dismiss()
-                    Toast.makeText(this, "🚨 Urgent blood request posted! Live on Campus Portal Home.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "🚨 Urgent blood request posted!", Toast.LENGTH_LONG).show()
+                    loadBloodRequests()
                     loadActiveEmergencyBanner()
                 },
                 onFailure = { err ->
@@ -219,6 +291,70 @@ class BloodDonorDirectoryActivity : AppCompatActivity() {
         }
 
         dialog.show()
+    }
+
+    private fun handleBloodDonated(req: BloodRequest) {
+        AlertDialog.Builder(this)
+            .setTitle("Blood Donated")
+            .setMessage("Confirm that blood has been donated for this request? Superadmin and admins will be notified.")
+            .setPositiveButton("Confirm Donated") { _, _ ->
+                bloodRequestRepo.markBloodDonated(req.id)
+                notificationRepo.sendNotificationToAdmins(
+                    type = "blood_donated",
+                    title = "🩸 Blood Donated / Fulfilled",
+                    message = "$currentUserName marked blood request for ${req.bloodGroup} at ${req.hospitalName} as Donated!",
+                    postId = req.id,
+                    postType = "blood_request",
+                    actorId = currentUserId,
+                    actorName = currentUserName
+                )
+                Toast.makeText(this, "Marked as Blood Donated! Admins notified.", Toast.LENGTH_LONG).show()
+                loadBloodRequests()
+                loadActiveEmergencyBanner()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun handleReportBloodRequest(req: BloodRequest) {
+        if (currentUserId.isBlank()) {
+            Toast.makeText(this, "Please sign in to report a post", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val reasons = arrayOf("Spam or fake emergency", "Already fulfilled / donated", "Incorrect contact information", "Other issue")
+        var selectedIdx = 0
+
+        AlertDialog.Builder(this)
+            .setTitle("Report Blood Request to Admins")
+            .setSingleChoiceItems(reasons, 0) { _, which ->
+                selectedIdx = which
+            }
+            .setPositiveButton("Submit Report") { _, _ ->
+                val chosenReason = reasons[selectedIdx]
+                bloodRequestRepo.reportRequest(req.id, currentUserId, chosenReason) {
+                    notificationRepo.sendNotificationToAdmins(
+                        type = "report",
+                        title = "🚨 Post Reported: Blood Request",
+                        message = "Blood request for ${req.bloodGroup} at ${req.hospitalName} reported by $currentUserName. Reason: $chosenReason",
+                        postId = req.id,
+                        postType = "blood_request",
+                        actorId = currentUserId,
+                        actorName = currentUserName,
+                        extraNote = chosenReason
+                    )
+                    Toast.makeText(this, "Report submitted. Superadmin & admin will review it.", Toast.LENGTH_LONG).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun loadBloodRequests() {
+        bloodRequestRepo.getAllActiveRequests { list ->
+            if (isFinishing || isDestroyed) return@getAllActiveRequests
+            allRequests = list
+            applyFilters()
+        }
     }
 
     private fun loadActiveEmergencyBanner() {
@@ -243,17 +379,7 @@ class BloodDonorDirectoryActivity : AppCompatActivity() {
                 }
 
                 binding.cardActiveEmergencyBanner.setOnClickListener {
-                    // Tap banner to filter donors for this requested blood group
-                    when (topReq.bloodGroup) {
-                        "A+" -> binding.chipAPos.isChecked = true
-                        "A-" -> binding.chipANeg.isChecked = true
-                        "B+" -> binding.chipBPos.isChecked = true
-                        "B-" -> binding.chipBNeg.isChecked = true
-                        "O+" -> binding.chipOPos.isChecked = true
-                        "O-" -> binding.chipONeg.isChecked = true
-                        "AB+" -> binding.chipAbPos.isChecked = true
-                        "AB-" -> binding.chipAbNeg.isChecked = true
-                    }
+                    switchTab("requests")
                 }
             } else {
                 binding.cardActiveEmergencyBanner.visibility = View.GONE
@@ -290,34 +416,58 @@ class BloodDonorDirectoryActivity : AppCompatActivity() {
     }
 
     private fun applyFilters() {
-        val filtered = allDonors.filter { user ->
-            val matchesBlood = if (currentFilterBloodGroup == "All") {
-                true
-            } else {
-                user.bloodGroup.equals(currentFilterBloodGroup, ignoreCase = true)
+        if (currentTab == "requests") {
+            val filtered = allRequests.filter { req ->
+                if (searchQuery.isBlank()) true
+                else {
+                    req.bloodGroup.lowercase().contains(searchQuery) ||
+                    req.hospitalName.lowercase().contains(searchQuery) ||
+                    req.urgencyNote.lowercase().contains(searchQuery) ||
+                    req.requesterName.lowercase().contains(searchQuery)
+                }
             }
-
-            val matchesSearch = if (searchQuery.isBlank()) {
-                true
+            requestAdapter.updateList(filtered)
+            if (filtered.isEmpty()) {
+                binding.emptyState.visibility = View.VISIBLE
+                binding.tvEmptyTitle.text = "No Blood Requests Found"
+                binding.tvEmptySubtitle.text = "No emergency requests matching your search. You can post an urgent request below."
+                binding.rvBloodRequests.visibility = View.GONE
             } else {
-                user.name.lowercase().contains(searchQuery) ||
-                user.fullName.lowercase().contains(searchQuery) ||
-                user.department.lowercase().contains(searchQuery) ||
-                user.batch.lowercase().contains(searchQuery) ||
-                user.homeDistrict.lowercase().contains(searchQuery)
+                binding.emptyState.visibility = View.GONE
+                binding.rvBloodRequests.visibility = View.VISIBLE
             }
-
-            matchesBlood && matchesSearch
-        }
-
-        adapter.updateList(filtered)
-
-        if (filtered.isEmpty()) {
-            binding.emptyState.visibility = View.VISIBLE
-            binding.rvDonors.visibility = View.GONE
         } else {
-            binding.emptyState.visibility = View.GONE
-            binding.rvDonors.visibility = View.VISIBLE
+            val filtered = allDonors.filter { user ->
+                val matchesBlood = if (currentFilterBloodGroup == "All") {
+                    true
+                } else {
+                    user.bloodGroup.equals(currentFilterBloodGroup, ignoreCase = true)
+                }
+
+                val matchesSearch = if (searchQuery.isBlank()) {
+                    true
+                } else {
+                    user.name.lowercase().contains(searchQuery) ||
+                    user.fullName.lowercase().contains(searchQuery) ||
+                    user.department.lowercase().contains(searchQuery) ||
+                    user.batch.lowercase().contains(searchQuery) ||
+                    user.homeDistrict.lowercase().contains(searchQuery)
+                }
+
+                matchesBlood && matchesSearch
+            }
+
+            donorAdapter.updateList(filtered)
+
+            if (filtered.isEmpty()) {
+                binding.emptyState.visibility = View.VISIBLE
+                binding.tvEmptyTitle.text = "No Donors Found"
+                binding.tvEmptySubtitle.text = "Try selecting another blood group or update your blood group."
+                binding.rvDonors.visibility = View.GONE
+            } else {
+                binding.emptyState.visibility = View.GONE
+                binding.rvDonors.visibility = View.VISIBLE
+            }
         }
     }
 

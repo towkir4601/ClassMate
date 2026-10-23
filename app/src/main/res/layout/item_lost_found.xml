@@ -18,7 +18,7 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Top Row: Badge, Timestamp & Delete Button (Pic 1) -->
+        <!-- Top Header Row: Status Badge, Time, and 3-Dot More Options -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -38,6 +38,21 @@
                 android:textSize="11sp"
                 android:textStyle="bold" />
 
+            <TextView
+                android:id="@+id/tvResolvedStatusBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_badge_accent_pill"
+                android:backgroundTint="#1E293B"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="4dp"
+                android:text="RESOLVED"
+                android:textColor="#A5B4FC"
+                android:textSize="10.5sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
             <View
                 android:layout_width="0dp"
                 android:layout_height="0dp"
@@ -49,14 +64,26 @@
                 android:layout_height="wrap_content"
                 android:text="Today, 11:30 AM"
                 android:textColor="#94A3B8"
-                android:textSize="12sp" />
+                android:textSize="11.5sp" />
 
-            <!-- Delete / Resolved Action Button (Only visible for Owner or Admin) -->
+            <!-- Three-Dot More Options Button -->
+            <ImageButton
+                android:id="@+id/btnMoreOptions"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="6dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="More options"
+                android:padding="4dp"
+                android:src="@drawable/ic_more_vert"
+                app:tint="#94A3B8" />
+
+            <!-- Delete Button (Only visible for Owner or Admin) -->
             <ImageButton
                 android:id="@+id/btnDeleteItem"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="2dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Delete Item"
                 android:padding="5dp"
@@ -65,7 +92,7 @@
                 android:visibility="gone" />
         </LinearLayout>
 
-        <!-- Item Title (Pic 1) -->
+        <!-- Item Title -->
         <TextView
             android:id="@+id/tvItemTitle"
             android:layout_width="match_parent"
@@ -75,7 +102,7 @@
             android:maxLines="2"
             android:text="GSTU Student ID Card (2024-CSE-019)"
             android:textColor="#FFFFFF"
-            android:textSize="16sp"
+            android:textSize="15.5sp"
             android:textStyle="bold" />
 
         <!-- Optional Description -->
@@ -91,7 +118,7 @@
             android:textSize="13sp"
             android:visibility="gone" />
 
-        <!-- Location Row (Pic 1) -->
+        <!-- Location Row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -114,15 +141,15 @@
                 android:singleLine="true"
                 android:text="Central Library 2nd Floor"
                 android:textColor="#CBD5E1"
-                android:textSize="13sp" />
+                android:textSize="12.5sp" />
         </LinearLayout>
 
-        <!-- Contact Row (Pic 1) -->
+        <!-- Contact Row -->
         <LinearLayout
             android:id="@+id/layoutContact"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="5dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -141,7 +168,134 @@
                 android:singleLine="true"
                 android:text="Contact: Library Front Desk"
                 android:textColor="#CBD5E1"
-                android:textSize="13sp" />
+                android:textSize="12.5sp" />
+        </LinearLayout>
+
+        <!-- Divider Line -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="8dp"
+            android:background="#262E3B" />
+
+        <!-- Social & Engagement Action Bar: Love React, Share, Views Count, Call Option -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <!-- Love React Button -->
+            <LinearLayout
+                android:id="@+id/btnLove"
+                android:layout_width="wrap_content"
+                android:layout_height="34dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="6dp">
+
+                <ImageView
+                    android:id="@+id/ivLove"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_heart_outline"
+                    app:tint="#94A3B8" />
+
+                <TextView
+                    android:id="@+id/tvLoveCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="5dp"
+                    android:text="0"
+                    android:textColor="#CBD5E1"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Share Option -->
+            <LinearLayout
+                android:id="@+id/btnShare"
+                android:layout_width="wrap_content"
+                android:layout_height="34dp"
+                android:layout_marginStart="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="6dp">
+
+                <ImageView
+                    android:id="@+id/ivShare"
+                    android:layout_width="17dp"
+                    android:layout_height="17dp"
+                    android:src="@drawable/ic_share_outline"
+                    app:tint="#94A3B8" />
+
+                <TextView
+                    android:id="@+id/tvShareText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="5dp"
+                    android:text="Share"
+                    android:textColor="#CBD5E1"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- Views Counter (Including Guests) -->
+            <LinearLayout
+                android:id="@+id/layoutViews"
+                android:layout_width="wrap_content"
+                android:layout_height="34dp"
+                android:layout_marginStart="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="6dp">
+
+                <ImageView
+                    android:id="@+id/ivViews"
+                    android:layout_width="17dp"
+                    android:layout_height="17dp"
+                    android:src="@drawable/ic_eye_outline"
+                    app:tint="#64748B" />
+
+                <TextView
+                    android:id="@+id/tvViewsCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="0 views"
+                    android:textColor="#94A3B8"
+                    android:textSize="11.5sp" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <!-- Call Option Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCallAction"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="0dp"
+                android:text="Call"
+                android:textColor="#38BDF8"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:cornerRadius="16dp"
+                app:icon="@drawable/ic_phone"
+                app:iconPadding="4dp"
+                app:iconSize="14dp"
+                app:iconTint="#38BDF8"
+                app:strokeColor="#0284C7"
+                app:strokeWidth="1dp" />
+
         </LinearLayout>
 
     </LinearLayout>

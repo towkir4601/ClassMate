@@ -171,4 +171,18 @@ class AppPreferences(context: Context) {
             .putBoolean("is_guest_mode", enabled)
             .apply()
     }
+
+    fun hasViewedPost(postId: String): Boolean {
+        val viewed = prefs.getStringSet("viewed_post_ids", emptySet()) ?: emptySet()
+        return viewed.contains(postId)
+    }
+
+    fun markPostViewed(postId: String) {
+        val current = (prefs.getStringSet("viewed_post_ids", emptySet()) ?: emptySet()).toMutableSet()
+        current.add(postId)
+        prefs.edit()
+            .putStringSet("viewed_post_ids", current)
+            .apply()
+    }
 }
+
