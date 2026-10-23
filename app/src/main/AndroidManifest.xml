@@ -124,6 +124,9 @@
             android:name=".activities.CvMakerActivity"
             android:exported="false" />
         <activity
+            android:name=".activities.CampusFeedFeaturesActivity"
+            android:exported="false" />
+        <activity
             android:name=".activities.ImportantContactsActivity"
             android:exported="false" />
         <activity

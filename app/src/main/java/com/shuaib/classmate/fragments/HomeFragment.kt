@@ -26,6 +26,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.shuaib.classmate.R
 import com.shuaib.classmate.activities.AcademicCalendarActivity
 import com.shuaib.classmate.activities.BloodDonorDirectoryActivity
+import com.shuaib.classmate.activities.CampusFeedFeaturesActivity
 import com.shuaib.classmate.activities.CgpaCalculatorActivity
 import com.shuaib.classmate.activities.CoverPageActivity
 import com.shuaib.classmate.activities.CvMakerActivity
@@ -279,6 +280,39 @@ class HomeFragment : Fragment() {
         binding.tileMore.setOnClickListener {
             showMoreToolsBottomSheet()
         }
+
+        binding.cardCampusFeed.setOnClickListener {
+            val ctx = context ?: return@setOnClickListener
+            startActivity(Intent(ctx, CampusFeedFeaturesActivity::class.java))
+        }
+
+        binding.btnViewFullFeatures.setOnClickListener {
+            val ctx = context ?: return@setOnClickListener
+            startActivity(Intent(ctx, CampusFeedFeaturesActivity::class.java))
+        }
+    }
+
+    private fun showCampusFeedComingSoonDialog() {
+        val ctx = context ?: return
+        val dialog = BottomSheetDialog(ctx)
+        val dialogView = LayoutInflater.from(ctx).inflate(R.layout.dialog_campus_feed_preview, null)
+        dialog.setContentView(dialogView)
+
+        dialogView.findViewById<View>(R.id.btnCloseCampusFeedDialog)?.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialogView.findViewById<View>(R.id.btnViewFullFeaturesDialog)?.setOnClickListener {
+            dialog.dismiss()
+            startActivity(Intent(ctx, CampusFeedFeaturesActivity::class.java))
+        }
+
+        dialogView.findViewById<View>(R.id.btnNotifyCampusFeed)?.setOnClickListener {
+            dialog.dismiss()
+            Toast.makeText(ctx, "🚀 Thanks for your interest! We'll notify you as soon as CampusFeed launches.", Toast.LENGTH_LONG).show()
+        }
+
+        dialog.show()
     }
 
     private fun showMoreToolsBottomSheet() {
