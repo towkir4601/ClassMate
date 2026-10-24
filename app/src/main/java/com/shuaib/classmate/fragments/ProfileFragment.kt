@@ -317,6 +317,8 @@ class ProfileFragment : Fragment() {
         } catch (e: Exception) {
             android.util.Log.e("ProfileFragment", "FCM unsubscribe failed: ${e.message}")
         }
+        AppPreferences(context).setGuestMode(false)
+        UserRoleHelper.clearTestRole(context)
         auth.signOut()
         viewLifecycleOwner.lifecycleScope.launch {
             try {
@@ -594,7 +596,22 @@ class ProfileFragment : Fragment() {
     }
 
     private fun fetchUserProfile() {
-        val uid = auth.currentUser?.uid ?: return
+        val uid = auth.currentUser?.uid
+        if (uid == null) {
+            val safeCtx = context ?: return
+            val effectiveRole = UserRoleHelper.getEffectiveRole(safeCtx, "student")
+            val guestUser = User(
+                uid = "guest_user",
+                name = "Guest User",
+                email = "guest@gstu.ac.bd",
+                role = effectiveRole,
+                approved = true,
+                permissions = User.getRoleDefaultPermissions(effectiveRole)
+            )
+            currentUser = guestUser
+            updateUI(guestUser)
+            return
+        }
         profileListener?.remove()
         profileListener = firestore.collection("users").document(uid)
             .addSnapshotListener { document, error ->

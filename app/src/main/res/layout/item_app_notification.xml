@@ -70,7 +70,7 @@
             android:ellipsize="end"
             android:maxLines="2"
             android:text="Item Casio FX-991EX was marked as Found by student."
-            android:textColor="#CBD5E1"
+            android:textColor="@color/cm_text_secondary"
             android:textSize="12.5sp" />
     </LinearLayout>
 

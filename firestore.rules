@@ -1328,11 +1328,15 @@ service cloud.firestore {
       allow create: if isLoggedIn()
         && request.resource.data.requesterId == request.auth.uid;
 
-      // 3. Request creator, admins, or superadmins can update (e.g. mark as fulfilled)
+      // 3. Request creator, admins, or superadmins can update, or any user for social interactions / donation confirmation
       allow update: if isLoggedIn() && (
         resource.data.requesterId == request.auth.uid ||
         isAdmin() ||
-        isSuperAdmin()
+        isSuperAdmin() ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'viewsCount', 'viewers', 'loveCount', 'loveReactors', 'sharesCount',
+          'reportedCount', 'reportedBy', 'reportReason', 'isFulfilled', 'isDonated', 'donatedAt', 'donatedBy'
+        ])
       );
 
       // 4. Request creator, admins, superadmins, fulfilled requests, or expired requests (> 15 days) can delete
@@ -1343,6 +1347,25 @@ service cloud.firestore {
         resource.data.isFulfilled == true ||
         resource.data.timestamp < request.time - duration.value(15, 'd')
       );
+    }
+
+    // ── In-App Notifications ────────────────────────────────────────────────
+    match /notifications/{notificationId} {
+      // 1. Logged in users can read notifications
+      allow read: if isLoggedIn();
+
+      // 2. Any logged-in user can dispatch a notification (to admin or post author)
+      allow create: if isLoggedIn();
+
+      // 3. Logged-in users can mark notifications as read (updating isRead, readBy), or admins can update
+      allow update: if isLoggedIn() && (
+        isAdmin() ||
+        isSuperAdmin() ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead', 'readBy'])
+      );
+
+      // 4. Only admins or superadmins can delete notifications
+      allow delete: if isAdmin() || isSuperAdmin();
     }
 
     // ── Campus Clubs, Events & Registrations ─────────────────────────────────

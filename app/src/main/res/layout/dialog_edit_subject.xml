@@ -13,6 +13,8 @@
         android:inputType="textCapWords"
         android:padding="12dp"
         android:background="@drawable/bg_chat_input"
+        android:textColor="@color/cm_text_primary"
+        android:textColorHint="@color/cm_text_muted"
         android:layout_marginBottom="12dp"/>
 
     <EditText
@@ -23,6 +25,8 @@
         android:inputType="textCapCharacters"
         android:padding="12dp"
         android:background="@drawable/bg_chat_input"
+        android:textColor="@color/cm_text_primary"
+        android:textColorHint="@color/cm_text_muted"
         android:layout_marginBottom="12dp"/>
 
     <EditText
@@ -33,6 +37,8 @@
         android:inputType="text"
         android:padding="12dp"
         android:background="@drawable/bg_chat_input"
+        android:textColor="@color/cm_text_primary"
+        android:textColorHint="@color/cm_text_muted"
         android:layout_marginBottom="12dp"/>
 
     <TextView
@@ -40,15 +46,16 @@
         android:layout_height="wrap_content"
         android:text="Category:"
         android:textStyle="bold"
+        android:textColor="@color/cm_text_primary"
         android:layout_marginBottom="8dp"/>
 
     <RadioGroup
         android:id="@+id/rgSubjectType"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
-        <RadioButton android:id="@+id/rbRegular" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Regular Courses"/>
-        <RadioButton android:id="@+id/rbLab" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Lab Courses"/>
-        <RadioButton android:id="@+id/rbOther" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Other Materials"/>
-        <RadioButton android:id="@+id/rbQuestionBank" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Question Bank"/>
+        <RadioButton android:id="@+id/rbRegular" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/cm_text_primary" android:text="Regular Courses"/>
+        <RadioButton android:id="@+id/rbLab" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/cm_text_primary" android:text="Lab Courses"/>
+        <RadioButton android:id="@+id/rbOther" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/cm_text_primary" android:text="Other Materials"/>
+        <RadioButton android:id="@+id/rbQuestionBank" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/cm_text_primary" android:text="Question Bank"/>
     </RadioGroup>
 </LinearLayout>

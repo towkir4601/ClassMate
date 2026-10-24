@@ -41,7 +41,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Post Lost / Found Item"
-                android:textColor="#FFFFFF"
+                android:textColor="@color/cm_text_primary"
                 android:textSize="18sp"
                 android:textStyle="bold" />
 
@@ -49,7 +49,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Broadcast lost belongings to GSTU campus"
-                android:textColor="#94A3B8"
+                android:textColor="@color/cm_text_muted"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -60,7 +60,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Close"
             android:src="@drawable/ic_close"
-            app:tint="#94A3B8" />
+            app:tint="@color/cm_text_muted" />
     </LinearLayout>
 
     <View
@@ -68,7 +68,7 @@
         android:layout_height="1dp"
         android:layout_marginTop="14dp"
         android:layout_marginBottom="16dp"
-        android:background="#262E3B" />
+        android:background="@color/cm_divider" />
 
     <!-- Type Switcher (FOUND vs LOST) -->
     <LinearLayout
@@ -99,7 +99,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:text="🔍  LOST ITEM"
-            android:textColor="#94A3B8"
+            android:textColor="@color/cm_text_muted"
             android:textSize="13sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -109,7 +109,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Item Name &amp; Description *"
-        android:textColor="#E2E8F0"
+        android:textColor="@color/cm_text_primary"
         android:textSize="13sp"
         android:textStyle="bold" />
 
@@ -126,7 +126,7 @@
             android:layout_width="18dp"
             android:layout_height="18dp"
             android:src="@drawable/ic_document_sheet"
-            app:tint="#94A3B8" />
+            app:tint="@color/cm_text_muted" />
 
         <EditText
             android:id="@+id/etReportTitle"
@@ -136,8 +136,8 @@
             android:background="@null"
             android:hint="e.g. Casio FX-991EX, Student ID, Wallet"
             android:inputType="textCapSentences"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#64748B"
+            android:textColor="@color/cm_text_primary"
+            android:textColorHint="@color/cm_text_muted"
             android:textSize="14sp" />
     </LinearLayout>
 
@@ -146,7 +146,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Location Spotted or Lost *"
-        android:textColor="#E2E8F0"
+        android:textColor="@color/cm_text_primary"
         android:textSize="13sp"
         android:textStyle="bold" />
 
@@ -163,7 +163,7 @@
             android:layout_width="18dp"
             android:layout_height="18dp"
             android:src="@drawable/ic_location_pin"
-            app:tint="#94A3B8" />
+            app:tint="@color/cm_text_muted" />
 
         <EditText
             android:id="@+id/etReportLocation"
@@ -173,8 +173,8 @@
             android:background="@null"
             android:hint="e.g. Central Library 2nd floor, Cafeteria"
             android:inputType="textCapWords"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#64748B"
+            android:textColor="@color/cm_text_primary"
+            android:textColorHint="@color/cm_text_muted"
             android:textSize="14sp" />
     </LinearLayout>
 
@@ -183,7 +183,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Contact Phone Number *"
-        android:textColor="#E2E8F0"
+        android:textColor="@color/cm_text_primary"
         android:textSize="13sp"
         android:textStyle="bold" />
 
@@ -200,7 +200,7 @@
             android:layout_width="18dp"
             android:layout_height="18dp"
             android:src="@drawable/ic_phone_receiver"
-            app:tint="#94A3B8" />
+            app:tint="@color/cm_text_muted" />
 
         <EditText
             android:id="@+id/etReportPhone"
@@ -210,8 +210,8 @@
             android:background="@null"
             android:hint="017xxxxxxxx or Front Desk"
             android:inputType="phone"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#64748B"
+            android:textColor="@color/cm_text_primary"
+            android:textColorHint="@color/cm_text_muted"
             android:textSize="14sp" />
     </LinearLayout>
 
@@ -220,7 +220,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Item Photo (Optional - Auto-compressed &lt;100KB)"
-        android:textColor="#E2E8F0"
+        android:textColor="@color/cm_text_primary"
         android:textSize="13sp"
         android:textStyle="bold" />
 
@@ -250,7 +250,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:text="+ Add Item Photo (Auto-compressed &lt;100KB)"
-            android:textColor="#C7D2FE"
+            android:textColor="@color/cm_primary"
             android:textSize="13sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -266,10 +266,10 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:cardBackgroundColor="#1E293B"
+            app:cardBackgroundColor="@color/cm_card_alt"
             app:cardCornerRadius="12dp"
             app:cardElevation="0dp"
-            app:strokeColor="#334155"
+            app:strokeColor="@color/cm_border"
             app:strokeWidth="1dp">
 
             <ImageView
@@ -326,7 +326,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="18dp"
         android:background="@drawable/bg_badge_accent_pill"
-        android:backgroundTint="#1E293B"
+        android:backgroundTint="@color/cm_card_alt"
         android:gravity="center_vertical"
         android:padding="10dp">
 
@@ -342,7 +342,7 @@
             android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:text="Admins will review and approve your post to keep the board spam-free."
-            android:textColor="#CBD5E1"
+            android:textColor="@color/cm_text_secondary"
             android:textSize="11.5sp" />
     </LinearLayout>
 

@@ -214,7 +214,11 @@
             android:name=".services.ShakeToTorchService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="specialUse" />
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Flashlight toggle on shake gesture" />
+        </service>
 
         <!-- Chat Reply Receiver -->
         <receiver

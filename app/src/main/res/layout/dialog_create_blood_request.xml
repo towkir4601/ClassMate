@@ -41,7 +41,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Request Blood Donor"
-                android:textColor="#FFFFFF"
+                android:textColor="@color/cm_text_primary"
                 android:textSize="18sp"
                 android:textStyle="bold" />
 
@@ -49,7 +49,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Broadcast emergency blood request to GSTU network"
-                android:textColor="#94A3B8"
+                android:textColor="@color/cm_text_muted"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -60,7 +60,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Close"
             android:src="@drawable/ic_close"
-            app:tint="#94A3B8" />
+            app:tint="@color/cm_text_muted" />
     </LinearLayout>
 
     <View
@@ -68,7 +68,7 @@
         android:layout_height="1dp"
         android:layout_marginTop="14dp"
         android:layout_marginBottom="16dp"
-        android:background="#2E1B20" />
+        android:background="@color/cm_divider" />
 
     <!-- Blood Group Selection -->
     <TextView
@@ -76,7 +76,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:text="Select Required Blood Group *"
-        android:textColor="#E2E8F0"
+        android:textColor="@color/cm_text_primary"
         android:textSize="13sp"
         android:textStyle="bold" />
 
@@ -98,6 +98,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:checked="true"
+                android:textColor="@color/cm_text_primary"
                 android:text="B+" />
 
             <com.google.android.material.chip.Chip
@@ -105,6 +106,7 @@
                 style="@style/Widget.MaterialComponents.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/cm_text_primary"
                 android:text="O+" />
 
             <com.google.android.material.chip.Chip
@@ -112,6 +114,7 @@
                 style="@style/Widget.MaterialComponents.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/cm_text_primary"
                 android:text="A+" />
 
             <com.google.android.material.chip.Chip
@@ -119,6 +122,7 @@
                 style="@style/Widget.MaterialComponents.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/cm_text_primary"
                 android:text="AB+" />
 
             <com.google.android.material.chip.Chip
@@ -126,6 +130,7 @@
                 style="@style/Widget.MaterialComponents.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/cm_text_primary"
                 android:text="B-" />
 
             <com.google.android.material.chip.Chip
@@ -133,6 +138,7 @@
                 style="@style/Widget.MaterialComponents.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/cm_text_primary"
                 android:text="O-" />
 
             <com.google.android.material.chip.Chip
@@ -140,6 +146,7 @@
                 style="@style/Widget.MaterialComponents.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/cm_text_primary"
                 android:text="A-" />
 
             <com.google.android.material.chip.Chip
@@ -147,6 +154,7 @@
                 style="@style/Widget.MaterialComponents.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/cm_text_primary"
                 android:text="AB-" />
         </com.google.android.material.chip.ChipGroup>
     </HorizontalScrollView>
@@ -157,7 +165,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="14dp"
         android:text="Hospital or Location *"
-        android:textColor="#E2E8F0"
+        android:textColor="@color/cm_text_primary"
         android:textSize="13sp"
         android:textStyle="bold" />
 
@@ -183,8 +191,8 @@
             android:background="@null"
             android:hint="e.g. Gopalganj 250 Bed Hospital"
             android:inputType="textCapWords"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#64748B"
+            android:textColor="@color/cm_text_primary"
+            android:textColorHint="@color/cm_text_muted"
             android:textSize="14sp" />
     </LinearLayout>
 
@@ -204,7 +212,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Bags Needed"
-                android:textColor="#E2E8F0"
+                android:textColor="@color/cm_text_primary"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
@@ -225,8 +233,8 @@
                     android:hint="1"
                     android:inputType="number"
                     android:text="1"
-                    android:textColor="#FFFFFF"
-                    android:textColorHint="#64748B"
+                    android:textColor="@color/cm_text_primary"
+                    android:textColorHint="@color/cm_text_muted"
                     android:textSize="15sp"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -243,7 +251,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Contact Phone *"
-                android:textColor="#E2E8F0"
+                android:textColor="@color/cm_text_primary"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
@@ -269,8 +277,8 @@
                     android:background="@null"
                     android:hint="017xxxxxxxx"
                     android:inputType="phone"
-                    android:textColor="#FFFFFF"
-                    android:textColorHint="#64748B"
+                    android:textColor="@color/cm_text_primary"
+                    android:textColorHint="@color/cm_text_muted"
                     android:textSize="14sp" />
             </LinearLayout>
         </LinearLayout>
@@ -282,7 +290,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
         android:text="Urgency / Patient Reason"
-        android:textColor="#E2E8F0"
+        android:textColor="@color/cm_text_primary"
         android:textSize="13sp"
         android:textStyle="bold" />
 
@@ -309,8 +317,8 @@
             android:background="@null"
             android:hint="e.g. Surgery at 3 PM, urgent donor needed"
             android:inputType="textCapSentences"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#64748B"
+            android:textColor="@color/cm_text_primary"
+            android:textColorHint="@color/cm_text_muted"
             android:textSize="14sp" />
     </LinearLayout>
 
