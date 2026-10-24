@@ -2,6 +2,7 @@ package com.shuaib.classmate.repositories
 
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.shuaib.classmate.models.CampusClub
 import com.shuaib.classmate.models.CampusEvent
@@ -376,6 +377,31 @@ class EventsClubsRepository {
             .addOnFailureListener {
                 val localActive = localAddedEvents.filter { !isEventExpired(it) }
                 onResult(localActive)
+            }
+    }
+
+    // Real-time listener for Campus Events
+    fun observeEvents(
+        onResult: (List<CampusEvent>) -> Unit,
+        onError: (Exception) -> Unit = {}
+    ): ListenerRegistration {
+        return eventsCollection.orderBy("createdAt", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    onError(error)
+                    return@addSnapshotListener
+                }
+                val activeEvents = mutableListOf<CampusEvent>()
+                snapshot?.documents.orEmpty().forEach { doc ->
+                    doc.toObject(CampusEvent::class.java)?.copy(id = doc.id)?.let { event ->
+                        if (!isEventExpired(event)) {
+                            activeEvents.add(event)
+                        }
+                    }
+                }
+                val localActive = localAddedEvents.filter { !isEventExpired(it) }
+                val merged = (localActive + activeEvents).distinctBy { it.id }
+                onResult(merged)
             }
     }
 

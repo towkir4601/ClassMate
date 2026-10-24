@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -30,7 +31,7 @@
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:gravity="center"
-                android:textColor="@color/cm_on_primary"
+                android:textColor="@color/white"
                 android:textSize="13sp"
                 android:textStyle="bold"
                 android:visibility="gone" />
@@ -40,36 +41,55 @@
             android:id="@+id/messageContainer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_chat_bubble_received_modern"
-            android:maxWidth="280dp"
+            android:background="@drawable/bg_whatsapp_bubble_received"
+            android:maxWidth="290dp"
             android:orientation="vertical"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="8dp">
+            android:paddingHorizontal="10dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp">
 
             <TextView
                 android:id="@+id/tvPinned"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Pinned"
-                android:textColor="@color/cm_accent"
+                android:text="📌 Pinned"
+                android:textColor="@color/wa_green_bright"
                 android:textSize="10sp"
                 android:textStyle="bold"
                 android:visibility="gone" />
 
-            <TextView
-                android:id="@+id/tvSenderName"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="2dp"
-                android:textColor="@color/cm_success"
-                android:textSize="12sp"
-                android:textStyle="bold" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvSenderName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="2dp"
+                    android:textColor="@color/wa_sender_teal"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <ImageView
+                    android:id="@+id/ivSenderVerified"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:layout_marginStart="3dp"
+                    android:layout_marginBottom="2dp"
+                    android:src="@drawable/ic_verified_badge"
+                    android:visibility="gone"
+                    tools:visibility="visible"
+                    android:contentDescription="Verified Member" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/tvForwarded"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/cm_text_secondary"
+                android:textColor="@color/wa_text_secondary"
                 android:textSize="11sp"
                 android:textStyle="italic"
                 android:visibility="gone" />
@@ -80,7 +100,7 @@
                 android:layout_height="1dp"
                 android:layout_marginTop="4dp"
                 android:layout_marginBottom="4dp"
-                android:background="#1FFFFFFF"
+                android:background="@color/wa_divider"
                 android:visibility="gone" />
 
             <LinearLayout
@@ -88,7 +108,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="6dp"
-                android:background="@drawable/bg_reply_preview"
+                android:background="@drawable/bg_whatsapp_reply_box"
                 android:orientation="horizontal"
                 android:padding="6dp"
                 android:visibility="gone">
@@ -96,7 +116,7 @@
                 <View
                     android:layout_width="3dp"
                     android:layout_height="match_parent"
-                    android:background="@color/cm_primary" />
+                    android:background="@color/wa_reply_bar" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -109,7 +129,7 @@
                         android:id="@+id/tvReplySender"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/cm_primary"
+                        android:textColor="@color/wa_reply_bar"
                         android:textSize="11sp"
                         android:textStyle="bold" />
 
@@ -119,7 +139,7 @@
                         android:layout_height="wrap_content"
                         android:ellipsize="end"
                         android:maxLines="1"
-                        android:textColor="@color/cm_text_secondary"
+                        android:textColor="@color/wa_text_secondary"
                         android:textSize="11sp" />
                 </LinearLayout>
             </LinearLayout>
@@ -150,8 +170,9 @@
                 android:id="@+id/tvMessageText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/cm_text_primary"
-                android:textSize="15sp" />
+                android:textColor="@color/wa_text_primary"
+                android:textSize="15sp"
+                android:lineSpacingExtra="1dp" />
 
             <FrameLayout
                 android:id="@+id/noticeForwardContainer"
@@ -174,18 +195,19 @@
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="4dp"
                     android:text="edited"
-                    android:textColor="@color/cm_text_muted"
-                    android:textSize="9sp"
+                    android:textColor="@color/wa_text_secondary"
+                    android:textSize="10sp"
+                    android:textStyle="italic"
                     android:visibility="gone" />
 
                 <TextView
                     android:id="@+id/tvTimestamp"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/cm_text_muted"
-                    android:textSize="10sp" />
+                    android:textColor="@color/wa_text_secondary"
+                    android:textSize="11sp" />
 
-                <!-- Add hidden tvTicks to satisfy adapter -->
+                <!-- Hidden tvTicks to satisfy adapter -->
                 <TextView
                     android:id="@+id/tvTicks"
                     android:layout_width="wrap_content"

@@ -44,8 +44,10 @@ import com.shuaib.classmate.adapters.PdfAdapter
 
 import com.shuaib.classmate.adapters.SubjectAdapter
 import com.shuaib.classmate.databinding.DialogEditProfileBinding
+import com.shuaib.classmate.databinding.DialogRoleSwitcherBinding
 import com.shuaib.classmate.databinding.FragmentProfileBinding
 import com.shuaib.classmate.models.PdfFile
+import com.shuaib.classmate.utils.HapticHelper
 
 import com.shuaib.classmate.models.User
 import com.shuaib.classmate.storage.LibraryUrlOpener
@@ -170,24 +172,32 @@ class ProfileFragment : Fragment() {
                         android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
                     )
                     appWidgetManager.requestPinAppWidget(myProvider, null, successCallback)
-                    Toast.makeText(context, "Requesting to pin ClassMate Widget...", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Requesting to pin GSTU Go Widget...", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(
                         context,
-                        "Launcher does not support automatic pinning. Long press home screen > Widgets > Find ClassMate Widget",
+                        "Launcher does not support automatic pinning. Long press home screen > Widgets > Find GSTU Go Widget",
                         Toast.LENGTH_LONG
                     ).show()
                 }
             } else {
                 Toast.makeText(
                     context,
-                    "Long press your home screen > Widgets > Find ClassMate Widget",
+                    "Long press your home screen > Widgets > Find GSTU Go Widget",
                     Toast.LENGTH_LONG
                 ).show()
             }
         }
 
-                binding.btnEditProfile.applyClickAnimation {
+                binding.cardRoleSwitcher.applyClickAnimation {
+            showRoleSwitcherDialog()
+        }
+
+        binding.btnSwitchRole.applyClickAnimation {
+            showRoleSwitcherDialog()
+        }
+
+        binding.btnEditProfile.applyClickAnimation {
             startActivity(Intent(requireContext(), EditProfileActivity::class.java))
         }
 
@@ -226,6 +236,7 @@ class ProfileFragment : Fragment() {
                     Toast.makeText(context, "Friends list visibility updated!", Toast.LENGTH_SHORT).show()
                 }
                 .addOnFailureListener { e ->
+                    if (_binding == null) return@addOnFailureListener
                     Toast.makeText(context, "Failed to update visibility: Please try again later.", Toast.LENGTH_SHORT).show()
                     binding.switchFriendsPublic.isChecked = isFriendsPublic
                 }
@@ -260,7 +271,7 @@ class ProfileFragment : Fragment() {
                 if (isAvailable) {
                     AppUpdateManager.showUpdateDialog(requireContext(), updateInfo, viewLifecycleOwner.lifecycleScope)
                 } else {
-                    Toast.makeText(requireContext(), "ClassMate is up to date!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "GSTU Go is up to date!", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 binding.pbCheckUpdates.visibility = View.GONE
@@ -412,7 +423,7 @@ class ProfileFragment : Fragment() {
     private fun showDndPermissionDialog() {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Silent Mode Access Required")
-            .setMessage("To allow ClassMate to shift your phone into complete Silent mode during class, Do Not Disturb access is required. If not granted, the app will fall back to Vibrate mode.")
+            .setMessage("To allow GSTU Go to shift your phone into complete Silent mode during class, Do Not Disturb access is required. If not granted, the app will fall back to Vibrate mode.")
             .setPositiveButton("Grant Access") { _, _ ->
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
                     val intent = Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
@@ -532,7 +543,11 @@ class ProfileFragment : Fragment() {
             .get()
             .addOnSuccessListener { snapshot ->
                 if (_binding == null || !isAdded) return@addOnSuccessListener
+                val userBatch = context?.let { com.shuaib.classmate.utils.AppPreferences(it).getUserBatch() } ?: ""
+                val userDeptId = context?.let { com.shuaib.classmate.utils.AppPreferences(it).getUserDepartmentId() } ?: ""
+                val isSuperAdmin = currentUser?.isSuperAdmin() == true
                 val allFiles = snapshot.documents.map { doc -> doc.toPdfFile() }
+                    .filter { it.canUserAccess(userDeptId, userBatch, isSuperAdmin) }
                 pdfCounts = allFiles.groupBy { it.subject }.mapValues { it.value.size }
 
                 val favoritePdfs = allFiles.filter { it.id in favoritePdfIds }
@@ -590,7 +605,11 @@ class ProfileFragment : Fragment() {
                     try {
                         val approvedVal = document.get("approved")
                         val isApproved = approvedVal == true || approvedVal == "true"
-                        
+                        val permissions = document.get("permissions") as? Map<String, Boolean> ?: User.DEFAULT_PERMISSIONS
+                        val localDemoRole = context?.let { AppPreferences(it).getDemoRole() }.orEmpty()
+                        val firestoreDemoRole = document.getString("demoRole") ?: ""
+                        val effectiveDemoRole = localDemoRole.ifBlank { firestoreDemoRole }
+
                         val user = User(
                             uid = document.id,
                             name = document.getString("name") ?: "",
@@ -608,7 +627,12 @@ class ProfileFragment : Fragment() {
                             authProvider = document.getString("authProvider") ?: "",
                             oneSignalPlayerId = document.getString("oneSignalPlayerId") ?: "",
                             favoriteSubjects = document.get("favoriteSubjects") as? List<String> ?: emptyList(),
-                            favoritePdfIds = document.get("favoritePdfIds") as? List<String> ?: emptyList()
+                            favoritePdfIds = document.get("favoritePdfIds") as? List<String> ?: emptyList(),
+                            permissions = permissions,
+                            assignedClubId = document.getString("assignedClubId") ?: (if (effectiveDemoRole == "club_admin") "club_computer_society" else ""),
+                            assignedClubName = document.getString("assignedClubName") ?: (if (effectiveDemoRole == "club_admin") "GSTU Computer Club (GSTUCC)" else ""),
+                            demoRole = effectiveDemoRole,
+                            isVerified = document.getBoolean("isVerified") == true || (document.getString("email") ?: "").trim().lowercase().let { it.endsWith(".edu.bd") || it.endsWith("@gstu.ac.bd") || it.contains(".gstu.ac.bd") }
                         )
                         
                         currentUser = user
@@ -624,12 +648,15 @@ class ProfileFragment : Fragment() {
     }
 
     private fun applyRoleBadge(textView: TextView, role: String) {
-        val fill = when (role.lowercase()) {
-            "superadmin" -> "#FF4D6D"
-            "admin" -> "#FFB347"
-            else -> "#34D399"
+        val (fill, label) = when (role.lowercase()) {
+            "superadmin" -> Pair("#FF4D6D", "SUPER ADMIN")
+            "admin", "university_admin" -> Pair("#2563EB", "UNIVERSITY ADMIN")
+            "club_admin" -> Pair("#8B5CF6", "CLUB ADMIN (GSTUCC)")
+            "teacher" -> Pair("#3B82F6", "TEACHER")
+            else -> Pair("#10B981", "STUDENT")
         }
-        textView.setTextColor(ThemeColors.textInverse(textView.context))
+        textView.text = label
+        textView.setTextColor(Color.WHITE)
         textView.background = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = 999f
@@ -639,9 +666,31 @@ class ProfileFragment : Fragment() {
 
     private fun updateUI(user: User) {
         if (_binding == null || !isAdded) return
+        val activeRole = user.activeRole.lowercase()
+
         binding.tvProfileName.text = user.name
-        binding.tvRoleBadge.text = user.role.uppercase()
-        applyRoleBadge(binding.tvRoleBadge, user.role)
+        val isVerified = user.isBlueVerified
+        binding.ivVerifiedBadge.visibility = if (isVerified) View.VISIBLE else View.GONE
+        binding.ivVerifiedBadge.setOnClickListener {
+            val verifyReason = when {
+                user.hasEduMail() -> "Verified via Institutional Email (${user.email})"
+                user.isSuperAdmin() -> "Verified System Super Administrator"
+                user.isUniversityAdmin() -> "Verified University Administrator"
+                else -> "Official GSTU Go Verified Account"
+            }
+            Toast.makeText(requireContext(), "✅ $verifyReason", Toast.LENGTH_SHORT).show()
+        }
+        applyRoleBadge(binding.tvRoleBadge, activeRole)
+
+        // 1. Role switcher card preview
+        val (roleEmoji, roleDesc) = when (activeRole) {
+            "superadmin" -> Pair("👑", "Active: Super Admin (Full Control)")
+            "admin", "university_admin" -> Pair("🏛️", "Active: University Admin (Academic)")
+            "club_admin" -> Pair("🎯", "Active: Club Admin (GSTU Computer Club)")
+            else -> Pair("🎓", "Active: Regular Student (Clean View)")
+        }
+        binding.tvRoleSwitcherEmoji.text = roleEmoji
+        binding.tvCurrentActiveRoleDesc.text = roleDesc
 
         fetchUserFavorites(user.favoriteSubjects, user.favoritePdfIds)
 
@@ -655,8 +704,6 @@ class ProfileFragment : Fragment() {
         val isAdmin = user.isAdmin()
         binding.adminSection.isVisible = isAdmin
 
-        val isSuperAdmin = user.role == "superadmin"
-
         val canManageUsers = user.canManageUsers()
         binding.layoutUserManagement.isVisible = canManageUsers
         binding.dividerUserManagement.isVisible = canManageUsers
@@ -665,6 +712,106 @@ class ProfileFragment : Fragment() {
         binding.layoutFriendsToggle.isVisible = false
 
         updateSeeFriendsVisibility(user)
+    }
+
+    private fun showRoleSwitcherDialog() {
+        val ctx = context ?: return
+        val dialog = BottomSheetDialog(ctx)
+        val dialogBinding = DialogRoleSwitcherBinding.inflate(layoutInflater)
+        dialog.setContentView(dialogBinding.root)
+
+        val currentActiveRole = currentUser?.activeRole?.lowercase() ?: "student"
+
+        val normalBorder = ContextCompat.getColor(ctx, R.color.cm_border)
+        val normalWidth = (1.5f * resources.displayMetrics.density).toInt()
+        val selectedWidth = (2.5f * resources.displayMetrics.density).toInt()
+
+        val isSuper = currentActiveRole == "superadmin"
+        val isUni = currentActiveRole in listOf("admin", "university_admin")
+        val isClub = currentActiveRole == "club_admin"
+        val isStud = currentActiveRole == "student"
+
+        dialogBinding.cardOptionSuperAdmin.strokeColor = if (isSuper) Color.parseColor("#FF4D6D") else normalBorder
+        dialogBinding.cardOptionSuperAdmin.strokeWidth = if (isSuper) selectedWidth else normalWidth
+        dialogBinding.ivCheckSuperAdmin.visibility = if (isSuper) View.VISIBLE else View.GONE
+
+        dialogBinding.cardOptionUniversityAdmin.strokeColor = if (isUni) Color.parseColor("#2563EB") else normalBorder
+        dialogBinding.cardOptionUniversityAdmin.strokeWidth = if (isUni) selectedWidth else normalWidth
+        dialogBinding.ivCheckUniversityAdmin.visibility = if (isUni) View.VISIBLE else View.GONE
+
+        dialogBinding.cardOptionClubAdmin.strokeColor = if (isClub) Color.parseColor("#8B5CF6") else normalBorder
+        dialogBinding.cardOptionClubAdmin.strokeWidth = if (isClub) selectedWidth else normalWidth
+        dialogBinding.ivCheckClubAdmin.visibility = if (isClub) View.VISIBLE else View.GONE
+
+        dialogBinding.cardOptionStudent.strokeColor = if (isStud) Color.parseColor("#10B981") else normalBorder
+        dialogBinding.cardOptionStudent.strokeWidth = if (isStud) selectedWidth else normalWidth
+        dialogBinding.ivCheckStudent.visibility = if (isStud) View.VISIBLE else View.GONE
+
+        fun applySelectedRole(newRole: String, roleTitle: String) {
+            val uid = auth.currentUser?.uid ?: return
+            dialog.dismiss()
+
+            // 1. Local preference persistence
+            AppPreferences(ctx).setDemoRole(newRole)
+
+            // 2. Prepare user object updates
+            val clubId = if (newRole == "club_admin") "club_computer_society" else ""
+            val clubName = if (newRole == "club_admin") "GSTU Computer Club (GSTUCC)" else ""
+
+            val updatedUser = currentUser?.copy(
+                demoRole = newRole,
+                assignedClubId = clubId,
+                assignedClubName = clubName
+            ) ?: return
+
+            currentUser = updatedUser
+            updateUI(updatedUser)
+
+            // 3. Update Firestore in background
+            val updates = mutableMapOf<String, Any>(
+                "demoRole" to newRole,
+                "assignedClubId" to clubId,
+                "assignedClubName" to clubName
+            )
+            firestore.collection("users").document(uid).update(updates)
+                .addOnFailureListener {
+                    android.util.Log.w("ProfileFragment", "Could not sync demoRole to Firestore: ${it.message}")
+                }
+
+            // 4. If Club Admin, also assign as President of GSTUCC
+            if (newRole == "club_admin") {
+                val leaderName = updatedUser.fullName.ifBlank { updatedUser.name.ifBlank { "Towkir Ahmed" } }
+                firestore.collection("campus_clubs").document("club_computer_society")
+                    .update(
+                        mapOf(
+                            "presidentId" to uid,
+                            "presidentName" to leaderName
+                        )
+                    ).addOnFailureListener {
+                        android.util.Log.w("ProfileFragment", "Could not assign club president in Firestore: ${it.message}")
+                    }
+            }
+
+            // 5. Haptic feedback and confirmation toast
+            HapticHelper.lightPop(binding.root)
+            HapticHelper.success(ctx)
+            Toast.makeText(ctx, "✅ Switched to $roleTitle! UI updated.", Toast.LENGTH_SHORT).show()
+        }
+
+        dialogBinding.cardOptionSuperAdmin.setOnClickListener {
+            applySelectedRole("superadmin", "Super Admin")
+        }
+        dialogBinding.cardOptionUniversityAdmin.setOnClickListener {
+            applySelectedRole("university_admin", "University Admin")
+        }
+        dialogBinding.cardOptionClubAdmin.setOnClickListener {
+            applySelectedRole("club_admin", "Club Admin (GSTUCC)")
+        }
+        dialogBinding.cardOptionStudent.setOnClickListener {
+            applySelectedRole("student", "Regular Student")
+        }
+
+        dialog.show()
     }
 
     private fun loadProfilePicture(email: String, customUrl: String?, imageView: ImageView) {
@@ -715,33 +862,7 @@ class ProfileFragment : Fragment() {
         fetchSavedResources(favoriteNames, favoritePdfIds)
     }
 
-    private fun com.google.firebase.firestore.DocumentSnapshot.toPdfFile(): PdfFile {
-        return PdfFile(
-            id = id,
-            title = getString("title") ?: "No Title",
-            subject = getString("subject") ?: "",
-            description = getString("description") ?: "",
-            uploadedBy = getString("uploadedByName") ?: getString("uploadedBy") ?: "",
-            telegramUrl = getString("telegramUrl") ?: "",
-            driveUrl = getString("driveUrl") ?: "",
-            fileId = getString("fileId") ?: "",
-            timestamp = getTimestamp("timestamp") ?: getTimestamp("createdAt"),
-            courseCode = getString("courseCode") ?: "",
-            courseType = getString("courseType") ?: "",
-            fileType = getString("fileType") ?: "other",
-            mimeType = getString("mimeType") ?: "application/octet-stream",
-            sizeBytes = getLong("sizeBytes") ?: 0L,
-            provider = getString("provider") ?: "",
-            downloadUrl = getString("downloadUrl") ?: "",
-            githubAssetId = getLong("githubAssetId") ?: 0L,
-            githubAssetName = getString("githubAssetName") ?: getString("title") ?: "",
-            createdAt = getTimestamp("createdAt"),
-            updatedAt = getTimestamp("updatedAt"),
-            downloadCount = getLong("downloadCount") ?: 0L,
-            isDeleted = getBoolean("isDeleted") ?: false,
-            batch = getString("batch") ?: ""
-        )
-    }
+    private fun com.google.firebase.firestore.DocumentSnapshot.toPdfFile(): PdfFile = PdfFile.fromDocument(this)
 
     private fun listenToFriendsConfig() {
         configListener?.remove()

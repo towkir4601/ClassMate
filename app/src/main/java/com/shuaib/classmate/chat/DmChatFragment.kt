@@ -138,7 +138,8 @@ class DmChatFragment : Fragment() {
 
         binding.btnBack.setOnClickListener { findNavController().navigateUp() }
         binding.btnSend.setOnClickListener { sendCurrentMessage() }
-        binding.btnAttach.setOnClickListener { imagePicker.launch("image/*") }
+        binding.btnAttach.setOnClickListener { showWhatsAppAttachmentSheet() }
+        binding.btnCamera.setOnClickListener { imagePicker.launch("image/*") }
         binding.btnEmoji.setOnClickListener { showEmojiInputPicker() }
         binding.btnSayHello.setOnClickListener {
             binding.etMessage.setText("Hello!")
@@ -577,6 +578,49 @@ class DmChatFragment : Fragment() {
                     seenRequests.add(message.id)
             }
             .forEach { message -> viewModel.markSeen(message.id) }
+    }
+
+    private fun showWhatsAppAttachmentSheet() {
+        val dialog = BottomSheetDialog(requireContext())
+        val sheetView = layoutInflater.inflate(R.layout.bottom_sheet_whatsapp_attachment, null)
+        dialog.setContentView(sheetView)
+
+        sheetView.findViewById<View>(R.id.btnAttachDocument)?.setOnClickListener {
+            dialog.dismiss()
+            try {
+                imagePicker.launch("*/*")
+            } catch (e: Exception) {
+                imagePicker.launch("image/*")
+            }
+        }
+        sheetView.findViewById<View>(R.id.btnAttachCamera)?.setOnClickListener {
+            dialog.dismiss()
+            imagePicker.launch("image/*")
+        }
+        sheetView.findViewById<View>(R.id.btnAttachGallery)?.setOnClickListener {
+            dialog.dismiss()
+            imagePicker.launch("image/*")
+        }
+        sheetView.findViewById<View>(R.id.btnAttachAudio)?.setOnClickListener {
+            dialog.dismiss()
+            Toast.makeText(requireContext(), "Hold mic button to record voice note", Toast.LENGTH_SHORT).show()
+        }
+        sheetView.findViewById<View>(R.id.btnAttachPoll)?.setOnClickListener {
+            dialog.dismiss()
+            Toast.makeText(requireContext(), "Polls can be created in Community tab", Toast.LENGTH_SHORT).show()
+        }
+        sheetView.findViewById<View>(R.id.btnAttachContact)?.setOnClickListener {
+            dialog.dismiss()
+            runCatching {
+                findNavController().navigate(R.id.fragment_dm_list)
+            }.onFailure {
+                runCatching {
+                    findNavController().navigate(R.id.nav_friends)
+                }
+            }
+        }
+
+        dialog.show()
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()

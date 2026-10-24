@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="80dp"
+    android:layout_height="76dp"
     android:background="?attr/selectableItemBackground"
     android:gravity="center_vertical"
     android:orientation="horizontal"
@@ -9,32 +10,32 @@
     android:paddingEnd="16dp">
 
     <FrameLayout
-        android:layout_width="56dp"
-        android:layout_height="56dp">
+        android:layout_width="52dp"
+        android:layout_height="52dp">
 
         <ImageView
             android:id="@+id/ivChatAvatar"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
             android:src="@drawable/ic_default_avatar" />
 
         <TextView
             android:id="@+id/tvChatAvatarLetter"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
             android:gravity="center"
-            android:textColor="@color/cm_on_primary"
+            android:textColor="@color/white"
             android:textSize="20sp"
             android:textStyle="bold"
             android:visibility="gone" />
 
         <ImageView
             android:id="@+id/ivGroupIcon"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
             android:layout_gravity="center"
             android:src="@drawable/ic_users"
-            android:tint="@color/cm_on_primary"
+            android:tint="@color/white"
             android:visibility="gone" />
 
         <View
@@ -42,8 +43,8 @@
             android:layout_width="14dp"
             android:layout_height="14dp"
             android:layout_gravity="bottom|end"
-            android:layout_marginEnd="2dp"
-            android:layout_marginBottom="2dp"
+            android:layout_marginEnd="1dp"
+            android:layout_marginBottom="1dp"
             android:background="@drawable/bg_online_dot_border"
             android:visibility="gone" />
     </FrameLayout>
@@ -61,19 +62,36 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textColor="@color/cm_text_primary"
-            android:textSize="17sp"
+            android:textColor="@color/wa_text_primary"
+            android:textSize="16sp"
             android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/tvLastMessage"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:textColor="@color/cm_text_secondary"
-            android:textSize="14sp" />
+            android:layout_marginTop="3dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/ivDeliveryStatus"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginEnd="4dp"
+                android:src="@drawable/ic_wa_check_double"
+                app:tint="@color/wa_tick_gray"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvLastMessage"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/wa_text_secondary"
+                android:textSize="14sp" />
+        </LinearLayout>
     </LinearLayout>
 
     <LinearLayout
@@ -87,34 +105,37 @@
             android:id="@+id/tvTimestamp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@color/cm_text_secondary"
+            android:textColor="@color/wa_text_secondary"
             android:textSize="12sp" />
 
-        <FrameLayout
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp">
+            android:layout_marginTop="5dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/ivPinned"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginEnd="4dp"
+                android:src="@drawable/ic_pin"
+                app:tint="@color/wa_tick_gray"
+                android:visibility="gone" />
 
             <TextView
                 android:id="@+id/tvUnreadBadge"
                 android:layout_width="wrap_content"
                 android:layout_height="22dp"
-                android:background="@drawable/bg_chat_chip_selected_blue"
+                android:background="@drawable/bg_whatsapp_unread_badge"
                 android:gravity="center"
                 android:minWidth="22dp"
                 android:paddingHorizontal="6dp"
-                android:textColor="@color/cm_on_primary"
+                android:textColor="@color/white"
                 android:textSize="11sp"
                 android:textStyle="bold"
                 android:visibility="gone" />
-
-            <ImageView
-                android:id="@+id/ivDeliveryStatus"
-                android:layout_width="16dp"
-                android:layout_height="16dp"
-                android:src="@drawable/ic_send"
-                android:tint="@color/cm_primary"
-                android:visibility="gone" />
-        </FrameLayout>
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>

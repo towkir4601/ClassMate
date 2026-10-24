@@ -44,14 +44,14 @@ object AvatarUtils {
             if (letterView != null) {
                 imageView.visibility = View.GONE
                 letterView.visibility = View.VISIBLE
-                val cleanName = name.trim().ifBlank { "ClassMate" }
-                val letter = cleanName.firstOrNull()?.uppercaseChar()?.toString() ?: "C"
+                val cleanName = name.trim().ifBlank { "GSTU Go" }
+                val letter = cleanName.firstOrNull()?.uppercaseChar()?.toString() ?: "G"
                 letterView.text = letter
                 letterView.background = circle(userId)
             } else {
                 imageView.visibility = View.VISIBLE
                 letterView?.visibility = View.GONE
-                val cleanName = name.trim().ifBlank { "ClassMate" }
+                val cleanName = name.trim().ifBlank { "GSTU Go" }
                 val encodedName = android.net.Uri.encode(cleanName)
                 val fallbackUrl = "https://api.dicebear.com/7.x/initials/png?seed=$encodedName&radius=50"
                 Glide.with(imageView)

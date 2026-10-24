@@ -12,6 +12,7 @@
         android:label="Home"
         tools:layout="@layout/fragment_home">
         <deepLink app:uri="classmate://home" />
+        <deepLink app:uri="gstugo://home" />
     </fragment>
 
     <!-- Academics Section -->
@@ -21,6 +22,7 @@
         android:label="Academics"
         tools:layout="@layout/fragment_academics">
         <deepLink app:uri="classmate://academics" />
+        <deepLink app:uri="gstugo://academics" />
     </fragment>
 
     <!-- Campus Section -->
@@ -30,6 +32,7 @@
         android:label="Campus"
         tools:layout="@layout/fragment_campus">
         <deepLink app:uri="classmate://campus" />
+        <deepLink app:uri="gstugo://campus" />
     </fragment>
 
     <!-- Community Section -->
@@ -39,6 +42,7 @@
         android:label="Community"
         tools:layout="@layout/fragment_community">
         <deepLink app:uri="classmate://community" />
+        <deepLink app:uri="gstugo://community" />
     </fragment>
 
     <!-- Timetable Section -->
@@ -53,6 +57,7 @@
             app:nullable="true"
             android:defaultValue="@null" />
         <deepLink app:uri="classmate://timetable" />
+        <deepLink app:uri="gstugo://timetable" />
     </fragment>
 
     <!-- Notices Section -->
@@ -67,7 +72,9 @@
             app:nullable="true"
             android:defaultValue="@null" />
         <deepLink app:uri="classmate://notices" />
+        <deepLink app:uri="gstugo://notices" />
         <deepLink app:uri="classmate://notice/{noticeId}" />
+        <deepLink app:uri="gstugo://notice/{noticeId}" />
     </fragment>
 
     <!-- Chat Flow -->
@@ -129,6 +136,7 @@
             app:nullable="true"
             android:defaultValue="@null" />
         <deepLink app:uri="classmate://chat/dm/{roomId}" />
+        <deepLink app:uri="gstugo://chat/dm/{roomId}" />
     </fragment>
 
     <!-- PDF Library Flow -->
@@ -227,6 +235,13 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_friends_to_dm_chat"
+            app:destination="@id/fragment_dm_chat"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <fragment
@@ -237,6 +252,13 @@
         <argument
             android:name="userId"
             app:argType="string" />
+        <action
+            android:id="@+id/action_detail_to_dm_chat"
+            app:destination="@id/fragment_dm_chat"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <!-- Profile -->

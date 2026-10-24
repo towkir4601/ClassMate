@@ -129,14 +129,14 @@ class ImageViewerActivity : AppCompatActivity() {
         btnSave.isEnabled = false
 
         try {
-            val fileName = "ClassMate_Notice_${System.currentTimeMillis()}.jpg"
+            val fileName = "GSTUGo_Notice_${System.currentTimeMillis()}.jpg"
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 // Android 10+ — use MediaStore (no permission needed)
                 val values = ContentValues().apply {
                     put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
                     put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-                    put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/ClassMate")
+                    put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/GSTU Go")
                     put(MediaStore.Images.Media.IS_PENDING, 1)
                 }
                 val resolver = contentResolver
@@ -154,7 +154,7 @@ class ImageViewerActivity : AppCompatActivity() {
                 }
             } else {
                 // Android 9 and below — write to Pictures directory
-                val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/ClassMate")
+                val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/GSTU Go")
                 if (!dir.exists()) dir.mkdirs()
                 val file = File(dir, fileName)
                 FileOutputStream(file).use { stream ->
@@ -190,7 +190,7 @@ class ImageViewerActivity : AppCompatActivity() {
         try {
             // Write bitmap to app cache directory for sharing
             val cacheDir = File(cacheDir, "shared_images").apply { mkdirs() }
-            val shareFile = File(cacheDir, "classmate_notice_share.jpg")
+            val shareFile = File(cacheDir, "gstugo_notice_share.jpg")
             FileOutputStream(shareFile).use { out ->
                 bmp.compress(Bitmap.CompressFormat.JPEG, 95, out)
             }
@@ -204,7 +204,7 @@ class ImageViewerActivity : AppCompatActivity() {
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "image/jpeg"
                 putExtra(Intent.EXTRA_STREAM, shareUri)
-                putExtra(Intent.EXTRA_TEXT, "Shared from ClassMate")
+                putExtra(Intent.EXTRA_TEXT, "Shared from GSTU Go")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             startActivity(Intent.createChooser(shareIntent, "Share notice image via"))

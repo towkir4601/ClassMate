@@ -32,12 +32,20 @@ class PdfUploadActivity : AppCompatActivity() {
     private var selectedFileInfo: SelectedFileInfo? = null
     private var currentUserName = ""
     private var currentUserBatch = ""
+    private var currentUserDepartment = ""
+    private var currentUserDepartmentId = ""
     
+    private val isTargetingBatchOnly: Boolean
+        get() = binding.toggleTarget.checkedButtonId == R.id.btnTargetMyBatch
+
     private val targetLibraryBatch: String
-        get() = if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "" else currentUserBatch
+        get() = if (isTargetingBatchOnly) currentUserBatch else ""
 
     private val targetNotificationBatch: String
-        get() = if (binding.toggleTarget.checkedButtonId == R.id.btnTargetAll) "all" else currentUserBatch
+        get() = if (isTargetingBatchOnly) currentUserBatch else "all"
+
+    private val targetAccessScope: String
+        get() = if (isTargetingBatchOnly) "batch" else "department"
 
     private enum class UploadMode {
         GITHUB, TELEGRAM, LINK
@@ -94,11 +102,28 @@ class PdfUploadActivity : AppCompatActivity() {
         
         updateMode()
 
+        val prefs = com.shuaib.classmate.utils.AppPreferences(this)
+        currentUserBatch = prefs.getUserBatch()
+        currentUserDepartment = prefs.getUserDepartment()
+        currentUserDepartmentId = prefs.getUserDepartmentId()
+
+        binding.toggleTarget.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                if (checkedId == R.id.btnTargetMyBatch) {
+                    binding.tvPrivacyHint.text = "🔒 Batch Only: strictly restricted to your batch classmates. Superadmin cannot access."
+                } else {
+                    binding.tvPrivacyHint.text = "🌐 Department Wide: all batches in ${currentUserDepartment.ifBlank { "your department" }} can view."
+                }
+            }
+        }
+
         val uid = auth.currentUser?.uid ?: return
         db.collection("users").document(uid).get()
             .addOnSuccessListener { doc ->
                 currentUserName = doc.getString("name") ?: "Admin"
-                currentUserBatch = doc.getString("batch") ?: ""
+                currentUserBatch = doc.getString("batch") ?: currentUserBatch
+                currentUserDepartment = doc.getString("department")?.takeIf { it.isNotBlank() } ?: currentUserDepartment
+                currentUserDepartmentId = com.shuaib.classmate.models.User.slugifyDepartment(currentUserDepartment)
                 setupDropdown()
                 
                 if (doc.getString("role") == "teacher") {
@@ -236,11 +261,16 @@ class PdfUploadActivity : AppCompatActivity() {
         val uid = auth.currentUser?.uid.orEmpty()
         val courseType = courseTypeFor(input.subject)
         
+        val isBatchOnly = isTargetingBatchOnly
         val data = hashMapOf(
             "title" to input.title,
             "subject" to input.subject,
             "courseCode" to input.courseCode,
             "batch" to targetLibraryBatch,
+            "department" to currentUserDepartment,
+            "departmentId" to currentUserDepartmentId,
+            "accessScope" to targetAccessScope,
+            "isBatchPrivate" to isBatchOnly,
             "courseType" to courseType,
             "description" to input.description,
             "fileType" to (info?.fileType ?: "other"),
@@ -412,7 +442,12 @@ class PdfUploadActivity : AppCompatActivity() {
             "pdfId" to resourceId,
             "isPinned" to false,
             "isDeleted" to false,
-            "batch" to targetLibraryBatch
+            "batch" to targetLibraryBatch,
+            "targetBatch" to targetNotificationBatch,
+            "department" to currentUserDepartment,
+            "departmentId" to currentUserDepartmentId,
+            "accessScope" to targetAccessScope,
+            "isBatchPrivate" to isTargetingBatchOnly
         )
         db.collection("notices").add(noticeData)
         NotificationSender.sendResourceAlert(

@@ -1,11 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.ClassMate.Starting" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/cm_background</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_classmate_logo</item>
+        <!-- Seamless dark window background matching splash dark brand surface -->
+        <item name="windowSplashScreenBackground">#020817</item>
+        <item name="android:windowSplashScreenBackground">#020817</item>
+        <!-- Completely transparent icon so NO static logo box is displayed on launch -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_transparent</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_transparent</item>
         <item name="windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
         <item name="android:windowSplashScreenBrandingImage">@null</item>
-        <item name="windowSplashScreenAnimationDuration">350</item>
+        <item name="windowSplashScreenAnimationDuration">0</item>
+        <item name="android:windowSplashScreenAnimationDuration">0</item>
         <item name="postSplashScreenTheme">@style/Theme.ClassMate.Splash</item>
     </style>
 </resources>

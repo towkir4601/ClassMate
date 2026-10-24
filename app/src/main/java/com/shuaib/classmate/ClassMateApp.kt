@@ -111,6 +111,7 @@ class ClassMateApp : Application() {
                 // লগইন করার সময় FCM topic-এ যুক্ত হও + OneSignal-এ লগইন
                 try {
                     OneSignal.login(uid)
+                    OneSignal.User.addTag("uid", uid)
                 } catch (_: Exception) {}
 
                 try {
@@ -153,6 +154,23 @@ class ClassMateApp : Application() {
             CoroutineScope(Dispatchers.IO).launch {
                 runCatching { OneSignal.Notifications.requestPermission(false) }
             }
+            
+            // Foreground notification filter: Never display notifications to sender or for active room
+            OneSignal.Notifications.addForegroundLifecycleListener(object : com.onesignal.notifications.INotificationLifecycleListener {
+                override fun onWillDisplay(event: com.onesignal.notifications.INotificationWillDisplayEvent) {
+                    val data = event.notification.additionalData
+                    val senderId = data?.optString("senderId")
+                    val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                    if (!senderId.isNullOrBlank() && senderId == currentUid) {
+                        event.preventDefault()
+                        return
+                    }
+                    val roomId = data?.optString("roomId")
+                    if (!roomId.isNullOrBlank() && roomId == com.shuaib.classmate.chat.ChatRepository.currentRoomId) {
+                        event.preventDefault()
+                    }
+                }
+            })
         } catch (e: Exception) {
             Log.e("ClassMateApp", "OneSignal initialization failed: ${e.message}")
         }
@@ -255,7 +273,7 @@ class ClassMateApp : Application() {
                 ChatNotificationHelper.CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "ClassMate chat message notifications"
+                description = "GSTU Go chat message notifications"
                 enableLights(true)
                 enableVibration(true)
                 setShowBadge(true)
@@ -264,7 +282,7 @@ class ClassMateApp : Application() {
             // General Notifications Channel
             val generalChannel = NotificationChannel(
                 "classmate_notifications",
-                "ClassMate Notifications",
+                "GSTU Go Notifications",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Notifications for class schedules, notices, and polls"
@@ -273,16 +291,16 @@ class ClassMateApp : Application() {
             // Notices Channel
             val noticesChannel = NotificationChannel(
                 "classmate_notices",
-                "ClassMate Notices",
+                "GSTU Go Notices",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Notifications for ClassMate updates"
+                description = "Notifications for GSTU Go updates"
             }
 
             // Cancellations Channel
             val cancellationsChannel = NotificationChannel(
                 "classmate_cancellations",
-                "ClassMate Cancellations",
+                "GSTU Go Cancellations",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Notifications for cancelled classes"

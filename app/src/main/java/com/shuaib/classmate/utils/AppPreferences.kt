@@ -28,12 +28,35 @@ class AppPreferences(context: Context) {
             .apply()
     }
 
+    fun getUserDepartment(): String =
+        prefs.getString("user_department", "") ?: ""
+
+    fun setUserDepartment(department: String) {
+        prefs.edit()
+            .putString("user_department", department)
+            .apply()
+    }
+
+    fun getUserDepartmentId(): String {
+        val dept = getUserDepartment()
+        return com.shuaib.classmate.models.User.slugifyDepartment(dept)
+    }
+
     fun getUserRole(): String =
         prefs.getString("user_role", "student") ?: "student"
 
     fun setUserRole(role: String) {
         prefs.edit()
             .putString("user_role", role)
+            .apply()
+    }
+
+    fun getDemoRole(): String =
+        prefs.getString("demo_role", "") ?: ""
+
+    fun setDemoRole(role: String) {
+        prefs.edit()
+            .putString("demo_role", role)
             .apply()
     }
 

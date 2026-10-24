@@ -481,11 +481,15 @@ class TimetableFragment : Fragment() {
 
     private fun applyBatchFilterAndRender() {
         if (_binding == null) return
-        var filtered = if (currentBatchFilter == "All") {
-            currentPeriods
-        } else {
-            currentPeriods.filter {
-                val b = if (it.batch == "14") "2-1" else it.batch
+        val userDeptId = context?.let { com.shuaib.classmate.utils.AppPreferences(it).getUserDepartmentId() } ?: ""
+        var filtered = currentPeriods.filter { period ->
+            val deptMatches = period.departmentId.isBlank() || userDeptId.isBlank() || period.departmentId == userDeptId || period.departmentId == "all"
+            if (!deptMatches) return@filter false
+
+            if (currentBatchFilter == "All") {
+                true
+            } else {
+                val b = if (period.batch == "14") "2-1" else period.batch
                 b.isEmpty() || b.equals("all", ignoreCase = true) || b == currentBatchFilter
             }
         }
@@ -494,12 +498,14 @@ class TimetableFragment : Fragment() {
     }
 
     private fun loadTimetable(day: String) {
+        val ctx = context ?: return
         handler.removeCallbacks(showLoadingRunnable)
         handler.postDelayed(showLoadingRunnable, 150)
         timetableRealtimeRegistration?.remove()
+        val scope = if (view != null) viewLifecycleOwner.lifecycleScope else lifecycleScope
         timetableRealtimeRegistration = com.shuaib.classmate.repositories.TimetableRepository
-            .getInstance(requireContext())
-            .startRealtimeDaySync(day, viewLifecycleOwner.lifecycleScope)
+            .getInstance(ctx)
+            .startRealtimeDaySync(day, scope)
         selectedDayFlow.value = day
     }
 
@@ -1046,7 +1052,7 @@ class TimetableFragment : Fragment() {
         }
         binding.calendarExceptionBanner.isVisible = showOverride
 
-        if (!showOverride || exception == null) return
+        if (!showOverride) return
 
         binding.tvExceptionBadge.text = when (exception.type) {
             AcademicCalendarException.TYPE_VACATION -> "VACATION ACTIVE"
@@ -1133,7 +1139,8 @@ class TimetableFragment : Fragment() {
     }
 
     private fun showOverrideDialog(period: Period) {
-        val view = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_override_period, null)
+        val ctx = context ?: return
+        val view = LayoutInflater.from(ctx).inflate(R.layout.dialog_override_period, null)
         val etRoom = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etRoom)
         val etStart = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etStartTime)
         val etEnd = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etEndTime)
@@ -1153,7 +1160,7 @@ class TimetableFragment : Fragment() {
             showTimePicker { time -> etEnd.setText(time) }
         }
         
-        AlertDialog.Builder(requireContext())
+        AlertDialog.Builder(ctx)
             .setTitle("Update for ${targetDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}")
             .setView(view)
             .setPositiveButton("Save") { _, _ ->

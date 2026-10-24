@@ -76,7 +76,7 @@ class EventsClubsActivity : AppCompatActivity() {
         currentUserEmail = currentUser?.email ?: ""
         currentUserName = currentUser?.displayName ?: ""
 
-        val savedRole = AppPreferences(this).getUserRole()
+        val savedRole = AppPreferences(this).getDemoRole().ifBlank { AppPreferences(this).getUserRole() }
         isSuperAdmin = savedRole.equals("superadmin", ignoreCase = true)
 
         setupUI()
@@ -143,7 +143,10 @@ class EventsClubsActivity : AppCompatActivity() {
             .addOnSuccessListener { doc ->
                 if (doc != null && doc.exists()) {
                     val role = doc.getString("role") ?: ""
-                    isSuperAdmin = role.equals("superadmin", ignoreCase = true)
+                    val localDemo = AppPreferences(this).getDemoRole()
+                    val firestoreDemo = doc.getString("demoRole") ?: ""
+                    val effectiveRole = localDemo.ifBlank { firestoreDemo }.ifBlank { role }
+                    isSuperAdmin = effectiveRole.equals("superadmin", ignoreCase = true)
                     val name = doc.getString("fullName") ?: doc.getString("name") ?: ""
                     if (name.isNotBlank()) currentUserName = name
                     currentUserDept = doc.getString("department") ?: ""

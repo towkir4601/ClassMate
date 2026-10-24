@@ -45,7 +45,9 @@ data class Notice(
     val pdfId: String = "",
     
     val readCount: Int = 0,
-    val targetBatch: String = "all"
+    val targetBatch: String = "all",
+    val department: String = "all",
+    val departmentId: String = "all"
 ) {
     val displayType: String
         get() = when {

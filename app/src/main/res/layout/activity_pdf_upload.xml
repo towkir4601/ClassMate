@@ -245,13 +245,22 @@
         </LinearLayout>
 
 
-        <!-- Target Audience -->
+        <!-- Target Audience & Privacy -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Target Audience"
+            android:text="Audience &amp; Batch Privacy"
             android:textColor="@color/cm_text_primary"
             android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tvPrivacyHint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔒 Batch Only: strictly restricted to your batch classmates."
+            android:textColor="@color/cm_text_secondary"
+            android:textSize="12sp"
             android:layout_marginBottom="8dp" />
 
         <com.google.android.material.button.MaterialButtonToggleGroup
@@ -269,7 +278,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Public"
+                android:text="Department Wide"
                 android:textColor="@color/cm_text_primary"/>
 
             <Button
@@ -278,7 +287,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="My Batch"
+                android:text="🔒 Batch Only"
                 android:textColor="@color/cm_text_primary"/>
         </com.google.android.material.button.MaterialButtonToggleGroup>
 

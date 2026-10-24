@@ -60,19 +60,37 @@ class ChatListAdapter(
         private val subtitle: TextView = itemView.findViewById(R.id.tvLastMessage)
         private val timestamp: TextView = itemView.findViewById(R.id.tvTimestamp)
         private val unreadBadge: TextView = itemView.findViewById(R.id.tvUnreadBadge)
+        private val ivDeliveryStatus: ImageView? = itemView.findViewById(R.id.ivDeliveryStatus)
+        private val ivPinned: ImageView? = itemView.findViewById(R.id.ivPinned)
         private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
         private val dateFormat = SimpleDateFormat("dd/MM", Locale.getDefault())
 
         fun bind(item: ChatListItem.Room) {
             title.text = item.title
             subtitle.text = item.subtitle
+            ivPinned?.isVisible = item.isPinned || item.isGroup
+            
+            val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
+            if (!item.isGroup && item.room.lastSenderId == currentUid && item.room.lastMessage.isNotBlank()) {
+                ivDeliveryStatus?.isVisible = true
+                ivDeliveryStatus?.setImageResource(R.drawable.ic_wa_check_double)
+            } else {
+                ivDeliveryStatus?.isVisible = false
+            }
+
+            val hasUnread = item.room.unreadCount > 0
             timestamp.text = if (item.room.lastMessageTime > 0) {
                 val format = if (isToday(item.room.lastMessageTime)) timeFormat else dateFormat
                 format.format(Date(item.room.lastMessageTime))
             } else {
                 ""
             }
-            unreadBadge.isVisible = item.room.unreadCount > 0
+            timestamp.setTextColor(
+                if (hasUnread) androidx.core.content.ContextCompat.getColor(itemView.context, R.color.wa_green_accent)
+                else androidx.core.content.ContextCompat.getColor(itemView.context, R.color.wa_text_secondary)
+            )
+
+            unreadBadge.isVisible = hasUnread
             unreadBadge.text = item.room.unreadCount.coerceAtMost(99).toString()
             onlineDot.isVisible = !item.isGroup && item.isOnline
 

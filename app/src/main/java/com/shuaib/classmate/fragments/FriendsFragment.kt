@@ -182,6 +182,30 @@ class FriendsFragment : Fragment() {
                 } else {
                     Toast.makeText(context, "Phone number not available", Toast.LENGTH_SHORT).show()
                 }
+            },
+            onMessageClick = { user ->
+                val myUid = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
+                if (myUid.isNotEmpty() && user.uid.isNotEmpty()) {
+                    val roomId = listOf(myUid, user.uid).sorted().joinToString(separator = "_", prefix = "dm_")
+                    val bundle = androidx.core.os.bundleOf(
+                        "roomId" to roomId,
+                        "otherUserName" to user.name.ifBlank { "Chat" },
+                        "otherUserId" to user.uid
+                    )
+                    (requireActivity() as? com.shuaib.classmate.activities.MainActivity)?.openChildDestination(
+                        R.id.nav_chat,
+                        R.id.fragment_dm_chat,
+                        bundle
+                    ) ?: run {
+                        try {
+                            findNavController().navigate(R.id.action_friends_to_dm_chat, bundle)
+                        } catch (_: Exception) {
+                            try {
+                                findNavController().navigate(R.id.fragment_dm_chat, bundle)
+                            } catch (_: Exception) {}
+                        }
+                    }
+                }
             }
         )
 

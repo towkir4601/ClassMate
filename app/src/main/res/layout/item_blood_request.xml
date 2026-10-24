@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cardBloodRequestRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="6dp"
+    app:cardBackgroundColor="#1A1F26"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    app:strokeColor="#2E3642"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Top Row: Blood Group Badge, Bags Needed Badge, Timestamp & Delete -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <!-- Blood Group Badge -->
+            <TextView
+                android:id="@+id/tvBloodGroupBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_badge_accent_pill"
+                android:backgroundTint="#B91C1C"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp"
+                android:text="🚨 B+ NEEDED"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <!-- Bags Needed Badge -->
+            <TextView
+                android:id="@+id/tvBagsBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_badge_accent_pill"
+                android:backgroundTint="#312E81"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="4dp"
+                android:text="1 Bag"
+                android:textColor="#C7D2FE"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/tvRequestTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Today, 2:30 PM"
+                android:textColor="#94A3B8"
+                android:textSize="12sp" />
+
+            <ImageButton
+                android:id="@+id/btnDeleteRequest"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="6dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Delete request"
+                android:padding="5dp"
+                android:src="@drawable/ic_delete"
+                app:tint="#F87171"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- Hospital / Location Title -->
+        <TextView
+            android:id="@+id/tvHospitalTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:text="Gopalganj Sadar Hospital"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <!-- Patient Name & Details (if any) -->
+        <TextView
+            android:id="@+id/tvPatientDetails"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Patient: Immediate Surgery"
+            android:textColor="#CBD5E1"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
+        <!-- Urgency Note -->
+        <TextView
+            android:id="@+id/tvUrgencyNote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/bg_lost_found_input"
+            android:padding="8dp"
+            android:text="Emergency requirement. Please donate or share."
+            android:textColor="#FCA5A5"
+            android:textSize="12sp"
+            android:visibility="gone" />
+
+        <!-- Requester Info -->
+        <TextView
+            android:id="@+id/tvRequesterInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Posted by Student · 01700-000000"
+            android:textColor="#94A3B8"
+            android:textSize="12sp" />
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="12dp"
+            android:background="#2E3642" />
+
+        <!-- Action Buttons: Call, WhatsApp, Fulfill -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <!-- Direct Call Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCallDonor"
+                style="@style/Widget.MaterialComponents.Button"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:backgroundTint="#16A34A"
+                android:text="Call"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                app:cornerRadius="10dp"
+                app:icon="@drawable/ic_phone_receiver"
+                app:iconSize="16dp"
+                app:iconTint="#FFFFFF" />
+
+            <!-- WhatsApp Message Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnWhatsApp"
+                style="@style/Widget.MaterialComponents.Button"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1.2"
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="6dp"
+                android:backgroundTint="#25D366"
+                android:text="WhatsApp"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                app:cornerRadius="10dp"
+                app:icon="@drawable/bg_pill_whatsapp"
+                app:iconSize="16dp"
+                app:iconTint="#FFFFFF" />
+
+            <!-- Mark Fulfilled Button (Only for Author or Admin) -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnMarkFulfilled"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginStart="6dp"
+                android:text="Fulfilled"
+                android:textAllCaps="false"
+                android:textColor="#34D399"
+                android:textSize="12sp"
+                app:cornerRadius="10dp"
+                app:strokeColor="#34D399"
+                android:visibility="gone" />
+        </LinearLayout>
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

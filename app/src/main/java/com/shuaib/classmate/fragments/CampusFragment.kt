@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.shuaib.classmate.R
+import com.shuaib.classmate.activities.CvMakerActivity
 import com.shuaib.classmate.activities.AcademicCalendarActivity
 import com.shuaib.classmate.activities.BusScheduleManagementActivity
 import com.shuaib.classmate.activities.ImportantContactsActivity
@@ -27,6 +28,7 @@ class CampusFragment : Fragment() {
 
     private val firestore = FirebaseFirestore.getInstance()
     private var busListener: ListenerRegistration? = null
+    private var noticeCardListener: ListenerRegistration? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -40,6 +42,7 @@ class CampusFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setupServicesGrid()
+        setupUpcomingFeatures()
         loadShuttles()
 
         binding.btnManageShuttles.setOnClickListener {
@@ -60,7 +63,23 @@ class CampusFragment : Fragment() {
         val mainActivity = activity as? MainActivity
 
         binding.cardUniversityNotices.setOnClickListener {
+            context?.let { ctx -> com.shuaib.classmate.utils.NoticeReadTracker.markReadNow(ctx) }
+            mainActivity?.updateNoticeBadge(0)
+            binding.tvNoticeBadge.visibility = View.GONE
             mainActivity?.openChildDestination(R.id.nav_campus, R.id.nav_notices)
+        }
+
+        context?.let { ctx ->
+            val lastReadMs = com.shuaib.classmate.utils.NoticeReadTracker.lastReadMillis(ctx)
+            noticeCardListener?.remove()
+            noticeCardListener = firestore.collection("notices")
+                .whereGreaterThan("timestamp", com.google.firebase.Timestamp(java.util.Date(lastReadMs)))
+                .limit(1)
+                .addSnapshotListener { snap, _ ->
+                    if (_binding == null) return@addSnapshotListener
+                    val hasNew = (snap?.size() ?: 0) > 0
+                    binding.tvNoticeBadge.visibility = if (hasNew) View.VISIBLE else View.GONE
+                }
         }
 
         binding.cardImportantContacts.setOnClickListener {
@@ -155,9 +174,32 @@ class CampusFragment : Fragment() {
         }
     }
 
+    private fun setupUpcomingFeatures() {
+        binding.cardUpcomingCvMaker.setOnClickListener {
+            val ctx = context ?: return@setOnClickListener
+            com.shuaib.classmate.utils.UpcomingFeaturesHelper.showCvMakerDialog(ctx)
+        }
+
+        binding.cardUpcomingLiveBus.setOnClickListener {
+            val ctx = context ?: return@setOnClickListener
+            com.shuaib.classmate.utils.UpcomingFeaturesHelper.showLiveBusTrackingDialog(ctx)
+        }
+
+        binding.cardUpcomingCafeteria.setOnClickListener {
+            val ctx = context ?: return@setOnClickListener
+            com.shuaib.classmate.utils.UpcomingFeaturesHelper.showCafeteriaMenuDialog(ctx)
+        }
+
+        binding.cardUpcomingHallPortal.setOnClickListener {
+            val ctx = context ?: return@setOnClickListener
+            com.shuaib.classmate.utils.UpcomingFeaturesHelper.showHallAlumniDialog(ctx)
+        }
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         busListener?.remove()
+        noticeCardListener?.remove()
         _binding = null
     }
 }

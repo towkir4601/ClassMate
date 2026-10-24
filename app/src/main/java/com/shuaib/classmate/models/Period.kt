@@ -33,5 +33,9 @@ data class Period(
     val temporaryDate: String = "",
     
     // Batch
-    val batch: String = ""
+    val batch: String = "",
+
+    // Department Multi-tenant isolation
+    val department: String = "",
+    val departmentId: String = ""
 )

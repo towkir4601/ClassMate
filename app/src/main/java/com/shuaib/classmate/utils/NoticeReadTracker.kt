@@ -8,8 +8,14 @@ object NoticeReadTracker {
     private const val KEY_LAST_READ_MS = "last_notice_read_ms"
 
     fun lastReadMillis(context: Context): Long {
-        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getLong(KEY_LAST_READ_MS, 0L)
+        val sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val stored = sp.getLong(KEY_LAST_READ_MS, 0L)
+        if (stored == 0L) {
+            val now = System.currentTimeMillis()
+            sp.edit().putLong(KEY_LAST_READ_MS, now).apply()
+            return now
+        }
+        return stored
     }
 
     fun markReadNow(context: Context) {

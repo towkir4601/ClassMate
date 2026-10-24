@@ -29,6 +29,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.tasks.await
 
 import com.shuaib.classmate.utils.AppConstants
+import com.shuaib.classmate.utils.AppPreferences
 import com.shuaib.classmate.utils.applyClickAnimation
 
 class AdminPanelActivity : AppCompatActivity() {
@@ -70,14 +71,19 @@ class AdminPanelActivity : AppCompatActivity() {
             .addOnSuccessListener { document ->
                 try {
                     val role = document.getString("role") ?: "student"
-                    val permissions = document.get("permissions") as? Map<String, Boolean> ?: User.DEFAULT_PERMISSIONS
+                    val localDemoRole = AppPreferences(this@AdminPanelActivity).getDemoRole()
+                    val firestoreDemoRole = document.getString("demoRole") ?: ""
+                    val effectiveRole = localDemoRole.ifBlank { firestoreDemoRole }.ifBlank { role }
+                    @Suppress("UNCHECKED_CAST")
+                    val permissions = (document.get("permissions") as? Map<String, Boolean>) ?: User.DEFAULT_PERMISSIONS
                     val user = User(
                         uid = uid,
                         role = role,
+                        demoRole = effectiveRole,
                         permissions = permissions
                     )
-                    val isSuperAdmin = role == "superadmin"
-                    val hasAnyAdminAccess = isSuperAdmin || role == "admin" || role == "teacher" ||
+                    val isSuperAdmin = user.isSuperAdmin()
+                    val hasAnyAdminAccess = user.isAdmin() || user.isSuperAdmin() || user.isUniversityAdmin() ||
                             user.canManageUsers() || user.canPostNotices() || user.canEditTimetable() ||
                             user.canEditCalendar() || user.canEditBusSchedule() || user.canCreatePolls()
                     if (!hasAnyAdminAccess) {
@@ -185,6 +191,15 @@ class AdminPanelActivity : AppCompatActivity() {
                 overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
             }
         }
+
+        // Important Contacts (Super Admin)
+        if (user.isSuperAdmin()) {
+            binding.cardImportantContacts.visibility = View.VISIBLE
+            binding.cardImportantContacts.applyClickAnimation {
+                startActivity(Intent(this, ImportantContactsActivity::class.java))
+                overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+            }
+        }
     }
 
     private fun testTelegramConnection() {
@@ -206,7 +221,7 @@ class AdminPanelActivity : AppCompatActivity() {
                 val body = """
             {
                 "chat_id": "${AppConstants.TELEGRAM_CHANNEL_ID}",
-                "text": "✅ ClassMate bot is connected and working!"
+                "text": "✅ GSTU Go bot is connected and working!"
             }
             """.trimIndent()
 

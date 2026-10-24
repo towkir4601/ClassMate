@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/cm_bg">
+
+    <!-- Campus Academic Building Photo Background -->
+    <ImageView
+        android:id="@+id/ivCampusBg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="GSTU Campus"
+        android:scaleType="centerCrop"
+        android:src="@drawable/bg_gstu_campus" />
+
+    <!-- Cinematic Vignette Gradient Overlay -->
+    <View
+        android:id="@+id/vVignetteOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_splash_gradient_overlay" />
+
+    <!-- Foreground Content -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingHorizontal="24dp">
+
+        <!-- Top Header: Official University Name -->
+        <TextView
+            android:id="@+id/tvUniversityName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="56dp"
+            android:gravity="center"
+            android:letterSpacing="0.02"
+            android:text="Gopalganj Science and Technology University"
+            android:textColor="@color/white"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            tools:alpha="1" />
+
+        <!-- Center Brand Container -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <!-- Logo with Ambient Halo Glow -->
+            <FrameLayout
+                android:id="@+id/flLogoContainer"
+                android:layout_width="180dp"
+                android:layout_height="180dp">
+
+                <ImageView
+                    android:id="@+id/ivLogoGlow"
+                    android:layout_width="180dp"
+                    android:layout_height="180dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="Ambient Glow"
+                    android:src="@drawable/bg_logo_halo_glow" />
+
+                <ImageView
+                    android:id="@+id/ivLogo"
+                    android:layout_width="128dp"
+                    android:layout_height="128dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="GSTU Seal"
+                    android:src="@drawable/logo_gstu_hd" />
+            </FrameLayout>
+
+            <!-- GSTU Go App Titles -->
+            <TextView
+                android:id="@+id/tvAppTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:gravity="center"
+                android:letterSpacing="0.04"
+                android:text="GSTU Go"
+                android:textColor="@color/white"
+                android:textSize="28sp"
+                android:textStyle="bold"
+                tools:alpha="1" />
+
+            <TextView
+                android:id="@+id/tvAppSubtitleBn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center"
+                android:text="জিএসটিইউ গো"
+                android:textColor="#CBD5E1"
+                android:textSize="18sp"
+                tools:alpha="1" />
+        </LinearLayout>
+
+        <!-- Footer Tagline & Loading Accent -->
+        <LinearLayout
+            android:id="@+id/llFooter"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="44dp"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvTagline"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:letterSpacing="0.08"
+                android:text="Connect. Explore. Learn."
+                android:textColor="#94A3B8"
+                android:textSize="13sp"
+                tools:alpha="1" />
+
+            <ProgressBar
+                android:id="@+id/pbLoading"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="120dp"
+                android:layout_height="4dp"
+                android:layout_marginTop="12dp"
+                android:indeterminate="true"
+                android:indeterminateTint="@color/cm_primary" />
+        </LinearLayout>
+    </LinearLayout>
+
+</FrameLayout>

@@ -55,6 +55,8 @@ class PostNoticeActivity : AppCompatActivity() {
     private var isAiPostingMode = false
     private var currentUserBatch: String = ""
     private var currentUserSemester: String = ""
+    private var currentUserDepartment: String = ""
+    private var currentUserDepartmentId: String = ""
     private var aiPolishedNotice: com.shuaib.classmate.models.AiNoticeDraft? = null
 
     // Attachment fields
@@ -112,6 +114,8 @@ class PostNoticeActivity : AppCompatActivity() {
         val prefs = com.shuaib.classmate.utils.AppPreferences(this)
         currentUserBatch = prefs.getUserBatch()
         currentUserSemester = prefs.getUserSemester()
+        currentUserDepartment = prefs.getUserDepartment()
+        currentUserDepartmentId = prefs.getUserDepartmentId()
 
         setupToolbar()
         setupTypeSelector()
@@ -128,6 +132,8 @@ class PostNoticeActivity : AppCompatActivity() {
             db.collection("users").document(uid).get().addOnSuccessListener { doc ->
                 currentUserBatch = doc.getString("batch")?.takeIf { it.isNotBlank() } ?: currentUserBatch
                 currentUserSemester = doc.getString("semester")?.takeIf { it.isNotBlank() } ?: currentUserSemester
+                currentUserDepartment = doc.getString("department")?.takeIf { it.isNotBlank() } ?: currentUserDepartment
+                currentUserDepartmentId = com.shuaib.classmate.models.User.slugifyDepartment(currentUserDepartment)
                 setupSubjectPicker()
                 if (doc.getString("role") == "teacher") {
                     binding.rbNormal.isVisible = false
@@ -493,7 +499,9 @@ class PostNoticeActivity : AppCompatActivity() {
             "isPinned" to false,
             "isDeleted" to false,
             "timestamp" to FieldValue.serverTimestamp(),
-            "targetBatch" to targetBatchId
+            "targetBatch" to targetBatchId,
+            "department" to currentUserDepartment,
+            "departmentId" to currentUserDepartmentId
         )
 
         val newNoticeRef = db.collection("notices").document()
@@ -602,7 +610,9 @@ class PostNoticeActivity : AppCompatActivity() {
             "isPinned" to false,
             "isDeleted" to false,
             "timestamp" to FieldValue.serverTimestamp(),
-            "targetBatch" to targetBatchId
+            "targetBatch" to targetBatchId,
+            "department" to currentUserDepartment,
+            "departmentId" to currentUserDepartmentId
         )
 
         val newNoticeRef = db.collection("notices").document()
@@ -682,7 +692,9 @@ class PostNoticeActivity : AppCompatActivity() {
             "isPinned" to false,
             "isDeleted" to false,
             "timestamp" to FieldValue.serverTimestamp(),
-            "targetBatch" to targetBatchId
+            "targetBatch" to targetBatchId,
+            "department" to currentUserDepartment,
+            "departmentId" to currentUserDepartmentId
         )
 
         val newNoticeRef = db.collection("notices").document()
@@ -829,7 +841,9 @@ class PostNoticeActivity : AppCompatActivity() {
             "isPinned" to false,
             "isDeleted" to false,
             "timestamp" to FieldValue.serverTimestamp(),
-            "targetBatch" to targetBatchId
+            "targetBatch" to targetBatchId,
+            "department" to currentUserDepartment,
+            "departmentId" to currentUserDepartmentId
         )
 
         val newNoticeRef = db.collection("notices").document()
@@ -1083,9 +1097,10 @@ class PostNoticeActivity : AppCompatActivity() {
                     "createdAt" to FieldValue.serverTimestamp(),
                     "updatedAt" to FieldValue.serverTimestamp(),
                     "isPinned" to true,
-                    "isDeleted" to false,
                     "timestamp" to FieldValue.serverTimestamp(),
-            "targetBatch" to targetBatchId
+                    "targetBatch" to targetBatchId,
+                    "department" to (if (targetBatchId == "all") "all" else currentUserDepartment),
+                    "departmentId" to (if (targetBatchId == "all") "all" else currentUserDepartmentId)
                 )
 
                 val newNoticeRef = db.collection("notices").document()

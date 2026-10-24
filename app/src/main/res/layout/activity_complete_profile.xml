@@ -45,15 +45,14 @@
             android:layout_height="80dp"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="32dp"
-            android:src="@drawable/ic_classmate_logo_mark"
-            app:tint="@color/cm_primary" />
+            android:src="@drawable/ic_classmate_logo_mark" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="16dp"
-            android:text="Welcome to ClassMate! 👋"
+            android:text="Welcome to GSTU Go! 👋"
             android:textColor="@color/cm_text_primary"
             android:textSize="24sp"
             android:textStyle="bold" />

@@ -3,13 +3,15 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_chat_list_background"
+    android:background="@drawable/bg_whatsapp_chat_background"
     android:orientation="vertical">
 
     <!-- Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="64dp"
+        android:background="@color/wa_input_bg"
+        android:elevation="2dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingEnd="12dp">
@@ -21,14 +23,14 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Back"
             android:src="@drawable/ic_arrow_back"
-            android:tint="@color/cm_text_primary" />
+            android:tint="@color/wa_text_primary" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="New Message"
-            android:textColor="@color/cm_text_primary"
+            android:text="Select contact"
+            android:textColor="@color/wa_text_primary"
             android:textSize="20sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -36,7 +38,7 @@
     <!-- Search Bar -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="52dp"
+        android:layout_height="56dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="16dp">
@@ -44,15 +46,16 @@
         <EditText
             android:id="@+id/etSearchUsers"
             android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:background="@drawable/bg_chat_input_modern"
+            android:layout_height="42dp"
+            android:background="@drawable/bg_whatsapp_input_pill"
+            android:elevation="1dp"
             android:drawableStart="@drawable/ic_search_modern"
             android:drawablePadding="10dp"
-            android:hint="Search classmates..."
+            android:hint="Search students &amp; teachers..."
             android:inputType="text"
             android:paddingHorizontal="14dp"
-            android:textColor="@color/cm_text_primary"
-            android:textColorHint="@color/cm_text_secondary"
+            android:textColor="@color/wa_text_primary"
+            android:textColorHint="@color/wa_input_hint"
             android:textSize="15sp" />
     </LinearLayout>
 
@@ -171,7 +174,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:text="No classmates found"
+            android:text="No members found"
             android:textColor="@color/cm_text_secondary"
             android:textSize="15sp" />
     </LinearLayout>

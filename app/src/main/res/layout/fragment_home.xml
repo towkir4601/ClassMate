@@ -68,16 +68,14 @@
                     android:src="@drawable/ic_search_modern"
                     app:tint="@color/cm_text_primary" />
 
-                <com.google.android.material.imageview.ShapeableImageView
+                <de.hdodenhof.circleimageview.CircleImageView
                     android:id="@+id/ivUserAvatarHeader"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:layout_marginStart="10dp"
-                    android:scaleType="centerCrop"
-                    android:src="@drawable/ic_person"
-                    app:shapeAppearanceOverlay="@style/ShapeAppearance.MaterialComponents.LargeComponent"
-                    app:strokeColor="@color/cm_border"
-                    app:strokeWidth="1.5dp" />
+                    android:src="@drawable/ic_default_avatar"
+                    app:civ_border_color="@color/cm_border"
+                    app:civ_border_width="1.5dp" />
             </LinearLayout>
 
             <!-- Dynamic Top Alert / Notification Banner (Notice, Blood, Lost & Found) -->
@@ -578,9 +576,9 @@
                         android:textSize="12sp" />
                 </LinearLayout>
 
-                <!-- Tile 7: CV Maker (Pic 3) -->
+                <!-- Tile 7: Notice -->
                 <LinearLayout
-                    android:id="@+id/tileCvMaker"
+                    android:id="@+id/tileNotice"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -596,15 +594,15 @@
                             android:layout_width="26dp"
                             android:layout_height="26dp"
                             android:layout_gravity="center"
-                            android:src="@drawable/ic_badge"
-                            app:tint="#818CF8" />
+                            android:src="@drawable/ic_notice"
+                            app:tint="#F59E0B" />
                     </FrameLayout>
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
-                        android:text="CV Maker"
+                        android:text="Notice"
                         android:textColor="@color/cm_text_primary"
                         android:textSize="12sp" />
                 </LinearLayout>

@@ -93,7 +93,9 @@ class ShareForwardNoticeBottomSheet : BottomSheetDialogFragment() {
                 FirebaseFirestore.getInstance().collection("config").document("thorffin_link")
                     .set(mapOf("url" to newUrl))
                     .addOnSuccessListener {
-                        Toast.makeText(requireContext(), "Link updated", Toast.LENGTH_SHORT).show()
+                        context?.let { ctx ->
+                            Toast.makeText(ctx, "Link updated", Toast.LENGTH_SHORT).show()
+                        }
                     }
             }
             .setNegativeButton("Cancel", null)

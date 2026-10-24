@@ -12,6 +12,7 @@ data class LostFoundItem(
     val contactPhone: String = "",
     val reporterName: String = "",
     val reporterId: String = "",
+    val imageUrl: String = "",
     val timestamp: Timestamp? = null,
     val isResolved: Boolean = false
 ) {

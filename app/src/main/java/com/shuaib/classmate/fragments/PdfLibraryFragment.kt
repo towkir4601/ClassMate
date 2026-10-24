@@ -72,6 +72,8 @@ class PdfLibraryFragment : Fragment() {
     private var isAdmin = false
     private var canEditCourses = false
     private var currentUserBatch = ""
+    private var currentUserDepartment = ""
+    private var currentUserDepartmentId = ""
     private var previousStatusBarColor: Int? = null
 
     override fun onCreateView(
@@ -226,8 +228,7 @@ class PdfLibraryFragment : Fragment() {
                 if (_binding == null) return@addOnSuccessListener
 
                 allPdfs = snapshot.documents.map { doc -> doc.toPdfFile() }
-                    .filterNot { it.isDeleted }
-                    .filter { isAdmin || it.batch.isEmpty() || it.batch == currentUserBatch }
+                    .filter { it.canUserAccess(currentUserDepartmentId, currentUserBatch, isAdmin) }
                     .sortedByDescending { it.timestamp ?: it.createdAt }
 
                 updateLibraryView()
@@ -735,7 +736,9 @@ class PdfLibraryFragment : Fragment() {
                     val role = doc.getString("role") ?: "student"
                     val permissions = doc.get("permissions") as? Map<String, Boolean> ?: emptyMap()
                     
-                    currentUserBatch = doc.getString("batch") ?: ""
+                    currentUserBatch = doc.getString("batch") ?: context?.let { com.shuaib.classmate.utils.AppPreferences(it).getUserBatch() } ?: ""
+                    currentUserDepartment = doc.getString("department") ?: context?.let { com.shuaib.classmate.utils.AppPreferences(it).getUserDepartment() } ?: ""
+                    currentUserDepartmentId = com.shuaib.classmate.models.User.slugifyDepartment(currentUserDepartment)
                     isAdmin = (role == "superadmin")
                     val canUpload = isAdmin || permissions["canUploadPDF"] == true || permissions["canUploadLibrary"] == true
                     canEditCourses = canUpload || role == "admin" || role == "teacher"
@@ -793,33 +796,7 @@ class PdfLibraryFragment : Fragment() {
             }
     }
 
-    private fun DocumentSnapshot.toPdfFile(): PdfFile {
-        return PdfFile(
-            id = id,
-            title = getString("title") ?: "No Title",
-            subject = getString("subject") ?: "",
-            description = getString("description") ?: "",
-            uploadedBy = getString("uploadedByName") ?: getString("uploadedBy") ?: "",
-            telegramUrl = getString("telegramUrl") ?: "",
-            driveUrl = getString("driveUrl") ?: "",
-            fileId = getString("fileId") ?: "",
-            timestamp = getTimestamp("timestamp") ?: getTimestamp("createdAt"),
-            courseCode = getString("courseCode") ?: "",
-            courseType = getString("courseType") ?: "",
-            fileType = getString("fileType") ?: "other",
-            mimeType = getString("mimeType") ?: "application/octet-stream",
-            sizeBytes = getLong("sizeBytes") ?: 0L,
-            provider = getString("provider") ?: "",
-            downloadUrl = getString("downloadUrl") ?: "",
-            githubAssetId = getLong("githubAssetId") ?: 0L,
-            githubAssetName = getString("githubAssetName") ?: getString("title") ?: "",
-            createdAt = getTimestamp("createdAt"),
-            updatedAt = getTimestamp("updatedAt"),
-            downloadCount = getLong("downloadCount") ?: 0L,
-            isDeleted = getBoolean("isDeleted") ?: false,
-            batch = getString("batch") ?: ""
-        )
-    }
+    private fun DocumentSnapshot.toPdfFile(): PdfFile = PdfFile.fromDocument(this)
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 

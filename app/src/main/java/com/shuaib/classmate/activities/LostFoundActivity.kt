@@ -25,6 +25,17 @@ import com.shuaib.classmate.models.LostFoundItem
 import com.shuaib.classmate.repositories.LostFoundRepository
 import com.shuaib.classmate.utils.AppPreferences
 
+import android.net.Uri
+import android.widget.ImageView
+import android.widget.ProgressBar
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.lifecycleScope
+import com.bumptech.glide.Glide
+import com.shuaib.classmate.utils.CloudinaryUploader
+import com.shuaib.classmate.utils.ImageCompressor
+import kotlinx.coroutines.launch
+import java.io.File
+
 class LostFoundActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLostFoundBinding
@@ -36,6 +47,19 @@ class LostFoundActivity : AppCompatActivity() {
 
     private var currentUserId: String = ""
     private var isAdmin: Boolean = false
+
+    private var pendingCompressedFile: File? = null
+    private var pendingCompressedUri: Uri? = null
+    private var onPhotoPickedAction: ((Uri) -> Unit)? = null
+
+    private val photoPicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) {
+            // Immediately copy to a local cache file while content permission is 100% hot and valid
+            val localCached = ImageCompressor.copyUriToLocalCache(this, uri)
+            val uriToUse = if (localCached != null) Uri.fromFile(localCached) else uri
+            onPhotoPickedAction?.invoke(uriToUse)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -229,6 +253,64 @@ class LostFoundActivity : AppCompatActivity() {
         val etPhone = dialogView.findViewById<EditText>(R.id.etReportPhone)
         val btnPublish = dialogView.findViewById<MaterialButton>(R.id.btnPublishReport)
 
+        val btnSelectPhoto = dialogView.findViewById<View>(R.id.btnSelectPhoto)
+        val layoutPhotoPreview = dialogView.findViewById<View>(R.id.layoutPhotoPreview)
+        val ivSelectedPhotoPreview = dialogView.findViewById<ImageView>(R.id.ivSelectedPhotoPreview)
+        val tvCompressedSizeBadge = dialogView.findViewById<TextView>(R.id.tvCompressedSizeBadge)
+        val btnRemoveSelectedPhoto = dialogView.findViewById<ImageButton>(R.id.btnRemoveSelectedPhoto)
+        val pbPhotoCompressing = dialogView.findViewById<ProgressBar>(R.id.pbPhotoCompressing)
+
+        pendingCompressedFile = null
+        pendingCompressedUri = null
+
+        btnSelectPhoto.setOnClickListener {
+            photoPicker.launch("image/*")
+        }
+
+        btnRemoveSelectedPhoto.setOnClickListener {
+            pendingCompressedFile?.delete()
+            pendingCompressedFile = null
+            pendingCompressedUri = null
+            layoutPhotoPreview.visibility = View.GONE
+            btnSelectPhoto.visibility = View.VISIBLE
+        }
+
+        onPhotoPickedAction = { pickedUri ->
+            pbPhotoCompressing.visibility = View.VISIBLE
+            btnSelectPhoto.visibility = View.GONE
+            layoutPhotoPreview.visibility = View.VISIBLE
+            tvCompressedSizeBadge.text = "Compressing <100KB..."
+
+            lifecycleScope.launch {
+                val compressionResult = ImageCompressor.compressImage(
+                    this@LostFoundActivity,
+                    pickedUri,
+                    targetSizeKb = 100
+                )
+                pbPhotoCompressing.visibility = View.GONE
+
+                compressionResult.onSuccess { result ->
+                    pendingCompressedFile = result.file
+                    pendingCompressedUri = result.uri
+                    tvCompressedSizeBadge.text = "📸 ${result.sizeKb} KB (Auto-compressed)"
+                    Glide.with(this@LostFoundActivity)
+                        .load(result.file)
+                        .centerCrop()
+                        .into(ivSelectedPhotoPreview)
+                }.onFailure { err ->
+                    Toast.makeText(this@LostFoundActivity, "Photo compression failed: ${err.message}", Toast.LENGTH_SHORT).show()
+                    layoutPhotoPreview.visibility = View.GONE
+                    btnSelectPhoto.visibility = View.VISIBLE
+                    pendingCompressedFile = null
+                    pendingCompressedUri = null
+                }
+            }
+        }
+
+        dialog.setOnDismissListener {
+            onPhotoPickedAction = null
+        }
+
         var selectedType = "found"
 
         fun updateTabs() {
@@ -277,28 +359,53 @@ class LostFoundActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            val newItem = LostFoundItem(
-                type = selectedType,
-                title = title,
-                location = location,
-                contactPhone = phone,
-                description = title,
-                reporterName = user.displayName ?: "Student",
-                reporterId = user.uid
-            )
+            fun postItem(uploadedImageUrl: String) {
+                val newItem = LostFoundItem(
+                    type = selectedType,
+                    title = title,
+                    location = location,
+                    contactPhone = phone,
+                    description = title,
+                    reporterName = user.displayName ?: "Student",
+                    reporterId = user.uid,
+                    imageUrl = uploadedImageUrl
+                )
+
+                repo.addItem(newItem,
+                    onSuccess = {
+                        dialog.dismiss()
+                        Toast.makeText(this, "Report published successfully!", Toast.LENGTH_SHORT).show()
+                        loadData()
+                    },
+                    onFailure = { err ->
+                        btnPublish.isEnabled = true
+                        btnPublish.text = "Publish Report"
+                        Toast.makeText(this, "Failed to publish: ${err.message}", Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
 
             btnPublish.isEnabled = false
-            repo.addItem(newItem,
-                onSuccess = {
-                    dialog.dismiss()
-                    Toast.makeText(this, "Report published successfully!", Toast.LENGTH_SHORT).show()
-                    loadData()
-                },
-                onFailure = { err ->
-                    btnPublish.isEnabled = true
-                    Toast.makeText(this, "Failed to publish: ${err.message}", Toast.LENGTH_SHORT).show()
-                }
-            )
+
+            val compressedUri = pendingCompressedUri
+            if (compressedUri != null) {
+                btnPublish.text = "Uploading Image..."
+                CloudinaryUploader.uploadImage(
+                    this@LostFoundActivity,
+                    compressedUri,
+                    folder = "lost_found_photos",
+                    onSuccess = { url, _ ->
+                        postItem(url)
+                    },
+                    onFailure = { error ->
+                        Toast.makeText(this@LostFoundActivity, "Image upload failed, publishing text only: $error", Toast.LENGTH_SHORT).show()
+                        postItem("")
+                    }
+                )
+            } else {
+                btnPublish.text = "Publishing..."
+                postItem("")
+            }
         }
 
         dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED

@@ -63,15 +63,29 @@ class DmRoomsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.rooms.collectLatest { rooms ->
+                    val groupRoom = rooms.firstOrNull { it.type == "group" }
                     val dmRooms = rooms.filter { it.type == "direct" }
                         .sortedByDescending { it.lastTimestamp }
                     
-                    if (dmRooms.isEmpty()) {
-                        binding.layoutEmptyState.isVisible = true
-                        adapter?.submitList(emptyList())
-                    } else {
-                        binding.layoutEmptyState.isVisible = false
-                        val items = dmRooms.map { room ->
+                    val items = mutableListOf<ChatListItem>()
+                    
+                    if (groupRoom != null) {
+                        items.add(
+                            ChatListItem.Room(
+                                room = groupRoom,
+                                title = groupRoom.name.ifBlank { "Class Group" },
+                                subtitle = groupRoom.lastMessage.ifBlank { "Class batch chat room" },
+                                avatarUrl = "",
+                                isGroup = true,
+                                isOnline = false,
+                                otherUserId = "",
+                                isPinned = true
+                            )
+                        )
+                    }
+
+                    dmRooms.forEach { room ->
+                        items.add(
                             ChatListItem.Room(
                                 room = room,
                                 title = room.otherUserName.ifBlank { "Unknown User" },
@@ -79,9 +93,17 @@ class DmRoomsFragment : Fragment() {
                                 avatarUrl = room.otherUserAvatar,
                                 isGroup = false,
                                 isOnline = viewModel.onlineUsers.value.contains(room.otherUserId),
-                                otherUserId = room.otherUserId
+                                otherUserId = room.otherUserId,
+                                isPinned = false
                             )
-                        }
+                        )
+                    }
+
+                    if (items.isEmpty()) {
+                        binding.layoutEmptyState.isVisible = true
+                        adapter?.submitList(emptyList())
+                    } else {
+                        binding.layoutEmptyState.isVisible = false
                         adapter?.submitList(items)
                     }
                 }

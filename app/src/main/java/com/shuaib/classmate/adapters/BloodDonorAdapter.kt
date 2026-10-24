@@ -30,7 +30,7 @@ class BloodDonorAdapter(
         val context = holder.itemView.context
 
         b.tvBloodGroup.text = user.bloodGroup.ifBlank { "O+" }
-        b.tvDonorName.text = user.fullName.ifBlank { user.name.ifBlank { "Classmate Donor" } }
+        b.tvDonorName.text = user.fullName.ifBlank { user.name.ifBlank { "GSTU Donor" } }
 
         val dept = user.department.ifBlank { "Department" }
         val batch = if (user.batch.isNotBlank()) " · ${user.batch} Batch" else ""
@@ -64,7 +64,7 @@ class BloodDonorAdapter(
         val numWithCountry = if (cleanNum.startsWith("01")) "88$cleanNum" else cleanNum
         try {
             val intent = Intent(Intent.ACTION_VIEW).apply {
-                data = Uri.parse("https://api.whatsapp.com/send?phone=$numWithCountry&text=Hello%20Classmate%2C%20I%20found%20your%20contact%20via%20ClassMate%20Blood%20Network.")
+                data = Uri.parse("https://api.whatsapp.com/send?phone=$numWithCountry&text=Hello%2C%20I%20found%20your%20contact%20via%20GSTU%20Go%20Blood%20Network.")
             }
             context.startActivity(intent)
         } catch (e: Exception) {

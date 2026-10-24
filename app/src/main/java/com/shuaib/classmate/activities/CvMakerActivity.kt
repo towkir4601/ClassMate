@@ -261,7 +261,7 @@ class CvMakerActivity : AppCompatActivity() {
                 </div>
 
                 <div class="footer-note">
-                    Official Academic Curriculum Vitae &bull; Generated via ClassMate GSTU Platform
+                    Official Academic Curriculum Vitae &bull; Generated via GSTU Go Platform
                 </div>
             </body>
             </html>

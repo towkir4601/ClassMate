@@ -13,18 +13,19 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="end"
-        android:background="@drawable/bg_chat_bubble_sent_modern"
-        android:maxWidth="280dp"
+        android:background="@drawable/bg_whatsapp_bubble_sent"
+        android:maxWidth="290dp"
         android:orientation="vertical"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="8dp">
+        android:paddingHorizontal="10dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp">
 
         <TextView
             android:id="@+id/tvPinned"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Pinned"
-            android:textColor="@color/cm_accent"
+            android:text="📌 Pinned"
+            android:textColor="@color/wa_green_bright"
             android:textSize="10sp"
             android:textStyle="bold"
             android:visibility="gone" />
@@ -33,7 +34,7 @@
             android:id="@+id/tvForwarded"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="#CCFFFFFF"
+            android:textColor="@color/wa_text_secondary"
             android:textSize="11sp"
             android:textStyle="italic"
             android:visibility="gone" />
@@ -44,7 +45,7 @@
             android:layout_height="1dp"
             android:layout_marginTop="4dp"
             android:layout_marginBottom="4dp"
-            android:background="#33FFFFFF"
+            android:background="@color/wa_divider"
             android:visibility="gone" />
 
         <LinearLayout
@@ -52,7 +53,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="6dp"
-            android:background="@drawable/bg_reply_preview"
+            android:background="@drawable/bg_whatsapp_reply_box"
             android:orientation="horizontal"
             android:padding="6dp"
             android:visibility="gone">
@@ -60,7 +61,7 @@
             <View
                 android:layout_width="3dp"
                 android:layout_height="match_parent"
-                android:background="@color/cm_on_primary" />
+                android:background="@color/wa_reply_bar" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -73,7 +74,7 @@
                     android:id="@+id/tvReplySender"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/cm_on_primary"
+                    android:textColor="@color/wa_reply_bar"
                     android:textSize="11sp"
                     android:textStyle="bold" />
 
@@ -83,7 +84,7 @@
                     android:layout_height="wrap_content"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:textColor="#CCFFFFFF"
+                    android:textColor="@color/wa_text_secondary"
                     android:textSize="11sp" />
             </LinearLayout>
         </LinearLayout>
@@ -114,8 +115,9 @@
             android:id="@+id/tvMessageText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@color/cm_on_primary"
-            android:textSize="15sp" />
+            android:textColor="@color/wa_text_primary"
+            android:textSize="15sp"
+            android:lineSpacingExtra="1dp" />
 
         <FrameLayout
             android:id="@+id/noticeForwardContainer"
@@ -124,6 +126,7 @@
             android:layout_marginTop="4dp"
             android:visibility="gone" />
 
+        <!-- WhatsApp Inline Metadata Row (Timestamp + Checkmarks) -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -138,24 +141,25 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="4dp"
                 android:text="edited"
-                android:textColor="#B3FFFFFF"
-                android:textSize="9sp"
+                android:textColor="@color/wa_text_secondary"
+                android:textSize="10sp"
+                android:textStyle="italic"
                 android:visibility="gone" />
 
             <TextView
                 android:id="@+id/tvTimestamp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="#B3FFFFFF"
-                android:textSize="10sp" />
+                android:textColor="@color/wa_text_secondary"
+                android:textSize="11sp" />
 
             <TextView
                 android:id="@+id/tvTicks"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="4dp"
-                android:textColor="#B3FFFFFF"
-                android:textSize="11sp" />
+                android:textColor="@color/wa_tick_gray"
+                android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>
 

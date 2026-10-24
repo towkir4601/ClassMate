@@ -17,5 +17,7 @@ data class ChatMessage(
     val seenBy: List<String> = emptyList(),
     val forwardedFrom: String? = null,
     val isPinned: Boolean = false,
-    val imageUrl: String? = null
+    val imageUrl: String? = null,
+    val senderRole: String = "",
+    val isSenderVerified: Boolean = false
 )

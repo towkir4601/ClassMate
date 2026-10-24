@@ -10,6 +10,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.shuaib.classmate.R
+import com.shuaib.classmate.activities.ImageViewerActivity
 import com.shuaib.classmate.databinding.ItemLostFoundBinding
 import com.shuaib.classmate.models.LostFoundItem
 import java.text.SimpleDateFormat
@@ -58,6 +61,26 @@ class LostFoundAdapter(
             b.tvItemDescription.setTextColor(Color.parseColor("#94A3B8"))
         } else {
             b.tvItemDescription.visibility = View.GONE
+        }
+
+        if (item.imageUrl.isNotBlank()) {
+            b.cardItemImage.visibility = View.VISIBLE
+            Glide.with(context)
+                .load(item.imageUrl)
+                .placeholder(R.drawable.bg_lost_found_input)
+                .error(R.drawable.bg_lost_found_input)
+                .centerCrop()
+                .into(b.ivItemPhoto)
+
+            b.cardItemImage.setOnClickListener {
+                val intent = Intent(context, ImageViewerActivity::class.java).apply {
+                    putExtra(ImageViewerActivity.EXTRA_IMAGE_URL, item.imageUrl)
+                }
+                context.startActivity(intent)
+            }
+        } else {
+            b.cardItemImage.visibility = View.GONE
+            b.cardItemImage.setOnClickListener(null)
         }
 
         if (item.isFound) {

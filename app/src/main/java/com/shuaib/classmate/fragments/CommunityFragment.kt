@@ -68,7 +68,10 @@ class CommunityFragment : Fragment() {
         }
 
         binding.cardGroupChat.setOnClickListener {
-            mainActivity?.openChildDestination(R.id.nav_community, R.id.nav_chat)
+            val bundle = Bundle().apply {
+                putInt("initialTab", 1)
+            }
+            mainActivity?.openChildDestination(R.id.nav_community, R.id.nav_chat, bundle)
         }
 
         binding.cardNoticeDiscussions.setOnClickListener {
@@ -95,6 +98,24 @@ class CommunityFragment : Fragment() {
                     binding.tvPollsBadge.text = "POLLS"
                 }
             }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            com.shuaib.classmate.chat.ChatRepository.rooms.collect { rooms ->
+                if (_binding == null) return@collect
+                val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+                val unread = com.shuaib.classmate.chat.ChatUnreadManager.getTotalUnread(rooms, currentUid)
+                val ctx = context ?: return@collect
+                if (unread > 0) {
+                    binding.tvChatBadge.text = "$unread UNREAD"
+                    binding.tvChatBadge.setBackgroundResource(R.drawable.bg_badge_accent_pill)
+                    binding.tvChatBadge.setTextColor(androidx.core.content.ContextCompat.getColor(ctx, R.color.cm_accent))
+                } else {
+                    binding.tvChatBadge.text = "ONLINE"
+                    binding.tvChatBadge.setBackgroundResource(R.drawable.bg_badge_green)
+                    binding.tvChatBadge.setTextColor(androidx.core.content.ContextCompat.getColor(ctx, R.color.cm_success))
+                }
+            }
+        }
     }
 
     override fun onDestroyView() {

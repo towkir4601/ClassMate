@@ -5,5 +5,14 @@ data class ChatUser(
     val name: String,
     val avatarUrl: String,
     val role: String = "student",
-    val isOnline: Boolean = false
-)
+    val isOnline: Boolean = false,
+    val email: String = "",
+    val isVerified: Boolean = false
+) {
+    val isBlueVerified: Boolean
+        get() {
+            val em = email.trim().lowercase()
+            return isVerified || em.endsWith(".edu.bd") || em.endsWith("@gstu.ac.bd") || em.contains(".gstu.ac.bd") ||
+                    role.lowercase() in listOf("teacher", "admin", "superadmin", "university_admin")
+        }
+}

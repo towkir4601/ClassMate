@@ -4,18 +4,35 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/cm_background"
+    android:background="@color/wa_chat_bg"
     android:orientation="vertical">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:id="@+id/tvHeaderTitle"
-        android:text="Friends"
-        android:textColor="@color/cm_text_primary"
-        android:textSize="24sp"
-        android:textStyle="bold" />
+        android:orientation="vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="8dp">
+
+        <TextView
+            android:id="@+id/tvHeaderTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Friends"
+            android:textColor="@color/wa_text_primary"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvHeaderSubtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="Classmates &amp; Teachers Directory"
+            android:textColor="@color/wa_text_secondary"
+            android:textSize="13sp" />
+    </LinearLayout>
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/tilSearch"
@@ -23,15 +40,18 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="16dp"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="10dp"
         android:hint="Search name, ID, or district..."
-        android:textColorHint="@color/cm_text_secondary"
-        app:boxStrokeColor="@color/cm_primary"
-        app:hintTextColor="@color/cm_primary"
+        android:textColorHint="@color/wa_text_secondary"
+        app:boxBackgroundColor="@color/wa_input_bg"
+        app:boxStrokeColor="@color/wa_teal_primary"
+        app:boxStrokeWidth="1dp"
+        app:boxStrokeWidthFocused="2dp"
+        app:hintTextColor="@color/wa_teal_primary"
         app:startIconDrawable="@drawable/ic_search_modern"
-        app:startIconTint="@color/cm_primary"
+        app:startIconTint="@color/wa_teal_primary"
         app:endIconMode="clear_text"
-        app:endIconTint="@color/cm_text_secondary"
+        app:endIconTint="@color/wa_text_secondary"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.MaterialComponents.MediumComponent">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -39,7 +59,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:inputType="text"
-            android:textColor="@color/cm_text_primary"
+            android:textColor="@color/wa_text_primary"
             android:textSize="14sp"
             android:paddingStart="48dp"
             android:paddingEnd="16dp" />
@@ -65,7 +85,13 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="All"
-                android:checked="true" />
+                android:checked="true"
+                app:chipBackgroundColor="@color/bg_chip_selector"
+                android:textColor="@color/text_chip_selector"
+                app:chipStrokeColor="@color/sl_chip_stroke"
+                app:chipStrokeWidth="1dp"
+                app:chipCornerRadius="16dp"
+                app:ensureMinTouchTargetSize="false" />
                 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipMyMatches"
@@ -73,7 +99,13 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="My Matches ✨"
-                app:closeIconVisible="false" />
+                app:closeIconVisible="false"
+                app:chipBackgroundColor="@color/bg_chip_selector"
+                android:textColor="@color/text_chip_selector"
+                app:chipStrokeColor="@color/sl_chip_stroke"
+                app:chipStrokeWidth="1dp"
+                app:chipCornerRadius="16dp"
+                app:ensureMinTouchTargetSize="false" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipBlood"
@@ -81,7 +113,13 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Blood Group"
-                app:closeIconVisible="false" />
+                app:closeIconVisible="false"
+                app:chipBackgroundColor="@color/bg_chip_selector"
+                android:textColor="@color/text_chip_selector"
+                app:chipStrokeColor="@color/sl_chip_stroke"
+                app:chipStrokeWidth="1dp"
+                app:chipCornerRadius="16dp"
+                app:ensureMinTouchTargetSize="false" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipDistrict"
@@ -89,7 +127,13 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Home District"
-                app:closeIconVisible="false" />
+                app:closeIconVisible="false"
+                app:chipBackgroundColor="@color/bg_chip_selector"
+                android:textColor="@color/text_chip_selector"
+                app:chipStrokeColor="@color/sl_chip_stroke"
+                app:chipStrokeWidth="1dp"
+                app:chipCornerRadius="16dp"
+                app:ensureMinTouchTargetSize="false" />
                 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipBatch"
@@ -97,7 +141,13 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Batch"
-                app:closeIconVisible="false" />
+                app:closeIconVisible="false"
+                app:chipBackgroundColor="@color/bg_chip_selector"
+                android:textColor="@color/text_chip_selector"
+                app:chipStrokeColor="@color/sl_chip_stroke"
+                app:chipStrokeWidth="1dp"
+                app:chipCornerRadius="16dp"
+                app:ensureMinTouchTargetSize="false" />
 
         </com.google.android.material.chip.ChipGroup>
     </HorizontalScrollView>

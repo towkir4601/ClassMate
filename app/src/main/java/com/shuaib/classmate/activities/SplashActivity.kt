@@ -1,34 +1,156 @@
 package com.shuaib.classmate.activities
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import androidx.appcompat.app.AppCompatActivity
-import dagger.hilt.android.AndroidEntryPoint
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Source
-import com.shuaib.classmate.models.User
+import com.shuaib.classmate.databinding.ActivitySplashBinding
 import com.shuaib.classmate.utils.AppPreferences
+import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class SplashActivity : AppCompatActivity() {
 
+    private lateinit var binding: ActivitySplashBinding
     private val handler = Handler(Looper.getMainLooper())
     private var hasNavigated = false
-    private var isReady = false
+    private var startTime = 0L
+
+    companion object {
+        private const val MIN_SPLASH_DURATION_MS = 1800L
+        private const val MAX_TIMEOUT_MS = 3500L
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Install Android 12 SplashScreen support and immediately dismiss the system splash view
         val splashScreen = installSplashScreen()
+        splashScreen.setOnExitAnimationListener { splashScreenViewProvider ->
+            splashScreenViewProvider.remove()
+        }
         super.onCreate(savedInstanceState)
 
-        // Keep system splash screen visible until routing is determined
-        splashScreen.setKeepOnScreenCondition { !isReady }
+        // Make window immersive edge-to-edge
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = Color.TRANSPARENT
+        window.navigationBarColor = Color.TRANSPARENT
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            isAppearanceLightStatusBars = false
+            isAppearanceLightNavigationBars = false
+        }
 
+        binding = ActivitySplashBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        startTime = System.currentTimeMillis()
+
+        // Prepare and start entrance animations
+        startEntranceAnimations()
+
+        // Check authentication and user destination in parallel
         checkUserStatus()
+    }
+
+    /**
+     * Executes the multi-stage cinematic animation sequence:
+     * 1. Campus photo subtle Ken Burns zoom
+     * 2. Top University Title slide down + fade in
+     * 3. HD GSTU Emblem scale-in with overshoot + halo glow
+     * 4. GSTU Go titles slide up + fade in
+     * 5. Bottom tagline fade-in
+     */
+    private fun startEntranceAnimations() {
+        // 1. Initial states
+        binding.ivCampusBg.scaleX = 1.0f
+        binding.ivCampusBg.scaleY = 1.0f
+
+        binding.tvUniversityName.alpha = 0f
+        binding.tvUniversityName.translationY = -60f
+
+        binding.flLogoContainer.alpha = 0f
+        binding.flLogoContainer.scaleX = 0.65f
+        binding.flLogoContainer.scaleY = 0.65f
+
+        binding.ivLogoGlow.alpha = 0f
+
+        binding.tvAppTitle.alpha = 0f
+        binding.tvAppTitle.translationY = 40f
+
+        binding.tvAppSubtitleBn.alpha = 0f
+        binding.tvAppSubtitleBn.translationY = 30f
+
+        binding.llFooter.alpha = 0f
+
+        // 2. Campus background gentle Ken Burns zoom immediately
+        binding.ivCampusBg.animate()
+            .scaleX(1.06f)
+            .scaleY(1.06f)
+            .setDuration(2600L)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
+
+        // 3. Top header drops smoothly
+        binding.tvUniversityName.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(600L)
+            .setStartDelay(50L)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
+
+        // 4. Center HD Logo scales in with elegant overshoot right from the start
+        binding.flLogoContainer.animate()
+            .alpha(1f)
+            .scaleX(1.0f)
+            .scaleY(1.0f)
+            .setDuration(750L)
+            .setStartDelay(80L)
+            .setInterpolator(OvershootInterpolator(1.15f))
+            .start()
+
+        // 5. Logo halo glow fades in
+        binding.ivLogoGlow.animate()
+            .alpha(0.7f)
+            .setDuration(800L)
+            .setStartDelay(180L)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
+
+        // 6. GSTU Go brand title slides up
+        binding.tvAppTitle.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(550L)
+            .setStartDelay(260L)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
+
+        // 7. Bengali subtitle slides up
+        binding.tvAppSubtitleBn.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(500L)
+            .setStartDelay(380L)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
+
+        // 8. Footer tagline and loader fade in
+        binding.llFooter.animate()
+            .alpha(1f)
+            .setDuration(450L)
+            .setStartDelay(500L)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
     }
 
     private fun checkUserStatus() {
@@ -37,11 +159,11 @@ class SplashActivity : AppCompatActivity() {
         val currentUser = auth.currentUser
 
         if (!prefs.isOnboardingComplete()) {
-            navigate(OnboardingActivity::class.java)
+            scheduleNavigation(OnboardingActivity::class.java)
         } else if (currentUser != null) {
             fetchProfileAndRoute(currentUser.uid)
         } else {
-            navigate(LoginActivity::class.java)
+            scheduleNavigation(LoginActivity::class.java)
         }
     }
 
@@ -50,11 +172,12 @@ class SplashActivity : AppCompatActivity() {
 
         val timeoutRunnable = Runnable {
             if (!hasNavigated) {
-                navigate(MainActivity::class.java)
+                scheduleNavigation(MainActivity::class.java)
             }
         }
-        handler.postDelayed(timeoutRunnable, 3000)
+        handler.postDelayed(timeoutRunnable, MAX_TIMEOUT_MS)
 
+        // Try cache first for instant resolution
         userRef.get(Source.CACHE)
             .addOnSuccessListener { cached ->
                 if (cached.exists()) {
@@ -76,12 +199,12 @@ class SplashActivity : AppCompatActivity() {
                 if (doc.exists()) {
                     routeFromProfile(doc)
                 } else {
-                    navigate(MainActivity::class.java)
+                    scheduleNavigation(MainActivity::class.java)
                 }
             }
             .addOnFailureListener {
                 handler.removeCallbacks(timeoutRunnable)
-                navigate(MainActivity::class.java)
+                scheduleNavigation(MainActivity::class.java)
             }
     }
 
@@ -94,25 +217,40 @@ class SplashActivity : AppCompatActivity() {
                 is String -> approvedVal.toBoolean()
                 else -> false
             }
-            
+
             if (role == "superadmin" || role == "admin" || approved) {
-                navigate(MainActivity::class.java)
+                scheduleNavigation(MainActivity::class.java)
             } else {
-                navigate(PendingApprovalActivity::class.java)
+                scheduleNavigation(PendingApprovalActivity::class.java)
             }
         } catch (e: Exception) {
             android.util.Log.e("SplashActivity", "Error parsing profile: ${e.message}")
-            navigate(MainActivity::class.java)
+            scheduleNavigation(MainActivity::class.java)
         }
+    }
+
+    /**
+     * Ensures the splash animation is shown for at least MIN_SPLASH_DURATION_MS
+     * so that the user experiences the full cinematic opening without abrupt jumps.
+     */
+    private fun scheduleNavigation(destination: Class<*>) {
+        val elapsed = System.currentTimeMillis() - startTime
+        val remainingDelay = maxOf(0L, MIN_SPLASH_DURATION_MS - elapsed)
+
+        handler.postDelayed({
+            navigate(destination)
+        }, remainingDelay)
     }
 
     private fun navigate(destination: Class<*>) {
         if (hasNavigated || isFinishing) return
         hasNavigated = true
-        isReady = true // Release system splash screen
-        startActivity(Intent(this, destination))
+
+        val intent = Intent(this, destination)
+        startActivity(intent)
         finish()
-        overridePendingTransition(0, 0)
+        // Seamless crossfade transition into the main app
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
     }
 
     override fun onDestroy() {

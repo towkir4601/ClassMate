@@ -73,31 +73,86 @@ object NotificationSender {
     ) {
         val bodyText = messageText.ifBlank { "Photo" }.take(100)
         val data = mapOf("roomId" to roomId, "senderId" to senderId)
+        
         if (roomId.startsWith("group_")) {
-            val targetBuilder: org.json.JSONObject.() -> Unit
-            if (roomId.startsWith("group_batch_")) {
-                val batch = roomId.removePrefix("group_batch_")
-                targetBuilder = {
-                    val filters = org.json.JSONArray().apply {
-                        put(org.json.JSONObject().put("field", "tag").put("key", "batch").put("relation", "=").put("value", batch))
+            // Group chat push alert - MUST EXCLUDE THE SENDER
+            scope.launch {
+                try {
+                    val batch = when {
+                        roomId.startsWith("group_batch_") -> roomId.removePrefix("group_batch_")
+                        roomId.contains("_batch_") -> roomId.substringAfter("_batch_")
+                        else -> ""
                     }
-                    put("filters", filters)
+
+                    val usersColl = com.google.firebase.firestore.FirebaseFirestore.getInstance().collection("users")
+                    val query = if (batch.isNotBlank()) usersColl.whereEqualTo("batch", batch) else usersColl
+
+                    query.get().addOnSuccessListener { snapshot ->
+                        val targetUids = snapshot.documents
+                            .map { it.id }
+                            .filter { it.isNotBlank() && it != senderId } // Strictly exclude sender!
+
+                        if (targetUids.isNotEmpty()) {
+                            sendOneSignal(
+                                title = "Class Group",
+                                message = "$senderName: $bodyText",
+                                type = "chat_message",
+                                extraData = data,
+                                targetBuilder = {
+                                    val externalIdArray = org.json.JSONArray()
+                                    targetUids.take(2000).forEach { externalIdArray.put(it) }
+                                    put("include_aliases", org.json.JSONObject().put("external_id", externalIdArray))
+                                    put("target_channel", "push")
+                                },
+                                onFailure = onFailure
+                            )
+                        } else {
+                            // Fallback using OneSignal tag filter explicitly excluding the sender
+                            val filters = org.json.JSONArray().apply {
+                                if (batch.isNotBlank()) {
+                                    put(org.json.JSONObject().put("field", "tag").put("key", "batch").put("relation", "=").put("value", batch))
+                                    put(org.json.JSONObject().put("operator", "AND"))
+                                }
+                                put(org.json.JSONObject().put("field", "tag").put("key", "uid").put("relation", "!=").put("value", senderId))
+                            }
+                            sendOneSignal(
+                                title = "Class Group",
+                                message = "$senderName: $bodyText",
+                                type = "chat_message",
+                                extraData = data,
+                                targetBuilder = { put("filters", filters) },
+                                onFailure = onFailure
+                            )
+                        }
+                    }.addOnFailureListener {
+                        // Fallback on error: filter out senderId via OneSignal tag
+                        val filters = org.json.JSONArray().apply {
+                            if (batch.isNotBlank()) {
+                                put(org.json.JSONObject().put("field", "tag").put("key", "batch").put("relation", "=").put("value", batch))
+                                put(org.json.JSONObject().put("operator", "AND"))
+                            }
+                            put(org.json.JSONObject().put("field", "tag").put("key", "uid").put("relation", "!=").put("value", senderId))
+                        }
+                        sendOneSignal(
+                            title = "Class Group",
+                            message = "$senderName: $bodyText",
+                            type = "chat_message",
+                            extraData = data,
+                            targetBuilder = { put("filters", filters) },
+                            onFailure = onFailure
+                        )
+                    }
+                } catch (e: Exception) {
+                    onFailure(e.message ?: "Failed to dispatch group push alert")
                 }
-            } else {
-                targetBuilder = { put("included_segments", org.json.JSONArray().put("All")) }
             }
-            sendOneSignal(
-                title = "Class Group",
-                message = "$senderName: $bodyText",
-                type = "chat_message",
-                extraData = data,
-                targetBuilder = targetBuilder,
-                onFailure = onFailure
-            )
             return
         }
 
+        // Direct Message:
         val uid = targetUserId ?: return
+        if (uid == senderId) return // Never send DM push to self!
+
         com.google.firebase.firestore.FirebaseFirestore.getInstance()
             .collection("users")
             .document(uid)

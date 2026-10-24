@@ -416,17 +416,34 @@
                             android:layout_height="wrap_content"
                             android:orientation="vertical">
 
-                            <TextView
-                                android:id="@+id/tvAuthorName"
+                            <LinearLayout
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:ellipsize="end"
-                                android:maxLines="1"
-                                android:singleLine="true"
-                                android:textColor="@color/cm_text_primary"
-                                android:textSize="12sp"
-                                android:textStyle="bold"
-                                tools:text="Dr. Sarah Rahman" />
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:id="@+id/tvAuthorName"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:ellipsize="end"
+                                    android:maxLines="1"
+                                    android:singleLine="true"
+                                    android:textColor="@color/cm_text_primary"
+                                    android:textSize="12sp"
+                                    android:textStyle="bold"
+                                    tools:text="Dr. Sarah Rahman" />
+
+                                <ImageView
+                                    android:id="@+id/ivAuthorVerified"
+                                    android:layout_width="14dp"
+                                    android:layout_height="14dp"
+                                    android:layout_marginStart="4dp"
+                                    android:src="@drawable/ic_verified_badge"
+                                    android:visibility="gone"
+                                    tools:visibility="visible"
+                                    android:contentDescription="Verified Author" />
+                            </LinearLayout>
 
                             <TextView
                                 android:id="@+id/tvMeta"

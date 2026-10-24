@@ -12,6 +12,7 @@ sealed class ChatListItem {
         val avatarUrl: String = "",
         val isGroup: Boolean = false,
         val isOnline: Boolean = false,
-        val otherUserId: String = ""
+        val otherUserId: String = "",
+        val isPinned: Boolean = false
     ) : ChatListItem()
 }

@@ -42,7 +42,10 @@ class SubjectPdfListFragment : Fragment() {
     private lateinit var pdfAdapter: PdfAdapter
     private var allResources = emptyList<PdfFile>()
     private var currentUserBatch = ""
+    private var currentUserDepartment = ""
+    private var currentUserDepartmentId = ""
     private var isAdmin = false
+    private var isSuperAdmin = false
     private var selectedFilter = Filter.All
     private var isFavorite = false
     private var favoritePdfIds = emptySet<String>()
@@ -201,8 +204,11 @@ class SubjectPdfListFragment : Fragment() {
                 val role = doc.getString("role") ?: "student"
                 val canUploadPdf = doc.getBoolean("permissions.canUploadPDF") ?: false
                 val canUploadLibrary = doc.getBoolean("permissions.canUploadLibrary") ?: false
-                isAdmin = role == "superadmin" || role == "admin" || canUploadPdf || canUploadLibrary
-                currentUserBatch = doc.getString("batch") ?: ""
+                isSuperAdmin = role == "superadmin"
+                isAdmin = isSuperAdmin || role == "admin" || canUploadPdf || canUploadLibrary
+                currentUserBatch = doc.getString("batch") ?: context?.let { com.shuaib.classmate.utils.AppPreferences(it).getUserBatch() } ?: ""
+                currentUserDepartment = doc.getString("department") ?: context?.let { com.shuaib.classmate.utils.AppPreferences(it).getUserDepartment() } ?: ""
+                currentUserDepartmentId = com.shuaib.classmate.models.User.slugifyDepartment(currentUserDepartment)
                 onComplete()
             }
             .addOnFailureListener { onComplete() }
@@ -297,8 +303,7 @@ class SubjectPdfListFragment : Fragment() {
                 val rawPdfs = allDocs.map { it.toPdfFile() }.distinctBy { it.id }
 
                 allResources = rawPdfs
-                    .filterNot { it.isDeleted }
-                    .filter { isAdmin || it.batch.isBlank() || it.batch.equals("all", ignoreCase = true) || it.batch.equals(currentUserBatch, ignoreCase = true) }
+                    .filter { it.canUserAccess(currentUserDepartmentId, currentUserBatch, isSuperAdmin) }
                     .filter { pdf -> isSubjectMatch(pdf, args.subjectName, subjectInfo) }
                     .sortedByDescending { it.timestamp ?: it.createdAt }
 
@@ -440,6 +445,7 @@ class SubjectPdfListFragment : Fragment() {
                 )
             )
             .addOnSuccessListener {
+                if (_binding == null) return@addOnSuccessListener
                 binding.progressBar.visibility = View.GONE
                 Toast.makeText(context, "Batch updated successfully", Toast.LENGTH_SHORT).show()
                 fetchPdfs()
@@ -454,11 +460,13 @@ class SubjectPdfListFragment : Fragment() {
                         )
                     )
                     .addOnSuccessListener {
+                        if (_binding == null) return@addOnSuccessListener
                         binding.progressBar.visibility = View.GONE
                         Toast.makeText(context, "Batch updated successfully", Toast.LENGTH_SHORT).show()
                         fetchPdfs()
                     }
                     .addOnFailureListener {
+                        if (_binding == null) return@addOnFailureListener
                         binding.progressBar.visibility = View.GONE
                         Toast.makeText(context, "Update failed: Please try again later.", Toast.LENGTH_SHORT).show()
                     }
@@ -510,33 +518,7 @@ class SubjectPdfListFragment : Fragment() {
         PdfDialogHelper.showPdfOptions(requireActivity(), requireContext(), pdf)
     }
 
-    private fun com.google.firebase.firestore.DocumentSnapshot.toPdfFile(): PdfFile {
-        return PdfFile(
-            id = id,
-            title = getString("title") ?: "No Title",
-            subject = getString("subject") ?: "",
-            description = getString("description") ?: "",
-            uploadedBy = getString("uploadedByName") ?: getString("uploadedBy") ?: "",
-            telegramUrl = getString("telegramUrl") ?: "",
-            driveUrl = getString("driveUrl") ?: "",
-            fileId = getString("fileId") ?: "",
-            timestamp = getTimestamp("timestamp") ?: getTimestamp("createdAt"),
-            courseCode = getString("courseCode") ?: "",
-            courseType = getString("courseType") ?: "",
-            fileType = getString("fileType") ?: "other",
-            mimeType = getString("mimeType") ?: "application/octet-stream",
-            sizeBytes = getLong("sizeBytes") ?: 0L,
-            provider = getString("provider") ?: "",
-            downloadUrl = getString("downloadUrl") ?: "",
-            githubAssetId = getLong("githubAssetId") ?: 0L,
-            githubAssetName = getString("githubAssetName") ?: getString("title") ?: "",
-            createdAt = getTimestamp("createdAt"),
-            updatedAt = getTimestamp("updatedAt"),
-            downloadCount = getLong("downloadCount") ?: 0L,
-            isDeleted = getBoolean("isDeleted") ?: false,
-            batch = getString("batch") ?: ""
-        )
-    }
+    private fun com.google.firebase.firestore.DocumentSnapshot.toPdfFile(): PdfFile = PdfFile.fromDocument(this)
 
     private fun subjectCode(): String = SubjectList.codeFor(args.subjectName).ifBlank { "LIB0000" }
 

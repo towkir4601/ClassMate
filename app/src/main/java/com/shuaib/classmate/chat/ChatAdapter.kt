@@ -16,6 +16,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.toColorInt
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
@@ -130,6 +131,7 @@ class ChatAdapter(
         private val ticks: TextView = itemView.findViewById(R.id.tvTicks)
         private val edited: TextView = itemView.findViewById(R.id.tvEdited)
         private val senderName: TextView? = itemView.findViewById(R.id.tvSenderName)
+        private val senderVerified: ImageView? = itemView.findViewById(R.id.ivSenderVerified)
         private val senderAvatar: ImageView? = itemView.findViewById(R.id.ivSenderAvatar)
         private val senderAvatarLetter: TextView? = itemView.findViewById(R.id.tvSenderAvatarLetter)
         private val forwarded: TextView = itemView.findViewById(R.id.tvForwarded)
@@ -157,6 +159,15 @@ class ChatAdapter(
 
             senderName?.isVisible = firstInGroup
             senderName?.text = message.senderName.ifBlank { "User" }
+            if (senderName != null && firstInGroup) {
+                senderName.setTextColor(getSenderColor(message.senderId.ifBlank { message.senderName }, itemView.context))
+            }
+            senderVerified?.isVisible = firstInGroup && (
+                message.isSenderVerified ||
+                message.senderRole in listOf("teacher", "admin", "superadmin", "university_admin") ||
+                message.senderName.contains("Dr.", ignoreCase = true) ||
+                message.senderName.contains("Prof", ignoreCase = true)
+            )
             senderAvatar?.let { avatar ->
                 avatar.isInvisible = !firstInGroup
                 senderAvatarLetter?.isInvisible = !firstInGroup
@@ -206,10 +217,7 @@ class ChatAdapter(
                 noticeForwardContainer.isVisible = false
                 messageText.isVisible = true
                 messageText.setText(R.string.message_deleted)
-                messageText.setTextColor(
-                    if (isSent) com.shuaib.classmate.utils.ThemeColors.onPrimary(itemView.context)
-                    else com.shuaib.classmate.utils.ThemeColors.textMuted(itemView.context)
-                )
+                messageText.setTextColor(ContextCompat.getColor(itemView.context, R.color.wa_text_secondary))
                 messageText.setTypeface(null, Typeface.ITALIC)
             } else if (noticeForward != null) {
                 messageText.isVisible = false
@@ -218,29 +226,39 @@ class ChatAdapter(
                 noticeForwardContainer.isVisible = false
                 messageText.isVisible = true
                 messageText.text = message.text
-                messageText.setTextColor(
-                    if (isSent) com.shuaib.classmate.utils.ThemeColors.onPrimary(itemView.context)
-                    else com.shuaib.classmate.utils.ThemeColors.textPrimary(itemView.context)
-                )
+                messageText.setTextColor(ContextCompat.getColor(itemView.context, R.color.wa_text_primary))
                 messageText.setTypeface(null, Typeface.NORMAL)
             }
             timestamp.text = timeFormat.format(Date(message.timestamp))
             edited.isVisible = message.editedAt != null
-            val metaColor = if (isSent) Color.argb(205, 255, 255, 255)
-                else com.shuaib.classmate.utils.ThemeColors.textMuted(itemView.context)
+            val metaColor = ContextCompat.getColor(itemView.context, R.color.wa_text_secondary)
             timestamp.setTextColor(metaColor)
             edited.setTextColor(metaColor)
             ticks.text = if (message.seenBy.isNotEmpty()) "\u2713\u2713" else "\u2713"
             ticks.setTextColor(
-                if (message.seenBy.isNotEmpty()) Color.parseColor("#42C2FF") // Light blue for double ticks
-                else if (isSent) metaColor
-                else com.shuaib.classmate.utils.ThemeColors.textSecondary(itemView.context)
+                if (message.seenBy.isNotEmpty()) ContextCompat.getColor(itemView.context, R.color.wa_tick_blue)
+                else metaColor
             )
             bindReactions(message)
             container.setOnLongClickListener {
                 showActions(message)
                 true
             }
+        }
+
+        private fun getSenderColor(nameOrId: String, context: Context): Int {
+            val colors = intArrayOf(
+                R.color.wa_sender_blue,
+                R.color.wa_sender_orange,
+                R.color.wa_sender_green,
+                R.color.wa_sender_magenta,
+                R.color.wa_sender_purple,
+                R.color.wa_sender_teal,
+                R.color.wa_sender_amber,
+                R.color.wa_sender_crimson
+            )
+            val index = Math.abs(nameOrId.hashCode()) % colors.size
+            return ContextCompat.getColor(context, colors[index])
         }
 
         private fun bindNoticeForward(payload: com.shuaib.classmate.notices.NoticeForwardPayload) {

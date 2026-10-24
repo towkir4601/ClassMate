@@ -283,6 +283,11 @@ class MainActivity : AppCompatActivity() {
                 return@addOnDestinationChangedListener
             }
 
+            if (destinationId == R.id.nav_notices) {
+                NoticeReadTracker.markReadNow(this)
+                updateNoticeBadge(0)
+            }
+
             val tabId = TAB_DESTINATION_MAP[destinationId] ?: childParentTabId
             if (!binding.navHostFragment.isVisible) {
                 binding.mainViewPager.isVisible = false
@@ -309,6 +314,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun openChildDestination(parentTabId: Int, destinationId: Int, args: Bundle? = null) {
+        if (destinationId == R.id.nav_notices) {
+            NoticeReadTracker.markReadNow(this)
+            updateNoticeBadge(0)
+        }
         val parentIndex = mainTabs.indexOf(parentTabId)
         if (parentIndex != -1 && binding.mainViewPager.currentItem != parentIndex) {
             binding.mainViewPager.currentItem = parentIndex
@@ -376,11 +385,13 @@ class MainActivity : AppCompatActivity() {
 
                     // Manual parsing to prevent crashes if Firestore field types (like approved) are wrong
                     val role = doc.getString("role") ?: "student"
+                    val demoRole = AppPreferences(this@MainActivity).getDemoRole().ifBlank { doc.getString("demoRole") ?: "" }
+                    val effectiveRole = demoRole.ifBlank { role }
                     val batch = doc.getString("batch") ?: ""
                     val permissions = doc.get("permissions") as? Map<String, Boolean> ?: emptyMap()
                     
-                    val r = role.trim().lowercase()
-                    isAdmin = (r == "superadmin" || r == "admin" || permissions.values.any { it == true })
+                    val r = effectiveRole.trim().lowercase()
+                    isAdmin = (r == "superadmin" || r == "admin" || r == "university_admin" || permissions.values.any { it == true })
 
                     // Verify approval status for non-admin accounts
                     val approvedVal = doc.get("approved")
@@ -389,7 +400,7 @@ class MainActivity : AppCompatActivity() {
                         is String -> approvedVal.toBoolean()
                         else -> false
                     }
-                    if (r != "superadmin" && r != "admin" && !isApproved) {
+                    if (r != "superadmin" && r != "admin" && r != "university_admin" && !isApproved) {
                         val intent = Intent(this@MainActivity, PendingApprovalActivity::class.java).apply {
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         }
@@ -399,11 +410,17 @@ class MainActivity : AppCompatActivity() {
                     }
                     
                     try {
+                        com.onesignal.OneSignal.User.addTag("uid", uid)
                         com.onesignal.OneSignal.User.addTag("role", r)
                         com.onesignal.OneSignal.User.addTag("batch", batch)
                         val prefs = AppPreferences(this@MainActivity)
                         prefs.setUserBatch(batch)
                         prefs.setUserRole(r)
+                        val dept = doc.getString("department") ?: ""
+                        if (dept.isNotBlank()) {
+                            com.onesignal.OneSignal.User.addTag("department", dept)
+                        }
+                        prefs.setUserDepartment(dept)
                         prefs.setUserName(doc.getString("name") ?: "")
                         val semester = doc.getString("semester") ?: ""
                         prefs.setUserSemester(semester)
@@ -698,6 +715,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         setOnlineStatus(true)
         applySystemBars()
+        checkAdminStatus()
         if (!firstResumeHandled) {
             firstResumeHandled = true
             return
@@ -822,7 +840,7 @@ class MainActivity : AppCompatActivity() {
         listenForUnreadNotices()
     }
 
-    private fun updateNoticeBadge(count: Int) {
+    fun updateNoticeBadge(count: Int) {
         val badge = binding.bottomNav.getOrCreateBadge(R.id.nav_campus)
         if (count > 0) {
             badge.isVisible = true
@@ -947,7 +965,7 @@ class MainActivity : AppCompatActivity() {
     private fun showPermissionRationaleDialog() {
         AlertDialog.Builder(this)
             .setTitle("Notification Permission Needed")
-            .setMessage("ClassMate needs permission to show you important notices.")
+            .setMessage("GSTU Go needs permission to show you important notices.")
             .setPositiveButton("OK") { _, _ ->
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -967,7 +985,7 @@ class MainActivity : AppCompatActivity() {
         if (intent == null) return
 
         val noticeId = intent.getStringExtra("noticeId")
-            ?: intent.data?.takeIf { it.scheme == "classmate" && it.host == "notice" }?.lastPathSegment
+            ?: intent.data?.takeIf { (it.scheme == "classmate" || it.scheme == "gstugo") && it.host == "notice" }?.lastPathSegment
         if (!noticeId.isNullOrBlank()) {
             NotificationRouter.pendingNoticeId = noticeId
             showMainTab(R.id.nav_notices)

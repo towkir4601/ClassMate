@@ -29,9 +29,11 @@ object CloudinaryUploader {
                 val fileName = getFileName(context, fileUri)
                     ?: "image_${System.currentTimeMillis()}.jpg"
 
-                val inputStream = context.contentResolver
-                    .openInputStream(fileUri)
-                    ?: throw Exception("Cannot open image")
+                val inputStream = if (fileUri.scheme == "file" && fileUri.path != null) {
+                    java.io.FileInputStream(java.io.File(fileUri.path!!))
+                } else {
+                    context.contentResolver.openInputStream(fileUri)
+                } ?: throw Exception("Cannot open image")
                 val fileBytes = inputStream.readBytes()
                 inputStream.close()
 

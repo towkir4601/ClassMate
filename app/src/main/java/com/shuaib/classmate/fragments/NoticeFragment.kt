@@ -43,6 +43,7 @@ import com.shuaib.classmate.adapters.NoticeAdapter
 import com.shuaib.classmate.adapters.NoticeGroupHeader
 import com.shuaib.classmate.databinding.FragmentNoticeBinding
 import com.shuaib.classmate.models.Notice
+import com.shuaib.classmate.utils.AppPreferences
 import com.shuaib.classmate.models.Poll
 import com.shuaib.classmate.notices.NoticeEngagement
 import com.shuaib.classmate.notices.NoticeCommentsBottomSheetFragment
@@ -51,6 +52,7 @@ import com.shuaib.classmate.notices.NoticeReminderManager
 import com.shuaib.classmate.notices.NoticeUi
 import com.shuaib.classmate.notices.ShareForwardNoticeBottomSheet
 import com.shuaib.classmate.utils.NetworkMonitor
+import com.shuaib.classmate.utils.NoticeReadTracker
 import com.shuaib.classmate.utils.ThemeColors
 import com.shuaib.classmate.utils.applyClickAnimation
 import com.shuaib.classmate.viewmodels.NoticeViewModel
@@ -169,6 +171,11 @@ class NoticeFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        checkAdminAccess()
+        context?.let { ctx ->
+            NoticeReadTracker.markReadNow(ctx)
+            (activity as? MainActivity)?.updateNoticeBadge(0)
+        }
     }
 
     private fun setupRecyclerView() {
@@ -584,10 +591,15 @@ class NoticeFragment : Fragment() {
         }
 
         if (item is Notice) {
+            val userDeptId = context?.let { AppPreferences(it).getUserDepartmentId() } ?: ""
+            val noticeDeptId = item.departmentId
+            val isDeptMatch = noticeDeptId.isBlank() || noticeDeptId == "all" || userDeptId.isBlank() || noticeDeptId == userDeptId || currentUserRole == "superadmin" || currentUserRole == "university_admin"
+            if (!isDeptMatch) return false
+
             val target = item.targetBatch
             val isPublic = target == "all" || target.isBlank()
             val isTargetedToMe = target == currentUserBatch
-            val bypassBatchCheck = currentUserRole == "superadmin" || currentUserRole == "teacher"
+            val bypassBatchCheck = currentUserRole == "superadmin" || currentUserRole == "university_admin" || currentUserRole == "teacher"
             if (!isPublic && !isTargetedToMe && !bypassBatchCheck) return false
         }
         
@@ -654,7 +666,9 @@ class NoticeFragment : Fragment() {
                 likedNoticeIds = if (targetLiked) likedNoticeIds - notice.id else likedNoticeIds + notice.id
                 likeCountByNotice[notice.id] = ((likeCountByNotice[notice.id] ?: 0) + if (targetLiked) -1 else 1).coerceAtLeast(0)
                 noticeAdapter.setEngagementState(buildEngagementState())
-                Toast.makeText(requireContext(), "Like update failed: ${actionErrorMessage(error)}", Toast.LENGTH_LONG).show()
+                context?.let { ctx ->
+                    Toast.makeText(ctx, "Like update failed: ${actionErrorMessage(error)}", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
@@ -675,7 +689,9 @@ class NoticeFragment : Fragment() {
             .addOnFailureListener {
                 pendingPinnedState.remove(notice.id)
                 renderFeed()
-                Toast.makeText(requireContext(), "Pin update failed", Toast.LENGTH_SHORT).show()
+                context?.let { ctx ->
+                    Toast.makeText(ctx, "Pin update failed", Toast.LENGTH_SHORT).show()
+                }
             }
     }
 
@@ -760,7 +776,9 @@ class NoticeFragment : Fragment() {
     private fun deletePoll(pollId: String) {
         db.collection("polls").document(pollId).delete()
             .addOnSuccessListener {
-                Toast.makeText(requireContext(), "Poll deleted", Toast.LENGTH_SHORT).show()
+                context?.let { ctx ->
+                    Toast.makeText(ctx, "Poll deleted", Toast.LENGTH_SHORT).show()
+                }
                 fetchData()
             }
     }
@@ -803,15 +821,17 @@ class NoticeFragment : Fragment() {
     }
 
     private fun deleteNotice(notice: Notice) {
-        val appContext = requireContext().applicationContext
+        val appContext = context?.applicationContext ?: return
         db.collection("notices").document(notice.id)
             .update(mapOf("isDeleted" to true, "updatedAt" to FieldValue.serverTimestamp()))
             .addOnSuccessListener {
                 if (_binding != null) {
-                    Toast.makeText(requireContext(), "Notice deleted", Toast.LENGTH_SHORT).show()
+                    context?.let { ctx ->
+                        Toast.makeText(ctx, "Notice deleted", Toast.LENGTH_SHORT).show()
+                    }
                     fetchData()
                 }
-                viewLifecycleOwner.lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                     com.shuaib.classmate.repositories.NoticeRepository
                         .getInstance(appContext)
                         .syncNoticeFromFirestore(notice.id, com.google.firebase.firestore.Source.SERVER)
@@ -854,7 +874,9 @@ class NoticeFragment : Fragment() {
             .addOnFailureListener {
                 if (_binding != null) {
                     android.util.Log.e("NoticeFragment", "Delete notice failed", it)
-                    Toast.makeText(requireContext(), "Delete failed. Please try again later.", Toast.LENGTH_SHORT).show()
+                    context?.let { ctx ->
+                        Toast.makeText(ctx, "Delete failed. Please try again later.", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
     }
@@ -863,16 +885,23 @@ class NoticeFragment : Fragment() {
         val uid = auth.currentUser?.uid ?: return
         db.collection("users").document(uid).get()
             .addOnSuccessListener { doc ->
+                if (_binding == null) return@addOnSuccessListener
                 try {
                     val role = doc.getString("role") ?: "student"
-                    currentUserRole = role
-                    val permissions = doc.get("permissions") as? Map<String, Boolean> ?: emptyMap()
+                    val localDemoRole = context?.let { ctx: Context -> AppPreferences(ctx).getDemoRole() }.orEmpty()
+                    val firestoreDemoRole = doc.getString("demoRole") ?: ""
+                    val effectiveRole = localDemoRole.ifBlank { firestoreDemoRole }.ifBlank { role }
+                    currentUserRole = effectiveRole
+                    @Suppress("UNCHECKED_CAST")
+                    val permissions = (doc.get("permissions") as? Map<String, Boolean>) ?: emptyMap()
                     
-                    isAdmin = (role == "superadmin" || role == "admin" || role == "teacher" || permissions["canPostNotices"] == true)
+                    val r = effectiveRole.lowercase()
+                    isAdmin = (r == "superadmin" || r == "admin" || r == "university_admin" || r == "teacher" || permissions["canPostNotices"] == true)
                     binding.btnPostNotice.isVisible = isAdmin
                     binding.btnEmptyPost.isVisible = isAdmin && allNotices.isEmpty() && allPolls.isEmpty()
                 } catch (e: Exception) {
                     android.util.Log.e("NoticeFragment", "Error parsing user for admin check", e)
+                    if (_binding == null) return@addOnSuccessListener
                     isAdmin = false
                     binding.btnPostNotice.isVisible = false
                     binding.btnEmptyPost.isVisible = false

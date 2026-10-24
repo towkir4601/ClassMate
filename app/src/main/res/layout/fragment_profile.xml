@@ -96,20 +96,37 @@
                     </FrameLayout>
                 </FrameLayout>
 
-                <!-- User Name -->
-                <TextView
-                    android:id="@+id/tvProfileName"
+                <!-- User Name with Verified Badge -->
+                <LinearLayout
+                    android:id="@+id/layoutNameContainer"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:textColor="@color/cm_text_primary"
-                    android:textSize="20sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:textStyle="bold"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
                     app:layout_constraintTop_toBottomOf="@id/profilePhotoContainer"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    tools:text="Shuaib Uddowla" />
+                    app:layout_constraintEnd_toEndOf="parent">
+
+                    <TextView
+                        android:id="@+id/tvProfileName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/cm_text_primary"
+                        android:textSize="20sp"
+                        android:fontFamily="sans-serif-medium"
+                        android:textStyle="bold"
+                        tools:text="Shuaib Uddowla" />
+
+                    <ImageView
+                        android:id="@+id/ivVerifiedBadge"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_marginStart="6dp"
+                        android:src="@drawable/ic_verified_badge"
+                        android:visibility="gone"
+                        android:contentDescription="Verified Member" />
+                </LinearLayout>
 
                 <!-- Role Badge -->
                 <TextView
@@ -124,7 +141,7 @@
                     android:textAllCaps="true"
                     android:textStyle="bold"
                     android:letterSpacing="0.05"
-                    app:layout_constraintTop_toBottomOf="@id/tvProfileName"
+                    app:layout_constraintTop_toBottomOf="@id/layoutNameContainer"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     tools:text="SUPERADMIN" />
@@ -704,6 +721,108 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- 4.5 Developer & Demo Mode (Role Switcher) -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="DEVELOPER &amp; DEMO MODE"
+            android:textColor="@color/cm_accent"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08"
+            android:layout_marginStart="8dp"
+            android:layout_marginBottom="8dp"/>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardRoleSwitcher"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            app:cardBackgroundColor="@color/cm_surface"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="2dp"
+            app:strokeWidth="1.5dp"
+            app:strokeColor="@color/cm_primary_light"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackground">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <FrameLayout
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="@drawable/bg_circle_accent"
+                        android:backgroundTint="@color/cm_primary_light">
+                        <TextView
+                            android:id="@+id/tvRoleSwitcherEmoji"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:text="🧪"
+                            android:textSize="20sp" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="14dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Switch Test Role"
+                            android:textColor="@color/cm_text_primary"
+                            android:textSize="15sp"
+                            android:fontFamily="sans-serif-medium"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvCurrentActiveRoleDesc"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Active: Super Admin (Full Control)"
+                            android:textColor="@color/cm_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="2dp" />
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnSwitchRole"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:text="Switch"
+                        android:textSize="12sp"
+                        android:textAllCaps="false"
+                        app:cornerRadius="18dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Quick-switch live between Super Admin, University Admin, Club Admin, or Student to test and demo permissions."
+                    android:textColor="@color/cm_text_secondary"
+                    android:textSize="11.5sp"
+                    android:layout_marginTop="10dp" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- 5. Administration Section (Admins Only) -->
         <LinearLayout
             android:id="@+id/adminSection"
@@ -907,7 +1026,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="ClassMate Version"
+                            android:text="GSTU Go Version"
                             android:textColor="@color/cm_text_primary"
                             android:textSize="14sp"/>
                         <TextView

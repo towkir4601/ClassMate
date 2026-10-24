@@ -34,34 +34,64 @@ data class User(
     val favoriteSubjects: List<String> = emptyList(),
     val favoritePdfIds: List<String> = emptyList(),
     val permissions: Map<String, Boolean> = DEFAULT_PERMISSIONS,
-    val isOnline: Boolean = false
+    val isOnline: Boolean = false,
+    val assignedClubId: String = "",
+    val assignedClubName: String = "",
+    val demoRole: String = "",
+    val isVerified: Boolean = false
 ) {
+    @get:com.google.firebase.firestore.Exclude
+    val activeRole: String
+        get() = demoRole.ifBlank { role }
+
+    @get:com.google.firebase.firestore.Exclude
+    val departmentId: String
+        get() = department.trim().lowercase().replace(" ", "_").replace(".", "")
+
+    @get:com.google.firebase.firestore.Exclude
+    val batchCompositeKey: String
+        get() = "${departmentId}_${batch.trim()}"
+
     @com.google.firebase.firestore.Exclude
     fun isProfileComplete(): Boolean {
-        if (role == "teacher") return true
+        if (activeRole == "teacher") return true
         return studentId.isNotBlank() && department.isNotBlank()
     }
 
     @com.google.firebase.firestore.Exclude
     fun hasPermission(permissionKey: String): Boolean {
-        val r = role.trim().lowercase()
+        val r = activeRole.trim().lowercase()
         if (r == "superadmin") return true
-        
+
         if (r == "teacher") {
             if (permissionKey == "canSendClassCancel") return true
             return permissions[permissionKey] == true
         }
-        
-        // Admin default permissions
-        if (r == "admin") {
-            if (permissionKey == "canUploadSeatPlan" || 
-                permissionKey == "canManageAcademicCalendar" || 
-                permissionKey == "canManageAdmins") {
-                return permissions[permissionKey] == true
+
+        // University Admin: Academic notices, timetables/routines, class cancel, materials
+        if (r == "admin" || r == "university_admin") {
+            if (permissionKey == "canManageUsers" || permissionKey == "canManageAdmins") {
+                return false // University admin does NOT manage system users/admins
             }
-            return true
+            if (permissionKey == "canPostNotices" ||
+                permissionKey == "canEditTimetable" ||
+                permissionKey == "canSendClassCancel" ||
+                permissionKey == "canUploadPDF" ||
+                permissionKey == "canUploadLibrary" ||
+                permissionKey == "canCreatePolls" ||
+                permissionKey == "canEditCalendar" ||
+                permissionKey == "canManageAcademicCalendar" ||
+                permissionKey == "canEditBusSchedule") {
+                return true
+            }
+            return permissions[permissionKey] == true
         }
-        
+
+        // Club Admin: Scoped to their assigned club
+        if (r == "club_admin") {
+            return false
+        }
+
         return permissions[permissionKey] == true
     }
 
@@ -87,30 +117,59 @@ data class User(
     fun canUploadResult(): Boolean = hasPermission("canUploadResult")
     @com.google.firebase.firestore.Exclude
     fun canUploadSeatPlan(): Boolean = hasPermission("canUploadSeatPlan")
-    
+
     @com.google.firebase.firestore.Exclude
     fun canManageUsers(): Boolean {
-        val r = role.lowercase()
-        return r == "superadmin" || r == "admin" || permissions["canManageUsers"] == true
+        val r = activeRole.lowercase()
+        return r == "superadmin" || (r != "admin" && r != "university_admin" && permissions["canManageUsers"] == true)
     }
-    
+
     @com.google.firebase.firestore.Exclude
-    fun canManageAdmins(): Boolean = hasPermission("canManageAdmins")
+    fun canManageAdmins(): Boolean {
+        val r = activeRole.lowercase()
+        return r == "superadmin" || permissions["canManageAdmins"] == true
+    }
 
     @com.google.firebase.firestore.Exclude
     fun isApproved(): Boolean {
-        val r = role.lowercase()
-        if (r == "superadmin" || r == "admin") return true
+        val r = activeRole.lowercase()
+        if (r == "superadmin" || r == "admin" || r == "university_admin") return true
         return approved
     }
 
     @com.google.firebase.firestore.Exclude
     fun isAdmin(): Boolean {
-        val r = role.lowercase()
-        return r == "superadmin" || r == "admin" || permissions.values.any { it }
+        val r = activeRole.lowercase()
+        return r in listOf("superadmin", "admin", "university_admin") || permissions.values.any { it }
     }
 
+    @com.google.firebase.firestore.Exclude
+    fun isSuperAdmin(): Boolean = activeRole.lowercase() == "superadmin"
+
+    @com.google.firebase.firestore.Exclude
+    fun isUniversityAdmin(): Boolean = activeRole.lowercase() in listOf("admin", "university_admin")
+
+    @com.google.firebase.firestore.Exclude
+    fun isClubAdmin(): Boolean = activeRole.lowercase() == "club_admin" || assignedClubId.isNotBlank()
+
+    @com.google.firebase.firestore.Exclude
+    fun isStudent(): Boolean = activeRole.lowercase() == "student"
+
+    @com.google.firebase.firestore.Exclude
+    fun hasEduMail(): Boolean {
+        val em = email.trim().lowercase()
+        return em.endsWith(".edu.bd") || em.endsWith("@gstu.ac.bd") || em.contains(".gstu.ac.bd")
+    }
+
+    @get:com.google.firebase.firestore.Exclude
+    val isBlueVerified: Boolean
+        get() = isVerified || hasEduMail() || activeRole.lowercase() in listOf("superadmin", "admin", "university_admin")
+
     companion object {
+        fun slugifyDepartment(department: String): String {
+            return department.trim().lowercase().replace(" ", "_").replace(".", "").replace("&", "")
+        }
+
         val DEFAULT_PERMISSIONS = mapOf(
             "canPostNotices" to false,
             "canEditTimetable" to false,

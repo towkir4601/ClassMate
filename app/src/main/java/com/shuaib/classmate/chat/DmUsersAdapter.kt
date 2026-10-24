@@ -33,6 +33,7 @@ class DmUsersAdapter(
         private val avatar: ImageView = itemView.findViewById(R.id.ivAvatar)
         private val avatarLetter: TextView = itemView.findViewById(R.id.tvAvatarLetter)
         private val userName: TextView = itemView.findViewById(R.id.tvUserName)
+        private val verifiedBadge: ImageView? = itemView.findViewById(R.id.ivVerifiedBadge)
         private val userStatus: TextView = itemView.findViewById(R.id.tvUserStatus)
         private val onlineDot: View = itemView.findViewById(R.id.viewOnlineDot)
 
@@ -44,6 +45,7 @@ class DmUsersAdapter(
             }
             val displayName = user.name + roleSuffix
             userName.text = displayName
+            verifiedBadge?.visibility = if (user.isBlueVerified) View.VISIBLE else View.GONE
             
             AvatarUtils.bind(avatar, avatarLetter, user.id, user.name, user.avatarUrl)
             val online = user.id in onlineIdsProvider() || user.isOnline

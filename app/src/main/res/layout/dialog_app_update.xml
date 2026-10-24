@@ -64,7 +64,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="A new version of ClassMate is ready. Update now to enjoy the latest features and stability fixes."
+            android:text="A new version of GSTU Go is ready. Update now to enjoy the latest features and stability fixes."
             android:textColor="@color/cm_text_secondary"
             android:textSize="13sp"
             android:gravity="center"

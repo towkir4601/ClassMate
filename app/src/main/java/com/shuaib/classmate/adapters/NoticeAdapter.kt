@@ -94,6 +94,7 @@ class NoticeAdapter(
     private val aiSummaryLoadingIds = mutableSetOf<String>()
     private val authorAvatarCache = mutableMapOf<String, String?>()
     private val authorNameCache = mutableMapOf<String, String?>()
+    private val authorVerifiedCache = mutableMapOf<String, Boolean>()
     private val libraryPdfCache = mutableMapOf<String, PdfFile?>()
     private val adapterScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -252,6 +253,14 @@ class NoticeAdapter(
             if (authorId.isNotBlank()) {
                 val cachedAvatar = authorAvatarCache[authorId]
                 val cachedName = authorNameCache[authorId]
+                val isVerified = authorVerifiedCache[authorId] ?: (
+                    notice.displayAuthor.contains("Dr.", ignoreCase = true) ||
+                    notice.displayAuthor.contains("Prof", ignoreCase = true) ||
+                    notice.displayAuthor.contains("Office", ignoreCase = true) ||
+                    notice.displayAuthor.contains("GSTU", ignoreCase = true)
+                )
+                binding.ivAuthorVerified.isVisible = isVerified
+
                 if (cachedAvatar != null || authorAvatarCache.containsKey(authorId)) {
                     AvatarUtils.bind(binding.ivAuthorAvatar, binding.tvAuthorAvatarLetter, authorId, cachedName ?: notice.displayAuthor, cachedAvatar)
                     binding.tvAuthorName.text = cachedName ?: notice.displayAuthor
@@ -268,6 +277,12 @@ class NoticeAdapter(
                                 val photoUrl = doc.getString("photoUrl")
                                 val fullName = doc.getString("fullName")?.takeIf { it.isNotBlank() } 
                                     ?: doc.getString("name")?.takeIf { it.isNotBlank() }
+                                val email = doc.getString("email").orEmpty().lowercase()
+                                val role = doc.getString("role").orEmpty().lowercase()
+                                val verified = doc.getBoolean("isVerified") == true ||
+                                    email.endsWith(".edu.bd") || email.endsWith("@gstu.ac.bd") ||
+                                    role in listOf("teacher", "admin", "superadmin", "university_admin")
+                                authorVerifiedCache[authorId] = verified
                                 if (!photoUrl.isNullOrBlank()) {
                                     authorAvatarCache[authorId] = photoUrl
                                 }
@@ -283,6 +298,10 @@ class NoticeAdapter(
                 }
             } else {
                 binding.tvAuthorName.text = notice.displayAuthor
+                binding.ivAuthorVerified.isVisible = notice.displayAuthor.contains("Dr.", ignoreCase = true) ||
+                    notice.displayAuthor.contains("Prof", ignoreCase = true) ||
+                    notice.displayAuthor.contains("Office", ignoreCase = true) ||
+                    notice.displayAuthor.contains("GSTU", ignoreCase = true)
                 AvatarUtils.bind(binding.ivAuthorAvatar, binding.tvAuthorAvatarLetter, "", notice.displayAuthor, null)
             }
 
@@ -1172,33 +1191,7 @@ class NoticeAdapter(
         return if (unit == 0) "${bytes}B" else String.format(java.util.Locale.US, "%.1f %s", value, units[unit])
     }
 
-    private fun com.google.firebase.firestore.DocumentSnapshot.toPdfFile(): PdfFile {
-        return PdfFile(
-            id = id,
-            title = getString("title") ?: "No Title",
-            subject = getString("subject") ?: "",
-            description = getString("description") ?: "",
-            uploadedBy = getString("uploadedByName") ?: getString("uploadedBy") ?: "",
-            telegramUrl = getString("telegramUrl") ?: "",
-            driveUrl = getString("driveUrl") ?: "",
-            fileId = getString("fileId") ?: "",
-            timestamp = getTimestamp("timestamp") ?: getTimestamp("createdAt"),
-            courseCode = getString("courseCode") ?: "",
-            courseType = getString("courseType") ?: "",
-            fileType = getString("fileType") ?: "other",
-            mimeType = getString("mimeType") ?: "application/octet-stream",
-            sizeBytes = getLong("sizeBytes") ?: 0L,
-            provider = getString("provider") ?: "",
-            downloadUrl = getString("downloadUrl") ?: "",
-            githubAssetId = getLong("githubAssetId") ?: 0L,
-            githubAssetName = getString("githubAssetName") ?: getString("title") ?: "",
-            createdAt = getTimestamp("createdAt"),
-            updatedAt = getTimestamp("updatedAt"),
-            downloadCount = getLong("downloadCount") ?: 0L,
-            isDeleted = getBoolean("isDeleted") ?: false,
-            batch = getString("batch") ?: ""
-        )
-    }
+    private fun com.google.firebase.firestore.DocumentSnapshot.toPdfFile(): PdfFile = PdfFile.fromDocument(this)
 
     companion object {
         private const val TYPE_NOTICE = 0

@@ -576,7 +576,7 @@ class CoverPageActivity : AppCompatActivity() {
             Course: $code - $title
             Submitted By: $sName (ID: $sId)
             Submitted To: $tName
-            Created via ClassMate App
+            Created via GSTU Go App
         """.trimIndent()
 
         val intent = Intent(Intent.ACTION_SEND).apply {

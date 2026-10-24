@@ -76,8 +76,11 @@ class ChatViewModel : ViewModel() {
     fun openRoom(roomId: String) {
         val changedRoom = currentRoomId != roomId
         currentRoomId = roomId
-        if (changedRoom) {
-            _messages.value = repository.historyMessages.value[roomId] ?: emptyList()
+        val cached = repository.historyMessages.value[roomId]
+        if (!cached.isNullOrEmpty()) {
+            _messages.value = cached
+        } else if (changedRoom) {
+            _messages.value = emptyList()
         }
         repository.enterRoom(roomId)
         repository.setRoom(roomId)
@@ -95,6 +98,10 @@ class ChatViewModel : ViewModel() {
         val trimmed = text.trim()
         if (trimmed.isBlank()) return
         repository.sendMessage(roomId, trimmed, replyToId, replyToText, replyToSender)
+        val cached = repository.historyMessages.value[roomId]
+        if (!cached.isNullOrEmpty()) {
+            _messages.value = cached
+        }
     }
 
     fun deleteMessage(messageId: String, isAdmin: Boolean) {

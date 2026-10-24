@@ -121,7 +121,9 @@ class TimetableRepository private constructor(private val context: Context) {
                             overrideEndTime = doc.getString("overrideEndTime") ?: "",
                             isTemporary = doc.getBoolean("isTemporary") ?: false,
                             temporaryDate = doc.getString("temporaryDate") ?: "",
-                            batch = doc.getString("batch") ?: ""
+                            batch = doc.getString("batch") ?: "",
+                            department = doc.getString("department") ?: "",
+                            departmentId = doc.getString("departmentId") ?: ""
                         )
                     }
                     val entities = periods.map { TimetableEntity.fromPeriod(normalizedDay, it) }
@@ -159,7 +161,9 @@ class TimetableRepository private constructor(private val context: Context) {
                 overrideEndTime = doc.getString("overrideEndTime") ?: "",
                 isTemporary = doc.getBoolean("isTemporary") ?: false,
                 temporaryDate = doc.getString("temporaryDate") ?: "",
-                batch = doc.getString("batch") ?: ""
+                batch = doc.getString("batch") ?: "",
+                department = doc.getString("department") ?: "",
+                departmentId = doc.getString("departmentId") ?: ""
             )
         }
         val entities = periods.map { TimetableEntity.fromPeriod(normalizedDay, it) }

@@ -21,7 +21,7 @@ class GroqAiProvider(private val client: OkHttpClient, private val gson: Gson) :
         
         val systemInstruction = if (isMultiNotice) {
             """
-                You are ClassMate AI, an expert academic assistant for GSTU CSE-14 (Computer Science & Engineering, 2014 batch) students.
+                You are GSTU Go AI, an expert academic assistant for GSTU CSE-14 (Computer Science & Engineering, 2014 batch) students.
                 Your task is to transform TODAY'S ACADEMIC UPDATES (which is a concatenated list of multiple notices, potentially in Bangla, English, or Benglish) into a single, cohesive, highly polished, and easily scannable daily briefing in English.
 
                 Guidelines:
@@ -45,7 +45,7 @@ class GroqAiProvider(private val client: OkHttpClient, private val gson: Gson) :
             """.trimIndent()
         } else {
             """
-                You are ClassMate AI, an expert academic assistant for GSTU CSE-14 (Computer Science & Engineering, 2014 batch) students.
+                You are GSTU Go AI, an expert academic assistant for GSTU CSE-14 (Computer Science & Engineering, 2014 batch) students.
                 Your task is to transform academic notices (which can be unstructured, verbose, or in Bangla/Benglish) into highly polished, structured, and scannable summaries in English.
 
                 Guidelines:
@@ -122,7 +122,7 @@ class GroqAiProvider(private val client: OkHttpClient, private val gson: Gson) :
 
     override suspend fun generateNoticeDraft(input: NoticeDraftInput): Result<AiNoticeDraft> = withContext(Dispatchers.IO) {
         val systemInstruction = """
-            You are ClassMate AI for GSTU (Gopalganj Science and Technology University) CSE department admins.
+            You are GSTU Go AI for GSTU (Gopalganj Science and Technology University) CSE department admins.
             Convert messy admin notes/drafts into polished academic notices for CSE-14 batch students.
 
             University context:

@@ -10,45 +10,8 @@ class LostFoundRepository {
     private val firestore = FirebaseFirestore.getInstance()
     private val collection = firestore.collection("lost_and_found")
 
-    // Default sample items matching real campus scenarios (within 7 days)
-    private val sampleItems = listOf(
-        LostFoundItem(
-            id = "sample_1",
-            type = "found",
-            title = "GSTU Student ID Card (2024-CSE-019)",
-            itemCategory = "id_card",
-            description = "Found on 2nd floor reading corner desk. Safely deposited at front desk.",
-            location = "Central Library 2nd Floor",
-            contactPhone = "Library Front Desk",
-            reporterName = "Library Front Desk",
-            timestamp = Timestamp.now(),
-            isResolved = false
-        ),
-        LostFoundItem(
-            id = "sample_2",
-            type = "lost",
-            title = "Casio Scientific Calculator FX-991EX",
-            itemCategory = "calculator",
-            description = "Black and white Casio 991EX left on bench in Room 304 during lecture. Urgently needed for exams.",
-            location = "Academic Building Room 304",
-            contactPhone = "01711-234567",
-            reporterName = "Tanvir Ahmed",
-            timestamp = Timestamp(Timestamp.now().seconds - 86400, 0),
-            isResolved = false
-        ),
-        LostFoundItem(
-            id = "sample_3",
-            type = "found",
-            title = "Set of 3 Keys with blue lanyard",
-            itemCategory = "keys",
-            description = "Found near campus main cafeteria counter. Submitted to security post #1.",
-            location = "Near Campus Cafeteria",
-            contactPhone = "Security Post #1",
-            reporterName = "Security Guard",
-            timestamp = Timestamp(Timestamp.now().seconds - 172800, 0),
-            isResolved = false
-        )
-    )
+    // Real production reports only; no hardcoded dummy items
+    private val sampleItems = emptyList<LostFoundItem>()
 
     companion object {
         private val localItems = mutableListOf<LostFoundItem>()
@@ -64,8 +27,8 @@ class LostFoundRepository {
 
     fun getRecentActiveItems(limit: Long = 5, onResult: (List<LostFoundItem>) -> Unit) {
         val nowMs = System.currentTimeMillis()
-        val sevenDaysMs = 7L * 24 * 60 * 60 * 1000L
-        val cutoffMs = nowMs - sevenDaysMs
+        val fifteenDaysMs = 15L * 24 * 60 * 60 * 1000L
+        val cutoffMs = nowMs - fifteenDaysMs
 
         collection
             .whereEqualTo("isResolved", false)
@@ -88,7 +51,7 @@ class LostFoundRepository {
                         }
                     }
 
-                    // Auto delete expired items from Firestore (> 7 days)
+                    // Auto delete expired items from Firestore (> 15 days)
                     if (expiredDocs.isNotEmpty()) {
                         val batch = firestore.batch()
                         for (doc in expiredDocs) {
@@ -117,8 +80,8 @@ class LostFoundRepository {
 
     fun getAllActiveItems(onResult: (List<LostFoundItem>) -> Unit) {
         val nowMs = System.currentTimeMillis()
-        val sevenDaysMs = 7L * 24 * 60 * 60 * 1000L
-        val cutoffMs = nowMs - sevenDaysMs
+        val fifteenDaysMs = 15L * 24 * 60 * 60 * 1000L
+        val cutoffMs = nowMs - fifteenDaysMs
 
         collection
             .whereEqualTo("isResolved", false)
@@ -140,7 +103,7 @@ class LostFoundRepository {
                         }
                     }
 
-                    // Auto delete expired items from Firestore (> 7 days old)
+                    // Auto delete expired items from Firestore (> 15 days old)
                     if (expiredDocs.isNotEmpty()) {
                         val batch = firestore.batch()
                         for (doc in expiredDocs) {

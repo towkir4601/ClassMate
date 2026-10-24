@@ -63,19 +63,32 @@
             <include layout="@layout/item_profile_detail" android:id="@+id/detailFriendDistrict"/>
             <include layout="@layout/item_profile_detail" android:id="@+id/detailFriendAddress"/>
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDetailChat"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="20dp"
+                android:text="Chat in GSTU Go"
+                android:textColor="@color/white"
+                app:icon="@drawable/ic_chat"
+                app:iconTint="@color/white"
+                app:iconGravity="textStart"
+                android:backgroundTint="@color/wa_teal_primary"
+                app:cornerRadius="12dp"/>
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="10dp"
                 android:gravity="center">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnDetailCall"
                     android:layout_width="0dp"
-                    android:layout_height="56dp"
+                    android:layout_height="52dp"
                     android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
+                    android:layout_marginEnd="6dp"
                     android:text="Call"
                     app:icon="@drawable/ic_phone"
                     app:iconGravity="textStart"
@@ -85,11 +98,11 @@
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnDetailWhatsapp"
                     android:layout_width="0dp"
-                    android:layout_height="56dp"
+                    android:layout_height="52dp"
                     android:layout_weight="1"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="6dp"
                     android:text="WhatsApp"
-                    app:icon="@drawable/ic_message"
+                    app:icon="@drawable/ic_whatsapp"
                     app:iconGravity="textStart"
                     android:backgroundTint="#25D366"
                     app:cornerRadius="12dp"/>

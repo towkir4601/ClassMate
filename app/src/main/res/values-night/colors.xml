@@ -100,4 +100,58 @@
 
     <color name="cm_date_separator_bg">#1E293B</color>
     <color name="cm_date_separator_text">#94A3B8</color>
+
+    <!-- Calendar Colors -->
+    <color name="cal_full_holiday">#EF4444</color>
+    <color name="cal_full_holiday_bg">#3B1115</color>
+    <color name="cal_class_holiday">#3B82F6</color>
+    <color name="cal_class_holiday_bg">#102B5C</color>
+    <color name="cal_event_amber">#FBBF24</color>
+    <color name="cal_today_gold">#FBBF24</color>
+    <color name="cal_weekend_red">#EF4444</color>
+    <color name="cal_cell_bg">#0B1324</color>
+    <color name="cal_cell_stroke">#1E293B</color>
+
+    <!-- WhatsApp Theme Colors (Dark Mode) -->
+    <color name="wa_teal_dark">#1F2C34</color>
+    <color name="wa_teal_primary">#00A884</color>
+    <color name="wa_teal_light">#00A884</color>
+    <color name="wa_green_accent">#25D366</color>
+    <color name="wa_green_bright">#00A884</color>
+    <color name="wa_chat_bg">#0B141A</color>
+    <color name="wa_chat_bg_dark">#0B141A</color>
+    <color name="wa_bubble_sent">#005C4B</color>
+    <color name="wa_bubble_sent_dark">#005C4B</color>
+    <color name="wa_bubble_received">#202C33</color>
+    <color name="wa_bubble_received_dark">#202C33</color>
+    <color name="wa_tick_gray">#8696A0</color>
+    <color name="wa_tick_blue">#53BDEB</color>
+    <color name="wa_text_primary">#E9EDEF</color>
+    <color name="wa_text_secondary">#8696A0</color>
+    <color name="wa_date_pill_bg">#182229</color>
+    <color name="wa_date_pill_text">#8696A0</color>
+    <color name="wa_input_bg">#1F2C34</color>
+    <color name="wa_input_hint">#8696A0</color>
+    <color name="wa_reply_bar">#00A884</color>
+    <color name="wa_reply_bg">#1AFFFFFF</color>
+    <color name="wa_unread_badge">#25D366</color>
+    <color name="wa_divider">#222D34</color>
+
+    <!-- WhatsApp Group Sender Colors (Dark Mode) -->
+    <color name="wa_sender_blue">#53BDEB</color>
+    <color name="wa_sender_orange">#FF8F00</color>
+    <color name="wa_sender_green">#25D366</color>
+    <color name="wa_sender_magenta">#CE93D8</color>
+    <color name="wa_sender_purple">#B39DDB</color>
+    <color name="wa_sender_teal">#4DB6AC</color>
+    <color name="wa_sender_amber">#FFE082</color>
+    <color name="wa_sender_crimson">#EF5350</color>
+
+    <!-- WhatsApp Attachment Sheet Button Colors -->
+    <color name="wa_attach_document">#7F66FF</color>
+    <color name="wa_attach_camera">#D3396D</color>
+    <color name="wa_attach_gallery">#AC44CF</color>
+    <color name="wa_attach_audio">#E06A3B</color>
+    <color name="wa_attach_poll">#009688</color>
+    <color name="wa_attach_contact">#007BFC</color>
 </resources>

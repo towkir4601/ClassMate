@@ -484,9 +484,9 @@ class TimetableManagementActivity : AppCompatActivity() {
         }
         return try {
             val format = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.US)
-            val date = format.parse(trimmed)
+            val date = format.parse(trimmed) ?: return 0
             val calendar = java.util.Calendar.getInstance()
-            calendar.time = date!!
+            calendar.time = date
             calendar.get(java.util.Calendar.HOUR_OF_DAY) * 60 + calendar.get(java.util.Calendar.MINUTE)
         } catch (e: Exception) {
             0
@@ -520,8 +520,16 @@ class TimetableManagementActivity : AppCompatActivity() {
                     }
                 }
 
+                val prefs = com.shuaib.classmate.utils.AppPreferences(this@TimetableManagementActivity)
+                val userDept = prefs.getUserDepartment()
+                val userDeptId = prefs.getUserDepartmentId()
+
                 val docRef = if (isEdit) collection.document(period.id) else collection.document()
-                val periodToSave = (if (isEdit) period else period.copy(id = docRef.id)).copy(batch = targetBatch)
+                val periodToSave = (if (isEdit) period else period.copy(id = docRef.id)).copy(
+                    batch = targetBatch,
+                    department = period.department.ifBlank { userDept },
+                    departmentId = period.departmentId.ifBlank { userDeptId }
+                )
                 batch.set(docRef, periodToSave)
 
                 batch.commit().await()
@@ -543,6 +551,10 @@ class TimetableManagementActivity : AppCompatActivity() {
             try {
                 val batch = firestore.batch()
                 val targetBatch = if (period.batch == "14") "2-1" else period.batch
+                val prefs = com.shuaib.classmate.utils.AppPreferences(this@TimetableManagementActivity)
+                val userDept = prefs.getUserDepartment()
+                val userDeptId = prefs.getUserDepartmentId()
+
                 for (day in daysToSave) {
                     val collection = firestore.collection("timetable").document(day).collection("periods")
                     val existingDocs = collection.get().await()
@@ -558,7 +570,12 @@ class TimetableManagementActivity : AppCompatActivity() {
                     }
 
                     val newDocRef = collection.document()
-                    val periodToSave = period.copy(id = newDocRef.id, batch = targetBatch)
+                    val periodToSave = period.copy(
+                        id = newDocRef.id,
+                        batch = targetBatch,
+                        department = period.department.ifBlank { userDept },
+                        departmentId = period.departmentId.ifBlank { userDeptId }
+                    )
                     batch.set(newDocRef, periodToSave)
                 }
 

@@ -41,6 +41,7 @@ class UserAdapter(
         holder.binding.apply {
             val displayName = user.fullName.ifBlank { user.name }.ifBlank { "Unnamed user" }
             tvUserName.text = displayName
+            ivVerifiedBadge.visibility = if (user.isBlueVerified) View.VISIBLE else View.GONE
             tvUserEmail.text = user.email.ifBlank { "No email" }
             tvStudentId.text = user.studentId.ifBlank { "No student ID" }
             tvUserRole.text = user.role.ifBlank { "student" }.uppercase()

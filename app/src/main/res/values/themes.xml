@@ -28,11 +28,11 @@
         <item name="alertDialogTheme">@style/Theme.ClassMate.Dialog</item>
     </style>
 
-    <!-- Splash theme — prevents white flash -->
+    <!-- Splash theme — clean dark start, zero static icon popup -->
     <style name="Theme.ClassMate.Starting" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/cm_background</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_classmate_logo</item>
-        <item name="windowSplashScreenAnimationDuration">350</item>
+        <item name="windowSplashScreenBackground">#020817</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_transparent</item>
+        <item name="windowSplashScreenAnimationDuration">0</item>
         <item name="postSplashScreenTheme">@style/Theme.ClassMate.Splash</item>
     </style>
 

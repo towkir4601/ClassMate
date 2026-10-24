@@ -13,7 +13,8 @@ class FriendsAdapter(
     private var friends: List<User>,
     private val onFriendClick: (User) -> Unit,
     private val onCallClick: (User) -> Unit,
-    private val onWhatsappClick: (User) -> Unit
+    private val onWhatsappClick: (User) -> Unit,
+    private val onMessageClick: ((User) -> Unit)? = null
 ) : RecyclerView.Adapter<FriendsAdapter.FriendViewHolder>() {
 
     inner class FriendViewHolder(val binding: ItemFriendBinding) :
@@ -51,7 +52,12 @@ class FriendsAdapter(
                 .placeholder(R.drawable.ic_default_avatar)
                 .into(ivFriendProfile)
 
+            val hasPhone = friend.phone.isNotBlank()
+            btnCall.alpha = if (hasPhone) 1.0f else 0.35f
+            btnWhatsapp.alpha = if (hasPhone) 1.0f else 0.35f
+
             root.setOnClickListener { onFriendClick(friend) }
+            btnMessage.setOnClickListener { onMessageClick?.invoke(friend) ?: onFriendClick(friend) }
             btnCall.setOnClickListener { onCallClick(friend) }
             btnWhatsapp.setOnClickListener { onWhatsappClick(friend) }
         }

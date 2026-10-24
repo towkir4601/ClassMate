@@ -118,7 +118,8 @@ class GroupChatFragment : Fragment() {
             binding.btnBack.setOnClickListener { findNavController().navigateUp() }
         }
         binding.btnSend.setOnClickListener { sendCurrentMessage() }
-        binding.btnAttach.setOnClickListener { imagePicker.launch("image/*") }
+        binding.btnAttach.setOnClickListener { showWhatsAppAttachmentSheet() }
+        binding.btnCamera.setOnClickListener { imagePicker.launch("image/*") }
         binding.btnEmoji.setOnClickListener { showEmojiInputPicker() }
         binding.btnSayHello.setOnClickListener {
             binding.etMessage.setText("Hello!")
@@ -175,12 +176,26 @@ class GroupChatFragment : Fragment() {
         }
 
         checkAdmin(currentUserId)
+        collectChatState()
         
-        // Fetch batch asynchronously before opening room
+        val prefs = com.shuaib.classmate.utils.AppPreferences(requireContext())
+        val cachedBatch = prefs.getUserBatch()
+        val cachedDept = prefs.getUserDepartment()
+        if (cachedBatch.isNotBlank()) {
+            com.shuaib.classmate.chat.ChatRepository.userBatch = cachedBatch
+            if (cachedDept.isNotBlank()) {
+                com.shuaib.classmate.chat.ChatRepository.userDepartment = cachedDept
+            }
+            viewModel.openRoom(com.shuaib.classmate.chat.ChatRepository.groupRoomId)
+            ChatRepository.enterRoom(com.shuaib.classmate.chat.ChatRepository.groupRoomId)
+        }
+        
+        // Fetch fresh batch & department asynchronously
         FirebaseFirestore.getInstance().collection("users").document(currentUserId).get().addOnSuccessListener { doc ->
             if (_binding == null) return@addOnSuccessListener
             val batch = doc.getString("batch") ?: ""
-            if (batch.isBlank()) {
+            val dept = doc.getString("department") ?: ""
+            if (batch.isBlank() && cachedBatch.isBlank()) {
                 binding.bottomComposeArea.visibility = View.GONE
                 binding.rvMessages.visibility = View.GONE
                 binding.emptyState?.visibility = View.VISIBLE
@@ -191,9 +206,17 @@ class GroupChatFragment : Fragment() {
                     emptySubtitle?.text = "Please set your batch number in profile."
                 } catch (_: Exception) {}
             } else {
-                com.shuaib.classmate.chat.ChatRepository.userBatch = batch
+                binding.bottomComposeArea.visibility = View.VISIBLE
+                binding.rvMessages.visibility = View.VISIBLE
+                if (batch.isNotBlank()) {
+                    prefs.setUserBatch(batch)
+                    com.shuaib.classmate.chat.ChatRepository.userBatch = batch
+                }
+                if (dept.isNotBlank()) {
+                    prefs.setUserDepartment(dept)
+                    com.shuaib.classmate.chat.ChatRepository.userDepartment = dept
+                }
                 viewModel.openRoom(com.shuaib.classmate.chat.ChatRepository.groupRoomId)
-                collectChatState()
                 ChatRepository.enterRoom(com.shuaib.classmate.chat.ChatRepository.groupRoomId)
             }
         }
@@ -509,6 +532,49 @@ class GroupChatFragment : Fragment() {
                 binding.tvConnectionBanner.visibility = View.VISIBLE
             }
         }
+    }
+
+    private fun showWhatsAppAttachmentSheet() {
+        val dialog = BottomSheetDialog(requireContext())
+        val sheetView = layoutInflater.inflate(R.layout.bottom_sheet_whatsapp_attachment, null)
+        dialog.setContentView(sheetView)
+
+        sheetView.findViewById<View>(R.id.btnAttachDocument)?.setOnClickListener {
+            dialog.dismiss()
+            try {
+                imagePicker.launch("*/*")
+            } catch (e: Exception) {
+                imagePicker.launch("image/*")
+            }
+        }
+        sheetView.findViewById<View>(R.id.btnAttachCamera)?.setOnClickListener {
+            dialog.dismiss()
+            imagePicker.launch("image/*")
+        }
+        sheetView.findViewById<View>(R.id.btnAttachGallery)?.setOnClickListener {
+            dialog.dismiss()
+            imagePicker.launch("image/*")
+        }
+        sheetView.findViewById<View>(R.id.btnAttachAudio)?.setOnClickListener {
+            dialog.dismiss()
+            Toast.makeText(requireContext(), "Hold mic button to record voice note", Toast.LENGTH_SHORT).show()
+        }
+        sheetView.findViewById<View>(R.id.btnAttachPoll)?.setOnClickListener {
+            dialog.dismiss()
+            Toast.makeText(requireContext(), "Polls can be created in Community tab", Toast.LENGTH_SHORT).show()
+        }
+        sheetView.findViewById<View>(R.id.btnAttachContact)?.setOnClickListener {
+            dialog.dismiss()
+            runCatching {
+                findNavController().navigate(R.id.fragment_dm_list)
+            }.onFailure {
+                runCatching {
+                    findNavController().navigate(R.id.nav_friends)
+                }
+            }
+        }
+
+        dialog.show()
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()

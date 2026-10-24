@@ -33,7 +33,7 @@ object ChatRepository {
     private var context: Context? = null
     private var userId: String = ""
     private var userName: String = "User"
-    private var currentRoomId: String? = null
+    var currentRoomId: String? = null
     private var avatarUrl: String = ""
 
     val activeRooms = mutableSetOf<String>()
@@ -88,8 +88,18 @@ object ChatRepository {
     private val messagesListeners = mutableMapOf<String, ListenerRegistration>()
 
     var userBatch: String = ""
+    var userDepartment: String = ""
     val groupRoomId: String
-        get() = if (userBatch.isBlank()) "group_main" else "group_batch_$userBatch"
+        get() {
+            val deptSlug = com.shuaib.classmate.models.User.slugifyDepartment(userDepartment)
+            val batchClean = userBatch.trim().lowercase().replace(Regex("[^a-z0-9]"), "_")
+            return when {
+                deptSlug.isNotBlank() && batchClean.isNotBlank() -> "group_${deptSlug}_batch_${batchClean}"
+                batchClean.isNotBlank() -> "group_batch_${batchClean}"
+                deptSlug.isNotBlank() -> "group_${deptSlug}_main"
+                else -> "group_main"
+            }
+        }
 
     fun init(context: Context, userId: String, userName: String?, avatarUrl: String?) {
         ChatUnreadManager.init(context)
@@ -100,9 +110,24 @@ object ChatRepository {
         this.avatarUrl = avatarUrl.orEmpty()
         
         _connectionState.value = ConnectionState.CONNECTED
+
+        // Immediately initialize batch & department from cached preferences if available
+        try {
+            val prefs = com.shuaib.classmate.utils.AppPreferences(context)
+            if (userBatch.isBlank()) userBatch = prefs.getUserBatch()
+            if (userDepartment.isBlank()) userDepartment = prefs.getUserDepartment()
+        } catch (_: Exception) {}
         
         firestore.collection("users").document(userId).get().addOnSuccessListener { doc ->
-            userBatch = doc.getString("batch") ?: ""
+            val b = doc.getString("batch") ?: ""
+            val d = doc.getString("department") ?: ""
+            if (b.isNotBlank()) userBatch = b
+            if (d.isNotBlank()) userDepartment = d
+            try {
+                val prefs = com.shuaib.classmate.utils.AppPreferences(context)
+                if (b.isNotBlank()) prefs.setUserBatch(b)
+                if (d.isNotBlank()) prefs.setUserDepartment(d)
+            } catch (_: Exception) {}
             ensureMainGroupExists()
             getRooms()
             getUsers()
@@ -115,10 +140,15 @@ object ChatRepository {
                 val mainGroupRef = firestore.collection("chat_rooms").document(groupRoomId)
                 val snap = mainGroupRef.get().await()
                 if (!snap.exists()) {
+                    val deptDisplay = if (userDepartment.isNotBlank()) "$userDepartment " else ""
+                    val batchDisplay = if (userBatch.isNotBlank()) "Batch $userBatch" else "All"
                     mainGroupRef.set(mapOf(
                         "id" to groupRoomId,
                         "type" to "group",
-                        "name" to "Class Group (${if(userBatch.isNotBlank()) "Batch $userBatch" else "All"})",
+                        "name" to "${deptDisplay}Class Group ($batchDisplay)",
+                        "department" to userDepartment,
+                        "departmentId" to com.shuaib.classmate.models.User.slugifyDepartment(userDepartment),
+                        "batch" to userBatch,
                         "lastMessage" to "",
                         "lastTimestamp" to System.currentTimeMillis()
                     ), SetOptions.merge())
@@ -152,6 +182,29 @@ object ChatRepository {
         forwardedFrom: String? = null
     ) {
         val msgId = UUID.randomUUID().toString()
+        val timestamp = System.currentTimeMillis()
+        
+        // 1. Optimistically append message to local history immediately so the UI shows it without waiting
+        val optimisticMsg = ChatMessage(
+            id = msgId,
+            roomId = roomId,
+            senderId = userId,
+            senderName = userName,
+            senderAvatarUrl = avatarUrl,
+            text = text,
+            timestamp = timestamp,
+            isDeleted = false,
+            replyToId = replyToId,
+            replyToText = replyToText,
+            replyToSender = replyToSender,
+            forwardedFrom = forwardedFrom
+        )
+        val existingMsgs = _historyMessages.value[roomId] ?: emptyList()
+        val updatedMsgs = (existingMsgs + optimisticMsg).distinctBy { it.id }.sortedBy { it.timestamp }
+        val newMap = _historyMessages.value.toMutableMap()
+        newMap[roomId] = updatedMsgs
+        _historyMessages.value = newMap
+
         val msg = mapOf(
             "id" to msgId,
             "roomId" to roomId,
@@ -159,7 +212,7 @@ object ChatRepository {
             "senderName" to userName,
             "senderAvatarUrl" to avatarUrl,
             "text" to text,
-            "timestamp" to System.currentTimeMillis(),
+            "timestamp" to timestamp,
             "isDeleted" to false,
             "replyToId" to replyToId,
             "replyToText" to replyToText,
@@ -167,12 +220,27 @@ object ChatRepository {
             "forwardedFrom" to forwardedFrom
         )
         firestore.collection("chat_rooms").document(roomId).collection("messages").document(msgId).set(msg)
-        firestore.collection("chat_rooms").document(roomId).update(
-            "lastMessage", text,
-            "lastTimestamp", System.currentTimeMillis()
+            .addOnFailureListener { e ->
+                Log.e("ChatRepo", "Failed to write message $msgId: ${e.message}", e)
+            }
+            
+        // Use SetOptions.merge() so it safely creates or updates the room doc and marks lastSenderId = userId
+        val roomUpdate = mapOf(
+            "id" to roomId,
+            "type" to if (roomId.startsWith("group_")) "group" else "direct",
+            "lastMessage" to text,
+            "lastTimestamp" to timestamp,
+            "lastSenderId" to userId
         )
+        firestore.collection("chat_rooms").document(roomId).set(roomUpdate, SetOptions.merge())
+            .addOnFailureListener { e ->
+                Log.e("ChatRepo", "Failed to update room $roomId: ${e.message}", e)
+            }
+            
+        // Mark room as seen by sender
+        ChatUnreadManager.markRoomSeen(roomId)
         
-        // Send Notification
+        // Send Notification (excludes sender!)
         val targetUserId = if (roomId.startsWith("dm_")) roomId.removePrefix("dm_").split("_").firstOrNull { it != userId } else null
         com.shuaib.classmate.utils.NotificationSender.sendChatMessageAlert(
             roomId = roomId,
@@ -185,6 +253,26 @@ object ChatRepository {
 
     fun sendImage(roomId: String, imageUrl: String, caption: String) {
         val msgId = UUID.randomUUID().toString()
+        val timestamp = System.currentTimeMillis()
+
+        // Optimistically append image message
+        val optimisticMsg = ChatMessage(
+            id = msgId,
+            roomId = roomId,
+            senderId = userId,
+            senderName = userName,
+            senderAvatarUrl = avatarUrl,
+            text = caption,
+            imageUrl = imageUrl,
+            timestamp = timestamp,
+            isDeleted = false
+        )
+        val existingMsgs = _historyMessages.value[roomId] ?: emptyList()
+        val updatedMsgs = (existingMsgs + optimisticMsg).distinctBy { it.id }.sortedBy { it.timestamp }
+        val newMap = _historyMessages.value.toMutableMap()
+        newMap[roomId] = updatedMsgs
+        _historyMessages.value = newMap
+
         val msg = mapOf(
             "id" to msgId,
             "roomId" to roomId,
@@ -193,14 +281,27 @@ object ChatRepository {
             "senderAvatarUrl" to avatarUrl,
             "text" to caption,
             "imageUrl" to imageUrl,
-            "timestamp" to System.currentTimeMillis(),
+            "timestamp" to timestamp,
             "isDeleted" to false
         )
         firestore.collection("chat_rooms").document(roomId).collection("messages").document(msgId).set(msg)
-        firestore.collection("chat_rooms").document(roomId).update(
-            "lastMessage", if (caption.isNotBlank()) caption else "Sent an image",
-            "lastTimestamp", System.currentTimeMillis()
+            .addOnFailureListener { e ->
+                Log.e("ChatRepo", "Failed to write image msg $msgId: ${e.message}", e)
+            }
+
+        val roomUpdate = mapOf(
+            "id" to roomId,
+            "type" to if (roomId.startsWith("group_")) "group" else "direct",
+            "lastMessage" to if (caption.isNotBlank()) caption else "Sent an image",
+            "lastTimestamp" to timestamp,
+            "lastSenderId" to userId
         )
+        firestore.collection("chat_rooms").document(roomId).set(roomUpdate, SetOptions.merge())
+            .addOnFailureListener { e ->
+                Log.e("ChatRepo", "Failed to update room $roomId: ${e.message}", e)
+            }
+            
+        ChatUnreadManager.markRoomSeen(roomId)
         
         // Send Notification
         val targetUserId = if (roomId.startsWith("dm_")) roomId.removePrefix("dm_").split("_").firstOrNull { it != userId } else null
@@ -230,15 +331,34 @@ object ChatRepository {
     fun setRoom(roomId: String) {}
 
     fun getHistory(roomId: String) {
-        if (messagesListeners.containsKey(roomId)) return
+        if (messagesListeners.containsKey(roomId)) {
+            // Re-emit cached data to ensure UI receives it
+            val cached = _historyMessages.value[roomId]
+            if (cached != null) {
+                scope.launch { _historyLoaded.emit(roomId) }
+            }
+            return
+        }
         
         messagesListeners[roomId] = firestore.collection("chat_rooms").document(roomId)
             .collection("messages")
             .orderBy("timestamp", Query.Direction.DESCENDING)
             .limit(50)
-            .addSnapshotListener { snap, _ ->
+            .addSnapshotListener { snap, error ->
+                if (error != null) {
+                    Log.e("ChatRepo", "Snapshot error for $roomId: ${error.message}", error)
+                    messagesListeners.remove(roomId)?.remove()
+                    return@addSnapshotListener
+                }
                 if (snap != null) {
-                    val msgs = snap.documents.mapNotNull { parseMessage(it.data) }
+                    val msgs = snap.documents.mapNotNull { doc ->
+                        val data = doc.data ?: return@mapNotNull null
+                        val map = data.toMutableMap()
+                        if (!map.containsKey("id") || (map["id"] as? String).isNullOrBlank()) {
+                            map["id"] = doc.id
+                        }
+                        parseMessage(map)
+                    }
                     val newMap = _historyMessages.value.toMutableMap()
                     newMap[roomId] = msgs.reversed()
                     _historyMessages.value = newMap
@@ -277,7 +397,11 @@ object ChatRepository {
                     val currentUserRole = _users.value.find { it.id == userId }?.role ?: "student"
                     val isTeacher = currentUserRole == "teacher"
                     val userRooms = allRooms.filter { 
-                        (it.type == "group" && !isTeacher) || it.member1Id == userId || it.member2Id == userId 
+                        if (it.type == "group") {
+                            !isTeacher && (it.id == groupRoomId || it.id == "group_main")
+                        } else {
+                            it.member1Id == userId || it.member2Id == userId 
+                        }
                     }.sortedByDescending { it.lastMessageTime }
                     
                     val totalUnread = ChatUnreadManager.getTotalUnread(userRooms, userId)
@@ -350,7 +474,9 @@ object ChatRepository {
                                 name = u.name.ifBlank { u.fullName },
                                 avatarUrl = u.photoUrl,
                                 role = u.role,
-                                isOnline = u.isOnline
+                                isOnline = u.isOnline,
+                                email = u.email,
+                                isVerified = u.isVerified || u.hasEduMail()
                             )
                         } catch (e: Exception) {
                             Log.e("ChatRepo", "Error parsing user ${doc.id}", e)
@@ -450,7 +576,9 @@ object ChatRepository {
                 if (userIds.isEmpty()) null else com.shuaib.classmate.chat.model.MessageReaction(emoji, userIds)
             } ?: emptyList(),
             seenBy = (map["seenBy"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
-            isPinned = false
+            isPinned = false,
+            senderRole = map["senderRole"] as? String ?: "",
+            isSenderVerified = map["isSenderVerified"] as? Boolean ?: false
         )
     }
 

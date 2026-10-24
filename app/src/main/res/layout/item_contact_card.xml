@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="16dp"
@@ -29,16 +30,31 @@
                 android:layout_weight="1"
                 android:orientation="vertical">
 
-                <TextView
-                    android:id="@+id/tvContactName"
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="Faculty Name"
-                    android:textColor="@color/cm_text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tvContactName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="@color/cm_text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        tools:text="GSTU Ambulance Service" />
+
+                    <ImageView
+                        android:id="@+id/ivVerifiedBadge"
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_marginStart="4dp"
+                        android:src="@drawable/ic_verified_badge"
+                        android:contentDescription="Verified Contact" />
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/tvContactRole"
@@ -47,9 +63,9 @@
                     android:layout_marginTop="2dp"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="Teacher · Department of CSE"
                     android:textColor="@color/cm_primary"
-                    android:textSize="13sp" />
+                    android:textSize="13sp"
+                    tools:text="Emergency Response · Medical Center" />
             </LinearLayout>
 
             <TextView
@@ -59,26 +75,57 @@
                 android:background="@drawable/bg_library_badge_green"
                 android:paddingHorizontal="8dp"
                 android:paddingVertical="3dp"
-                android:text="TEACHER"
                 android:textColor="@color/cm_success"
                 android:textSize="11sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                tools:text="EMERGENCY" />
+
+            <ImageView
+                android:id="@+id/btnDeleteContact"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="6dp"
+                android:src="@drawable/ic_delete"
+                android:visibility="gone"
+                app:tint="@color/cm_error"
+                tools:visibility="visible"
+                android:contentDescription="Delete Contact" />
         </LinearLayout>
 
+        <!-- Phone Number -->
         <TextView
-            android:id="@+id/tvContactEmail"
+            android:id="@+id/tvContactPhone"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:drawablePadding="6dp"
             android:ellipsize="end"
             android:maxLines="1"
-            android:text="email@example.com"
+            android:textColor="@color/cm_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            app:drawableStartCompat="@drawable/ic_phone"
+            app:drawableTint="@color/cm_primary"
+            tools:text="+880 1711-234567" />
+
+        <!-- Email -->
+        <TextView
+            android:id="@+id/tvContactEmail"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:drawablePadding="6dp"
+            android:ellipsize="end"
+            android:maxLines="1"
             android:textColor="@color/cm_text_muted"
             android:textSize="13sp"
             app:drawableStartCompat="@drawable/ic_email"
-            app:drawableTint="@color/cm_text_muted" />
+            app:drawableTint="@color/cm_text_muted"
+            tools:text="ambulance@gstu.ac.bd" />
 
+        <!-- Action Buttons -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

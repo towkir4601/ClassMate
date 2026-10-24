@@ -31,7 +31,7 @@
         android:textColor="@color/cm_text_muted"
         android:textSize="12sp" />
 
-    <!-- Grid of Tools -->
+    <!-- Grid of Primary Tools -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -142,74 +142,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:layout_marginBottom="14dp"
         android:orientation="horizontal">
-
-        <!-- Notices -->
-        <LinearLayout
-            android:id="@+id/toolItemNotices"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="?attr/selectableItemBackground"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="10dp">
-
-            <FrameLayout
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:background="@drawable/bg_squircle_dark">
-
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/ic_notice"
-                    app:tint="#F59E0B" />
-            </FrameLayout>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:text="Notices"
-                android:textColor="@color/cm_text_primary"
-                android:textSize="12sp" />
-        </LinearLayout>
-
-        <!-- Polls -->
-        <LinearLayout
-            android:id="@+id/toolItemPolls"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="?attr/selectableItemBackground"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="10dp">
-
-            <FrameLayout
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:background="@drawable/bg_squircle_dark">
-
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/ic_calendar"
-                    app:tint="#10B981" />
-            </FrameLayout>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:text="Polls &amp; Vote"
-                android:textColor="@color/cm_text_primary"
-                android:textSize="12sp" />
-        </LinearLayout>
 
         <!-- Academic Calendar -->
         <LinearLayout
@@ -242,6 +175,280 @@
                 android:text="Calendar"
                 android:textColor="@color/cm_text_primary"
                 android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- Polls & Vote -->
+        <LinearLayout
+            android:id="@+id/toolItemPolls"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackground"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="10dp">
+
+            <FrameLayout
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:background="@drawable/bg_squircle_dark">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_calendar"
+                    app:tint="#10B981" />
+            </FrameLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="Polls &amp; Vote"
+                android:textColor="@color/cm_text_primary"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- Placeholder spacer for 3-item grid alignment -->
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+    </LinearLayout>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="14dp"
+        android:background="@color/cm_divider" />
+
+    <!-- Section: Upcoming Features -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="🚀 Upcoming Features"
+            android:textColor="@color/cm_text_primary"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_badge_purple"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="3dp"
+            android:text="ROADMAP"
+            android:textColor="#C084FC"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="Tap any upcoming tool to view its roadmap &amp; launch beta"
+        android:textColor="@color/cm_text_muted"
+        android:textSize="12sp" />
+
+    <!-- Upcoming Row: CV Maker, Live Bus, Cafeteria, Hall -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="6dp"
+        android:orientation="horizontal">
+
+        <!-- CV Maker -->
+        <LinearLayout
+            android:id="@+id/toolItemCvMaker"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackground"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="6dp">
+
+            <FrameLayout
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_squircle_dark">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_badge"
+                    app:tint="#818CF8" />
+            </FrameLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="CV Maker"
+                android:textColor="@color/cm_text_primary"
+                android:textSize="11sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:background="@drawable/bg_badge_purple"
+                android:paddingHorizontal="5dp"
+                android:paddingVertical="1dp"
+                android:text="BETA"
+                android:textColor="#C084FC"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Live Bus Tracking -->
+        <LinearLayout
+            android:id="@+id/toolItemLiveBus"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackground"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="6dp">
+
+            <FrameLayout
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_squircle_dark">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_bus"
+                    app:tint="#F59E0B" />
+            </FrameLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Live Bus"
+                android:textColor="@color/cm_text_primary"
+                android:textSize="11sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:background="@drawable/bg_badge_accent_pill"
+                android:backgroundTint="#451A03"
+                android:paddingHorizontal="5dp"
+                android:paddingVertical="1dp"
+                android:text="DEV"
+                android:textColor="#FBBF24"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Cafeteria Menu -->
+        <LinearLayout
+            android:id="@+id/toolItemCafeteria"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackground"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="6dp">
+
+            <FrameLayout
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_squircle_dark">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_restaurant_menu"
+                    app:tint="#10B981" />
+            </FrameLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Cafeteria"
+                android:textColor="@color/cm_text_primary"
+                android:textSize="11sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:background="@drawable/bg_badge_green"
+                android:paddingHorizontal="5dp"
+                android:paddingVertical="1dp"
+                android:text="SOON"
+                android:textColor="@color/cm_success"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Hall & Alumni -->
+        <LinearLayout
+            android:id="@+id/toolItemHall"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackground"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="6dp">
+
+            <FrameLayout
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_squircle_dark">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_location_pin"
+                    app:tint="#EC4899" />
+            </FrameLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Hall &amp; Alumni"
+                android:textColor="@color/cm_text_primary"
+                android:textSize="11sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:background="@drawable/bg_badge_accent_pill"
+                android:backgroundTint="#500724"
+                android:paddingHorizontal="5dp"
+                android:paddingVertical="1dp"
+                android:text="SOON"
+                android:textColor="#F472B6"
+                android:textSize="9sp"
+                android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>
 

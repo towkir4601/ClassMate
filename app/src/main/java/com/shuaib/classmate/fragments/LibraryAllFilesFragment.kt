@@ -29,6 +29,8 @@ class LibraryAllFilesFragment : Fragment() {
     private lateinit var pdfAdapter: PdfAdapter
     private var isAdmin = false
     private var currentUserBatch = ""
+    private var currentUserDepartment = ""
+    private var currentUserDepartmentId = ""
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -86,7 +88,9 @@ class LibraryAllFilesFragment : Fragment() {
             .addOnSuccessListener { doc ->
                 if (_binding == null) return@addOnSuccessListener
                 val role = doc.getString("role") ?: "student"
-                currentUserBatch = doc.getString("batch") ?: ""
+                currentUserBatch = doc.getString("batch") ?: context?.let { com.shuaib.classmate.utils.AppPreferences(it).getUserBatch() } ?: ""
+                currentUserDepartment = doc.getString("department") ?: context?.let { com.shuaib.classmate.utils.AppPreferences(it).getUserDepartment() } ?: ""
+                currentUserDepartmentId = com.shuaib.classmate.models.User.slugifyDepartment(currentUserDepartment)
                 val canUploadPdf = doc.getBoolean("permissions.canUploadPDF") ?: false
                 val canUploadLibrary = doc.getBoolean("permissions.canUploadLibrary") ?: false
                 isAdmin = role == "superadmin"
@@ -118,8 +122,7 @@ class LibraryAllFilesFragment : Fragment() {
             .addOnSuccessListener { snapshot ->
                 if (_binding == null) return@addOnSuccessListener
                 val files = snapshot.documents.map { doc -> doc.toPdfFile() }
-                    .filter { !it.isDeleted }
-                    .filter { isAdmin || it.batch.isEmpty() || it.batch == currentUserBatch }
+                    .filter { it.canUserAccess(currentUserDepartmentId, currentUserBatch, isAdmin) }
                     .sortedByDescending { it.timestamp ?: it.createdAt }
                 
                 pdfAdapter.updateList(files)
@@ -214,33 +217,7 @@ class LibraryAllFilesFragment : Fragment() {
             }
     }
 
-    private fun com.google.firebase.firestore.DocumentSnapshot.toPdfFile(): PdfFile {
-        return PdfFile(
-            id = id,
-            title = getString("title") ?: "No Title",
-            subject = getString("subject") ?: "",
-            description = getString("description") ?: "",
-            uploadedBy = getString("uploadedByName") ?: getString("uploadedBy") ?: "",
-            telegramUrl = getString("telegramUrl") ?: "",
-            driveUrl = getString("driveUrl") ?: "",
-            fileId = getString("fileId") ?: "",
-            timestamp = getTimestamp("timestamp") ?: getTimestamp("createdAt"),
-            courseCode = getString("courseCode") ?: "",
-            courseType = getString("courseType") ?: "",
-            fileType = getString("fileType") ?: "other",
-            mimeType = getString("mimeType") ?: "application/octet-stream",
-            sizeBytes = getLong("sizeBytes") ?: 0L,
-            provider = getString("provider") ?: "",
-            downloadUrl = getString("downloadUrl") ?: "",
-            githubAssetId = getLong("githubAssetId") ?: 0L,
-            githubAssetName = getString("githubAssetName") ?: getString("title") ?: "",
-            createdAt = getTimestamp("createdAt"),
-            updatedAt = getTimestamp("updatedAt"),
-            downloadCount = getLong("downloadCount") ?: 0L,
-            isDeleted = getBoolean("isDeleted") ?: false,
-            batch = getString("batch") ?: ""
-        )
-    }
+    private fun com.google.firebase.firestore.DocumentSnapshot.toPdfFile(): PdfFile = PdfFile.fromDocument(this)
 
     private fun resourceCountText(count: Int): String {
         return "$count ${if (count == 1) "resource" else "resources"}"

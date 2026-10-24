@@ -3,13 +3,15 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_chat_list_background">
+    android:background="@drawable/bg_whatsapp_chat_background">
 
     <!-- Header -->
     <LinearLayout
         android:id="@+id/chatToolbar"
         android:layout_width="match_parent"
         android:layout_height="64dp"
+        android:background="@color/wa_input_bg"
+        android:elevation="1dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingEnd="12dp"
@@ -22,7 +24,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Back"
             android:src="@drawable/ic_arrow_back"
-            android:tint="@color/cm_text_primary" />
+            android:tint="@color/wa_text_primary" />
 
         <FrameLayout
             android:layout_width="40dp"
@@ -38,7 +40,7 @@
                 android:layout_height="24dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_users"
-                android:tint="@color/cm_on_primary" />
+                android:tint="@color/white" />
         </FrameLayout>
 
         <LinearLayout
@@ -55,7 +57,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text="Class Group"
-                android:textColor="@color/cm_text_primary"
+                android:textColor="@color/wa_text_primary"
                 android:textSize="17sp"
                 android:textStyle="bold" />
 
@@ -78,7 +80,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="24 members"
-                    android:textColor="@color/cm_text_secondary"
+                    android:textColor="@color/wa_text_secondary"
                     android:textSize="12sp" />
             </LinearLayout>
         </LinearLayout>
@@ -90,7 +92,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Search"
             android:src="@drawable/ic_search_modern"
-            android:tint="@color/cm_text_secondary" />
+            android:tint="@color/wa_text_secondary" />
     </LinearLayout>
 
     <com.google.android.material.progressindicator.LinearProgressIndicator
@@ -361,26 +363,28 @@
             android:layout_height="wrap_content"
             android:gravity="bottom"
             android:orientation="horizontal"
-            android:paddingHorizontal="12dp"
-            android:paddingBottom="12dp">
+            android:paddingHorizontal="8dp"
+            android:paddingBottom="10dp">
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:background="@drawable/bg_chat_input_modern"
-                android:gravity="bottom"
+                android:background="@drawable/bg_whatsapp_input_pill"
+                android:elevation="2dp"
+                android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingHorizontal="8dp"
-                android:paddingVertical="4dp">
+                android:paddingHorizontal="4dp"
+                android:paddingVertical="3dp">
 
                 <ImageButton
-                    android:id="@+id/btnAttach"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
+                    android:id="@+id/btnEmoji"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@drawable/ic_attach"
-                    android:tint="@color/cm_text_secondary" />
+                    android:contentDescription="Emoji"
+                    android:src="@drawable/ic_smile"
+                    android:tint="@color/wa_tick_gray" />
 
                 <EditText
                     android:id="@+id/etMessage"
@@ -388,44 +392,57 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:background="@null"
-                    android:hint="Message..."
+                    android:hint="Message"
                     android:inputType="textCapSentences|textMultiLine"
                     android:maxLines="6"
                     android:minHeight="40dp"
-                    android:paddingHorizontal="8dp"
-                    android:textColor="@color/cm_text_primary"
-                    android:textColorHint="@color/cm_text_secondary"
+                    android:paddingHorizontal="6dp"
+                    android:textColor="@color/wa_text_primary"
+                    android:textColorHint="@color/wa_input_hint"
                     android:textSize="16sp" />
 
                 <ImageButton
-                    android:id="@+id/btnEmoji"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
+                    android:id="@+id/btnAttach"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@drawable/ic_smile"
-                    android:tint="@color/cm_text_secondary" />
+                    android:contentDescription="Attach"
+                    android:src="@drawable/ic_attach"
+                    android:tint="@color/wa_tick_gray" />
+
+                <ImageButton
+                    android:id="@+id/btnCamera"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Camera"
+                    android:src="@drawable/ic_camera"
+                    android:tint="@color/wa_tick_gray" />
             </LinearLayout>
 
             <FrameLayout
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:layout_marginStart="8dp">
+                android:layout_marginStart="6dp"
+                android:elevation="2dp">
 
                 <ImageButton
                     android:id="@+id/btnMic"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
-                    android:background="@drawable/bg_chat_fab_gradient"
+                    android:background="@drawable/bg_whatsapp_fab"
+                    android:contentDescription="Voice note"
                     android:src="@drawable/ic_mic"
-                    android:tint="@color/cm_on_primary" />
+                    android:tint="@color/white" />
 
                 <ImageButton
                     android:id="@+id/btnSend"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
-                    android:background="@drawable/bg_chat_fab_gradient"
+                    android:background="@drawable/bg_whatsapp_fab"
+                    android:contentDescription="Send"
                     android:src="@drawable/ic_send"
-                    android:tint="@color/cm_on_primary"
+                    android:tint="@color/white"
                     android:visibility="gone" />
             </FrameLayout>
         </LinearLayout>

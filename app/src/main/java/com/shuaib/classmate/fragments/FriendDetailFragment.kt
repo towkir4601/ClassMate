@@ -8,10 +8,14 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.shuaib.classmate.R
+import com.shuaib.classmate.activities.MainActivity
 import com.shuaib.classmate.databinding.FragmentFriendDetailBinding
 import com.shuaib.classmate.models.User
 
@@ -97,15 +101,50 @@ class FriendDetailFragment : Fragment() {
         binding.detailFriendAddress.tvLabel.text = "Address"
         binding.detailFriendAddress.tvValue.text = user.address
 
+        binding.btnDetailChat.setOnClickListener {
+            val myUid = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
+            if (myUid.isNotEmpty() && user.uid.isNotEmpty()) {
+                val roomId = listOf(myUid, user.uid).sorted().joinToString(separator = "_", prefix = "dm_")
+                val bundle = bundleOf(
+                    "roomId" to roomId,
+                    "otherUserName" to user.name.ifBlank { "Chat" },
+                    "otherUserId" to user.uid
+                )
+                (requireActivity() as? MainActivity)?.openChildDestination(
+                    R.id.nav_chat,
+                    R.id.fragment_dm_chat,
+                    bundle
+                ) ?: run {
+                    try {
+                        findNavController().navigate(R.id.action_detail_to_dm_chat, bundle)
+                    } catch (_: Exception) {
+                        try {
+                            findNavController().navigate(R.id.fragment_dm_chat, bundle)
+                        } catch (_: Exception) {}
+                    }
+                }
+            }
+        }
+
         binding.btnDetailCall.setOnClickListener {
+            val cleanPhone = user.phone.filter { it.isDigit() || it == '+' }
+            if (cleanPhone.isEmpty()) {
+                Toast.makeText(context, "Phone number not available", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             val intent = Intent(Intent.ACTION_DIAL).apply {
-                data = Uri.parse("tel:${user.phone}")
+                data = Uri.parse("tel:$cleanPhone")
             }
             startActivity(intent)
         }
 
         binding.btnDetailWhatsapp.setOnClickListener {
-            val url = "https://api.whatsapp.com/send?phone=${user.phone}"
+            val cleanPhone = user.phone.filter { it.isDigit() || it == '+' }
+            if (cleanPhone.isEmpty()) {
+                Toast.makeText(context, "Phone number not available", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val url = "https://api.whatsapp.com/send?phone=$cleanPhone"
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 data = Uri.parse(url)
             }

@@ -23,19 +23,38 @@ class BloodRequestRepository {
     }
 
     fun getActiveRequests(limit: Long = 10, onResult: (List<BloodRequest>) -> Unit) {
+        val nowMs = System.currentTimeMillis()
+        val fifteenDaysMs = 15L * 24 * 60 * 60 * 1000L
+        val cutoffMs = nowMs - fifteenDaysMs
+
         collection
             .whereEqualTo("isFulfilled", false)
             .orderBy("timestamp", Query.Direction.DESCENDING)
-            .limit(limit)
+            .limit(limit * 2)
             .get()
             .addOnSuccessListener { snapshot ->
                 val activeList = mutableListOf<BloodRequest>()
+                val expiredDocs = mutableListOf<com.google.firebase.firestore.DocumentSnapshot>()
+
                 if (snapshot != null && !snapshot.isEmpty) {
                     for (doc in snapshot.documents) {
                         val req = doc.toObject(BloodRequest::class.java)?.copy(id = doc.id) ?: continue
-                        if (!isDeletedLocally(req.id) && !req.isFulfilled) {
+                        if (isDeletedLocally(req.id)) continue
+                        val itemTime = req.timestamp?.toDate()?.time ?: 0L
+                        if (itemTime in 1..cutoffMs) {
+                            expiredDocs.add(doc)
+                        } else {
                             activeList.add(req)
                         }
+                    }
+
+                    // Auto-delete expired or obsolete blood requests (> 15 days)
+                    if (expiredDocs.isNotEmpty()) {
+                        val batch = firestore.batch()
+                        for (doc in expiredDocs) {
+                            batch.delete(doc.reference)
+                        }
+                        batch.commit()
                     }
                 }
                 val localActive = localRequests.filter { !it.isFulfilled && !isDeletedLocally(it.id) }
@@ -48,6 +67,10 @@ class BloodRequestRepository {
                 val localActive = localRequests.filter { !it.isFulfilled && !isDeletedLocally(it.id) }
                 onResult(localActive.take(limit.toInt()))
             }
+    }
+
+    fun getAllActiveRequests(onResult: (List<BloodRequest>) -> Unit) {
+        getActiveRequests(limit = 100, onResult = onResult)
     }
 
     fun createRequest(

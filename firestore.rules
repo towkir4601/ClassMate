@@ -77,6 +77,10 @@ service cloud.firestore {
       return isLoggedIn() && getRole() == "teacher";
     }
 
+    function isApprovedUser() {
+      return userExists() && "approved" in getUser() && getUser().approved == true;
+    }
+
     function noticeLikeId(noticeId) {
       return noticeId + "_" + request.auth.uid;
     }
@@ -371,7 +375,11 @@ service cloud.firestore {
         "timestamp",
         "downloadCount",
         "isDeleted",
-        "batch"
+        "batch",
+        "department",
+        "departmentId",
+        "accessScope",
+        "isBatchPrivate"
       ])
       && request.resource.data.title is string
       && request.resource.data.title.size() > 0
@@ -402,7 +410,12 @@ service cloud.firestore {
       && request.resource.data.uploadedBy is string
       && request.resource.data.uploadedBy.size() <= 80
       && request.resource.data.downloadCount == 0
-      && request.resource.data.isDeleted == false;
+      && request.resource.data.isDeleted == false
+      && (!("batch" in request.resource.data) || (request.resource.data.batch is string && request.resource.data.batch.size() <= 50))
+      && (!("department" in request.resource.data) || (request.resource.data.department is string && request.resource.data.department.size() <= 100))
+      && (!("departmentId" in request.resource.data) || (request.resource.data.departmentId is string && request.resource.data.departmentId.size() <= 100))
+      && (!("accessScope" in request.resource.data) || (request.resource.data.accessScope is string && request.resource.data.accessScope.size() <= 50))
+      && (!("isBatchPrivate" in request.resource.data) || request.resource.data.isBatchPrivate is bool);
     }
 
     function validLibraryGitHubCreate() {
@@ -467,6 +480,70 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
     }
 
+    // ── Zero-Trust Batch & Department Privacy Helpers for Library ────────────
+
+    function userMatchesDocBatch(docBatch) {
+      return userExists()
+        && "batch" in getUser()
+        && getUser().batch is string
+        && getUser().batch != ""
+        && docBatch is string
+        && docBatch != ""
+        && (
+          getUser().batch == docBatch ||
+          getUser().batch.lower() == docBatch.lower() ||
+          (getUser().batch == "14" && (docBatch == "2-1" || docBatch == "2_1")) ||
+          (getUser().batch == "2-1" && (docBatch == "14" || docBatch == "2_1"))
+        );
+    }
+
+    function userMatchesDocDepartment(docData) {
+      return (
+        // Case 1: doc has departmentId present and non-empty
+        ("departmentId" in docData && docData.departmentId is string && docData.departmentId != "" && docData.departmentId != "all")
+          ? (
+              userExists() && (
+                ("departmentId" in getUser() && getUser().departmentId is string && getUser().departmentId.lower() == docData.departmentId.lower()) ||
+                ("department" in getUser() && getUser().department is string && getUser().department.lower() == docData.departmentId.lower()) ||
+                ("department" in docData && docData.department is string && "department" in getUser() && getUser().department is string && getUser().department.lower() == docData.department.lower())
+              )
+            )
+          // Case 2: doc has no departmentId (or empty/all), but has department present and non-empty
+          : (
+              ("department" in docData && docData.department is string && docData.department != "" && docData.department != "all")
+                ? (
+                    userExists() && (
+                      ("department" in getUser() && getUser().department is string && getUser().department.lower() == docData.department.lower()) ||
+                      ("departmentId" in getUser() && getUser().departmentId is string && getUser().departmentId.lower() == docData.department.lower())
+                    )
+                  )
+                // Case 3: doc has neither departmentId nor department (or they are empty / "all")
+                : true
+            )
+      );
+    }
+
+    function isBatchPrivateDoc(docData) {
+      return ("isBatchPrivate" in docData && docData.isBatchPrivate == true) ||
+             ("accessScope" in docData && docData.accessScope == "batch");
+    }
+
+    function canReadBatchPrivateLibraryFile(docData) {
+      return isLoggedIn()
+        && (!("isDeleted" in docData) || docData.isDeleted != true)
+        && isApprovedUser()
+        && "batch" in docData
+        && userMatchesDocBatch(docData.batch)
+        && userMatchesDocDepartment(docData);
+    }
+
+    function canReadStandardLibraryFile(docData) {
+      return isLoggedIn()
+        && (!("isDeleted" in docData) || docData.isDeleted != true)
+        && (isApprovedUser() || isAdmin() || isTeacher())
+        && (isSuperAdmin() || userMatchesDocDepartment(docData));
+    }
+
     // ── Question Bank helpers ─────────────────────────────────────────────────
 
     function validQbExamType() {
@@ -519,7 +596,11 @@ service cloud.firestore {
         "githubAssetId",
         "githubAssetName",
         "courseType",
-        "description"
+        "description",
+        "department",
+        "departmentId",
+        "accessScope",
+        "isBatchPrivate"
       ])
       && (!("description" in request.resource.data) || request.resource.data.description is string)
       && (!("fileType" in request.resource.data) || request.resource.data.fileType is string)
@@ -528,6 +609,11 @@ service cloud.firestore {
       && (!("githubAssetId" in request.resource.data) || request.resource.data.githubAssetId is number)
       && (!("githubAssetName" in request.resource.data) || request.resource.data.githubAssetName is string)
       && (!("courseType" in request.resource.data) || request.resource.data.courseType is string)
+      && (!("department" in request.resource.data) || (request.resource.data.department is string && request.resource.data.department.size() <= 100))
+      && (!("departmentId" in request.resource.data) || (request.resource.data.departmentId is string && request.resource.data.departmentId.size() <= 100))
+      && (!("accessScope" in request.resource.data) || (request.resource.data.accessScope is string && request.resource.data.accessScope.size() <= 50))
+      && (!("isBatchPrivate" in request.resource.data) || request.resource.data.isBatchPrivate is bool)
+      && (!("batch" in request.resource.data) || (request.resource.data.batch is string && request.resource.data.batch.size() <= 50))
       && request.resource.data.title is string
       && request.resource.data.title.size() > 0
       && request.resource.data.title.size() <= 200
@@ -943,6 +1029,22 @@ service cloud.firestore {
       allow read, update, delete: if ownUserDoc();
     }
 
+    match /user_notice_bookmarks/{bookmarkDocId} {
+      allow create: if isLoggedIn()
+        && bookmarkDocId == request.auth.uid + "_" + request.resource.data.noticeId
+        && request.resource.data.keys().hasOnly([
+          "userId",
+          "noticeId",
+          "createdAt"
+        ])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.noticeId is string
+        && (request.resource.data.createdAt == request.time || request.resource.data.createdAt is timestamp);
+
+      allow read, delete: if ownUserDoc();
+      allow update: if false;
+    }
+
     match /notice_shares/{shareId} {
       allow read: if isLoggedIn();
       allow create: if isLoggedIn()
@@ -1002,8 +1104,12 @@ service cloud.firestore {
     }
 
     match /library_files/{fileId} {
-      allow read: if isLoggedIn() && resource.data.isDeleted != true
-         && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.approved == true || isAdmin() || isTeacher());
+      // ── Zero-Trust Batch Document Privacy ──
+      // When batch-private: accessible ONLY to approved users of that exact batch & department (NO superadmin or admin bypass)
+      // When not batch-private: accessible to approved users/teachers/admins of that department (or superadmin)
+      allow read: if isBatchPrivateDoc(resource.data)
+        ? canReadBatchPrivateLibraryFile(resource.data)
+        : canReadStandardLibraryFile(resource.data);
       allow create: if validLibraryCreate();
       allow update: if isAdmin() || validLibraryDownloadCountUpdate() || validLibrarySoftDeleteUpdate() || validLibraryBatchUpdate();
       allow delete: if isSuperAdmin();
@@ -1073,13 +1179,67 @@ service cloud.firestore {
     }
 
     
-    // ── Helper: check if user's batch matches a group_batch_ room ──
+    // ── Helper: check if caller's batch (and department) matches a group chat room ──
     function userBatchMatchesRoom(roomId) {
       return isLoggedIn()
         && userExists()
         && "batch" in getUser()
+        && getUser().batch is string
         && getUser().batch != ""
-        && roomId == ("group_batch_" + getUser().batch);
+        && (
+          // Legacy format: group_batch_${batch}
+          roomId == ("group_batch_" + getUser().batch) ||
+          roomId == ("group_batch_" + getUser().batch.lower()) ||
+          // Department-slugged format: group_${deptSlug}_batch_${batch}
+          roomId.matches("^group_.*_batch_" + getUser().batch + "$") ||
+          roomId.matches("^group_.*_batch_" + getUser().batch.lower() + "$") ||
+          // Aliases for 14 / 2-1
+          (getUser().batch == "14" && (
+            roomId.matches(".*_batch_2_1$") ||
+            roomId.matches(".*_batch_2-1$") ||
+            roomId.matches(".*_batch_14$")
+          )) ||
+          (getUser().batch == "2-1" && (
+            roomId.matches(".*_batch_14$") ||
+            roomId.matches(".*_batch_2_1$")
+          ))
+        );
+    }
+
+    // ── Helper: check if caller is an assigned teacher/admin for a department-scoped room ──
+    function isStaffForRoomDepartment(roomId) {
+      return isLoggedIn() && (
+        isSuperAdmin() ||
+        (
+          (isAdmin() || isTeacher()) &&
+          userExists() && (
+            (
+              "departmentId" in getUser() && getUser().departmentId is string && getUser().departmentId != "" &&
+              roomId.matches("^group_" + getUser().departmentId.lower() + "_.*")
+            ) ||
+            (
+              "department" in getUser() && getUser().department is string && getUser().department != "" &&
+              getUser().department.matches("^[a-zA-Z0-9_-]+$") &&
+              roomId.matches("^group_" + getUser().department.lower() + "_.*")
+            )
+          )
+        )
+      );
+    }
+
+    // ── Helper: check if user's department matches a department-scoped room ──
+    function userDeptMatchesRoom(roomId) {
+      return userExists() && (
+        (
+          "departmentId" in getUser() && getUser().departmentId is string && getUser().departmentId != "" &&
+          roomId.matches("^group_" + getUser().departmentId.lower() + "_.*")
+        ) ||
+        (
+          "department" in getUser() && getUser().department is string && getUser().department != "" &&
+          getUser().department.matches("^[a-zA-Z0-9_-]+$") &&
+          roomId.matches("^group_" + getUser().department.lower() + "_.*")
+        )
+      );
     }
 
     // ── Helper: check if user is a participant in a direct message (DM) room ──
@@ -1091,18 +1251,25 @@ service cloud.firestore {
 
     function canAccessChatRoom(roomId) {
       // Direct messages: strictly limited to the two participants (prevents DM snoop)
-      // group_main: accessible if user's batch matches, user has no batch, or user is teacher/admin
-      // group_batch_X: only allow if user's batch matches X
+      // Group rooms: scoped by admin/superadmin, user batch + department, or assigned staff
       return isLoggedIn() && (
         (roomId.matches("^dm_.*") && isDmParticipant(roomId)) ||
-        (roomId == "group_main" && (
-          isAdmin() ||
+        (roomId.matches("^group_.*") && (
           isSuperAdmin() ||
-          getRole() == "teacher" ||
+          isAdmin() ||
+          // a) It is group_main (with existing teacher/all fallback rules)
+          (roomId == "group_main" && (
+            getRole() == "teacher" ||
+            userBatchMatchesRoom(roomId) ||
+            (userExists() && (!("batch" in getUser()) || getUser().batch == "" || getUser().batch == null || getUser().batch == "main"))
+          )) ||
+          // b) Batch-matched rooms (legacy group_batch_${batch} or department-slugged group_.*_batch_${batch})
           userBatchMatchesRoom(roomId) ||
-          (userExists() && (!("batch" in getUser()) || getUser().batch == "" || getUser().batch == null || getUser().batch == "main"))
-        )) ||
-        userBatchMatchesRoom(roomId)
+          // c) Caller is an assigned teacher/admin for that department
+          isStaffForRoomDepartment(roomId) ||
+          // d) Department main rooms (e.g. group_${deptSlug}_main) for students of that department
+          (roomId.matches("^group_[a-zA-Z0-9_-]+_main$") && userDeptMatchesRoom(roomId))
+        ))
       );
     }
 
@@ -1157,14 +1324,15 @@ service cloud.firestore {
         isSuperAdmin()
       );
 
-      // 4. Post creator, admins/superadmins, unassigned items, or any logged-in user for expired items (> 7 days) can delete
+      // 4. Post creator, admins/superadmins, unassigned items, resolved items, or any logged-in user for expired items (> 15 days) can delete
       allow delete: if isLoggedIn() && (
         !("reporterId" in resource.data) ||
         resource.data.reporterId == "" ||
         resource.data.reporterId == request.auth.uid ||
         isAdmin() ||
         isSuperAdmin() ||
-        resource.data.timestamp < request.time - duration.value(7, 'd')
+        resource.data.isResolved == true ||
+        resource.data.timestamp < request.time - duration.value(15, 'd')
       );
     }
 
@@ -1184,11 +1352,13 @@ service cloud.firestore {
         isSuperAdmin()
       );
 
-      // 4. Request creator, admins, or superadmins can delete
+      // 4. Request creator, admins, superadmins, fulfilled requests, or expired requests (> 15 days) can delete
       allow delete: if isLoggedIn() && (
         resource.data.requesterId == request.auth.uid ||
         isAdmin() ||
-        isSuperAdmin()
+        isSuperAdmin() ||
+        resource.data.isFulfilled == true ||
+        resource.data.timestamp < request.time - duration.value(15, 'd')
       );
     }
 
@@ -1312,6 +1482,20 @@ service cloud.firestore {
         ("userId" in resource.data && resource.data.userId == request.auth.uid) ||
         isSuperAdmin()
       );
+    }
+
+    match /important_contacts/{contactId} {
+      // 1. Read: All logged-in users
+      allow read: if isLoggedIn();
+
+      // 2. Create: Super Admin only
+      allow create: if isSuperAdmin();
+
+      // 3. Update: Super Admin only
+      allow update: if isSuperAdmin();
+
+      // 4. Delete: Super Admin only
+      allow delete: if isSuperAdmin();
     }
 
     match /{document=**} {

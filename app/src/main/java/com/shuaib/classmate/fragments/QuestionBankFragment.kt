@@ -98,10 +98,11 @@ class QuestionBankFragment : Fragment() {
                 val qbSnapshot = snapshots[0]
                 val librarySnapshot = snapshots[1]
 
+                val userBatch = context?.let { com.shuaib.classmate.utils.AppPreferences(it).getUserBatch() } ?: ""
+                val userDeptId = context?.let { com.shuaib.classmate.utils.AppPreferences(it).getUserDepartmentId() } ?: ""
                 val allPdfDocs = (qbSnapshot.documents + librarySnapshot.documents)
                     .map { it.toPdfFile() }
-                    .filterNot { it.isDeleted }
-                    .filter { isAdmin || it.batch.isBlank() || it.batch.equals("all", ignoreCase = true) || it.batch.equals(currentUserBatch, ignoreCase = true) }
+                    .filter { it.canUserAccess(userDeptId, userBatch, isAdmin) }
 
                 val counts = mutableMapOf<String, Int>()
                 for (subject in SubjectList.subjects) {
@@ -302,19 +303,7 @@ class QuestionBankFragment : Fragment() {
         }
     }
 
-    private fun DocumentSnapshot.toPdfFile(): PdfFile {
-        return PdfFile(
-            id = id,
-            title = getString("title") ?: "",
-            subject = getString("subject") ?: "",
-            courseCode = getString("courseCode") ?: "",
-            batch = getString("batch") ?: "",
-            downloadUrl = getString("downloadUrl") ?: getString("pdfUrl") ?: "",
-            timestamp = getTimestamp("timestamp"),
-            createdAt = getTimestamp("createdAt"),
-            isDeleted = getBoolean("isDeleted") ?: false
-        )
-    }
+    private fun DocumentSnapshot.toPdfFile(): PdfFile = PdfFile.fromDocument(this)
 
     override fun onDestroyView() {
         super.onDestroyView()
