@@ -47,10 +47,23 @@ android {
         buildConfigField("String", "ROUTINE_BACKEND_URL", "\"https://class-routine-kny5.onrender.com/\"")
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("${rootDir}/keystore/release.jks")
+            storePassword = "classmate_release_key"
+            keyAlias = "classmate_key"
+            keyPassword = "classmate_release_key"
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
             isCrunchPngs = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
