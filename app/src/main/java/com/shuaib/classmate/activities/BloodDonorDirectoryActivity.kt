@@ -277,13 +277,15 @@ class BloodDonorDirectoryActivity : AppCompatActivity() {
         val view = layoutInflater.inflate(R.layout.dialog_create_blood_request, null)
         dialog.setContentView(view)
 
-        val etHospital = view.findViewById<TextInputEditText>(R.id.etBloodHospital)
-        val etPatient = view.findViewById<TextInputEditText>(R.id.etBloodPatient)
-        val etUrgency = view.findViewById<TextInputEditText>(R.id.etBloodUrgencyNote)
-        val etPhone = view.findViewById<TextInputEditText>(R.id.etBloodContactPhone)
-        val etBags = view.findViewById<TextInputEditText>(R.id.etBloodBagsNeeded)
+        val etHospital = view.findViewById<android.widget.EditText>(R.id.etReqHospital)
+        val etNote = view.findViewById<android.widget.EditText>(R.id.etReqNote)
+        val etPhone = view.findViewById<android.widget.EditText>(R.id.etReqPhone)
+        val etBags = view.findViewById<android.widget.EditText>(R.id.etReqBags)
         val btnSubmit = view.findViewById<View>(R.id.btnSubmitBloodRequest)
+        val btnClose = view.findViewById<View>(R.id.btnCloseBloodDialog)
         val chipGroup = view.findViewById<com.google.android.material.chip.ChipGroup>(R.id.chipGroupRequestBlood)
+
+        btnClose?.setOnClickListener { dialog.dismiss() }
 
         // Pre-fill phone if available in preferences
         val userPhone = AppPreferences(this).getUserBatch() // fallback
@@ -293,8 +295,7 @@ class BloodDonorDirectoryActivity : AppCompatActivity() {
 
         btnSubmit.setOnClickListener {
             val hospital = etHospital.text.toString().trim()
-            val patient = etPatient.text.toString().trim()
-            val urgency = etUrgency.text.toString().trim()
+            val note = etNote.text.toString().trim()
             val phone = etPhone.text.toString().trim()
             val bagsStr = etBags.text.toString().trim()
             val bags = bagsStr.toIntOrNull() ?: 1
@@ -329,8 +330,8 @@ class BloodDonorDirectoryActivity : AppCompatActivity() {
             val request = BloodRequest(
                 bloodGroup = selectedGroup,
                 hospitalName = hospital,
-                patientName = patient,
-                urgencyNote = urgency,
+                patientName = note.ifBlank { "Patient" },
+                urgencyNote = note,
                 contactPhone = phone,
                 bagsNeeded = bags,
                 requesterId = currentUserId,

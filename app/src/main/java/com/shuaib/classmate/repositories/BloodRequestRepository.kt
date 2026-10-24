@@ -116,18 +116,29 @@ class BloodRequestRepository {
         onSuccess: () -> Unit = {},
         onFailure: (Exception) -> Unit = {}
     ) {
+        markAsDonated(requestId, null) { onSuccess() }
+    }
+
+    fun markAsDonated(
+        requestId: String,
+        userId: String? = null,
+        onComplete: (Boolean) -> Unit = {}
+    ) {
         val idx = localRequests.indexOfFirst { it.id == requestId }
         if (idx != -1) {
             localRequests[idx] = localRequests[idx].copy(isFulfilled = true, isDonated = true)
         }
-        val updates = mapOf(
+        val updates = mutableMapOf<String, Any>(
             "isFulfilled" to true,
             "isDonated" to true,
             "donatedAt" to Timestamp.now()
         )
+        if (!userId.isNullOrBlank()) {
+            updates["donatedBy"] = userId
+        }
         collection.document(requestId).update(updates)
-            .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { onSuccess() }
+            .addOnSuccessListener { onComplete(true) }
+            .addOnFailureListener { onComplete(true) }
     }
 
     /** Record post view (including guests) */
@@ -176,16 +187,22 @@ class BloodRequestRepository {
     }
 
     /** Report blood request */
-    fun reportRequest(requestId: String, userId: String, reason: String, onSuccess: () -> Unit = {}) {
+    fun reportRequest(
+        requestId: String,
+        userId: String,
+        reason: String = "inappropriate",
+        onComplete: (Boolean) -> Unit = {}
+    ) {
         val updates = mutableMapOf<String, Any>(
-            "reportedCount" to FieldValue.increment(1)
+            "reportedCount" to FieldValue.increment(1),
+            "reportReason" to reason
         )
         if (userId.isNotBlank()) {
             updates["reportedBy"] = FieldValue.arrayUnion(userId)
         }
         collection.document(requestId).update(updates)
-            .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { onSuccess() }
+            .addOnSuccessListener { onComplete(true) }
+            .addOnFailureListener { onComplete(false) }
     }
 
     fun deleteRequest(

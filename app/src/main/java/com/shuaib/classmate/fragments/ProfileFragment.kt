@@ -198,13 +198,6 @@ class ProfileFragment : Fragment() {
             }
         }
 
-                binding.cardRoleSwitcher.applyClickAnimation {
-            showRoleSwitcherDialog()
-        }
-
-        binding.btnSwitchRole.applyClickAnimation {
-            showRoleSwitcherDialog()
-        }
 
         binding.btnEditProfile.applyClickAnimation {
             startActivity(Intent(requireContext(), EditProfileActivity::class.java))
@@ -736,106 +729,6 @@ class ProfileFragment : Fragment() {
         binding.layoutFriendsToggle.isVisible = false
 
         updateSeeFriendsVisibility(user)
-    }
-
-    private fun showRoleSwitcherDialog() {
-        val ctx = context ?: return
-        val dialog = BottomSheetDialog(ctx)
-        val dialogBinding = DialogRoleSwitcherBinding.inflate(layoutInflater)
-        dialog.setContentView(dialogBinding.root)
-
-        val currentActiveRole = currentUser?.activeRole?.lowercase() ?: "student"
-
-        val normalBorder = ContextCompat.getColor(ctx, R.color.cm_border)
-        val normalWidth = (1.5f * resources.displayMetrics.density).toInt()
-        val selectedWidth = (2.5f * resources.displayMetrics.density).toInt()
-
-        val isSuper = currentActiveRole == "superadmin"
-        val isUni = currentActiveRole in listOf("admin", "university_admin")
-        val isClub = currentActiveRole == "club_admin"
-        val isStud = currentActiveRole == "student"
-
-        dialogBinding.cardOptionSuperAdmin.strokeColor = if (isSuper) Color.parseColor("#FF4D6D") else normalBorder
-        dialogBinding.cardOptionSuperAdmin.strokeWidth = if (isSuper) selectedWidth else normalWidth
-        dialogBinding.ivCheckSuperAdmin.visibility = if (isSuper) View.VISIBLE else View.GONE
-
-        dialogBinding.cardOptionUniversityAdmin.strokeColor = if (isUni) Color.parseColor("#2563EB") else normalBorder
-        dialogBinding.cardOptionUniversityAdmin.strokeWidth = if (isUni) selectedWidth else normalWidth
-        dialogBinding.ivCheckUniversityAdmin.visibility = if (isUni) View.VISIBLE else View.GONE
-
-        dialogBinding.cardOptionClubAdmin.strokeColor = if (isClub) Color.parseColor("#8B5CF6") else normalBorder
-        dialogBinding.cardOptionClubAdmin.strokeWidth = if (isClub) selectedWidth else normalWidth
-        dialogBinding.ivCheckClubAdmin.visibility = if (isClub) View.VISIBLE else View.GONE
-
-        dialogBinding.cardOptionStudent.strokeColor = if (isStud) Color.parseColor("#10B981") else normalBorder
-        dialogBinding.cardOptionStudent.strokeWidth = if (isStud) selectedWidth else normalWidth
-        dialogBinding.ivCheckStudent.visibility = if (isStud) View.VISIBLE else View.GONE
-
-        fun applySelectedRole(newRole: String, roleTitle: String) {
-            val uid = auth.currentUser?.uid ?: return
-            dialog.dismiss()
-
-            // 1. Local preference persistence
-            AppPreferences(ctx).setDemoRole(newRole)
-
-            // 2. Prepare user object updates
-            val clubId = if (newRole == "club_admin") "club_computer_society" else ""
-            val clubName = if (newRole == "club_admin") "GSTU Computer Club (GSTUCC)" else ""
-
-            val updatedUser = currentUser?.copy(
-                demoRole = newRole,
-                assignedClubId = clubId,
-                assignedClubName = clubName
-            ) ?: return
-
-            currentUser = updatedUser
-            updateUI(updatedUser)
-
-            // 3. Update Firestore in background
-            val updates = mutableMapOf<String, Any>(
-                "demoRole" to newRole,
-                "assignedClubId" to clubId,
-                "assignedClubName" to clubName
-            )
-            firestore.collection("users").document(uid).update(updates)
-                .addOnFailureListener {
-                    android.util.Log.w("ProfileFragment", "Could not sync demoRole to Firestore: ${it.message}")
-                }
-
-            // 4. If Club Admin, also assign as President of GSTUCC
-            if (newRole == "club_admin") {
-                val leaderName = updatedUser.fullName.ifBlank { updatedUser.name.ifBlank { "Towkir Ahmed" } }
-                firestore.collection("campus_clubs").document("club_computer_society")
-                    .update(
-                        mapOf(
-                            "presidentId" to uid,
-                            "presidentName" to leaderName
-                        )
-                    ).addOnFailureListener {
-                        android.util.Log.w("ProfileFragment", "Could not assign club president in Firestore: ${it.message}")
-                    }
-            }
-
-            // 5. Haptic feedback and confirmation toast
-            HapticHelper.lightPop(binding.root)
-            HapticHelper.success(ctx)
-            Toast.makeText(ctx, "✅ Switched to $roleTitle! UI updated.", Toast.LENGTH_SHORT).show()
-        }
-
-        dialogBinding.cardOptionSuperAdmin.setOnClickListener {
-            applySelectedRole("superadmin", "Super Admin")
-        }
-        dialogBinding.cardOptionUniversityAdmin.setOnClickListener {
-            applySelectedRole("university_admin", "University Admin")
-        }
-        dialogBinding.cardOptionClubAdmin.setOnClickListener {
-            applySelectedRole("club_admin", "Club Admin (GSTUCC)")
-        }
-        dialogBinding.cardOptionStudent.setOnClickListener {
-            applySelectedRole("student", "Regular Student")
-        }
-
-        dialog.show()
     }
 
     private fun loadProfilePicture(email: String, customUrl: String?, imageView: ImageView) {
