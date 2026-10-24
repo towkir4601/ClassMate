@@ -15,6 +15,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.shuaib.classmate.R
 import com.shuaib.classmate.databinding.ActivityAdminPanelBinding
 import com.shuaib.classmate.models.User
+import com.shuaib.classmate.utils.UserRoleHelper
 
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
@@ -67,25 +68,50 @@ class AdminPanelActivity : AppCompatActivity() {
             return
         }
 
+        if (UserRoleHelper.isTestRoleActive(this)) {
+            val testRole = UserRoleHelper.getEffectiveRole(this)
+            val permissions = UserRoleHelper.getEffectivePermissions(this, testRole)
+            val user = User(
+                uid = uid,
+                role = testRole,
+                permissions = permissions
+            )
+            val isSuperAdmin = testRole == "superadmin"
+            val hasAnyAdminAccess = isSuperAdmin || testRole == "admin" || testRole == "teacher" ||
+                    testRole == "club_admin" || testRole == "cr" || user.isAnyAdmin()
+            if (!hasAnyAdminAccess) {
+                Toast.makeText(this@AdminPanelActivity, "Access restricted for Student role.", Toast.LENGTH_SHORT).show()
+                finish()
+                return
+            }
+
+            binding.btnTestTelegram.visibility = if (isSuperAdmin) View.VISIBLE else View.GONE
+            setupClickListeners(user)
+            animateEntry()
+            return
+        }
+
         firestore.collection("users").document(uid).get()
             .addOnSuccessListener { document ->
                 try {
-                    val role = document.getString("role") ?: "student"
+                    val rawRole = document.getString("role") ?: "student"
                     val localDemoRole = AppPreferences(this@AdminPanelActivity).getDemoRole()
                     val firestoreDemoRole = document.getString("demoRole") ?: ""
-                    val effectiveRole = localDemoRole.ifBlank { firestoreDemoRole }.ifBlank { role }
-                    @Suppress("UNCHECKED_CAST")
-                    val permissions = (document.get("permissions") as? Map<String, Boolean>) ?: User.DEFAULT_PERMISSIONS
+                    val candidateRole = localDemoRole.ifBlank { firestoreDemoRole }.ifBlank { rawRole }
+                    val role = com.shuaib.classmate.utils.UserRoleHelper.getEffectiveRole(this, candidateRole)
+                    val permissions = com.shuaib.classmate.utils.UserRoleHelper.getEffectivePermissions(this, role, document.get("permissions"))
                     val user = User(
                         uid = uid,
                         role = role,
-                        demoRole = effectiveRole,
+                        demoRole = role,
                         permissions = permissions
                     )
-                    val isSuperAdmin = user.isSuperAdmin()
-                    val hasAnyAdminAccess = user.isAdmin() || user.isSuperAdmin() || user.isUniversityAdmin() ||
+                    val isSuperAdmin = user.isSuperAdmin() || role == "superadmin"
+                    val hasAnyAdminAccess = isSuperAdmin || user.isAdmin() || user.isUniversityAdmin() ||
+                            role == "admin" || role == "teacher" || role == "club_admin" || role == "cr" ||
                             user.canManageUsers() || user.canPostNotices() || user.canEditTimetable() ||
-                            user.canEditCalendar() || user.canEditBusSchedule() || user.canCreatePolls()
+                            user.canEditCalendar() || user.canEditBusSchedule() || user.canCreatePolls() ||
+                            user.canManageClubEvents() || user.canManageLostFound()
                     if (!hasAnyAdminAccess) {
                         Toast.makeText(this@AdminPanelActivity, "Access restricted.", Toast.LENGTH_SHORT).show()
                         finish()
@@ -198,6 +224,35 @@ class AdminPanelActivity : AppCompatActivity() {
             binding.cardImportantContacts.applyClickAnimation {
                 startActivity(Intent(this, ImportantContactsActivity::class.java))
                 overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+            }
+        }
+
+        // Moderate Lost & Found posts (approve/reject pending submissions)
+        if (user.canManageLostFound() || user.role.lowercase() == "admin" || user.role.lowercase() == "superadmin") {
+            try {
+                binding.cardModerateLostFound.visibility = View.VISIBLE
+                binding.cardModerateLostFound.applyClickAnimation {
+                    val intent = Intent(this, LostFoundActivity::class.java).apply {
+                        putExtra("MODE", "MODERATION")
+                    }
+                    startActivity(intent)
+                    overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+                }
+            } catch (e: Exception) {
+                // Card not yet added to layout — skip gracefully
+            }
+        }
+
+        // Manage Club Events
+        if (user.canManageClubEvents() || user.role.lowercase() == "admin" || user.role.lowercase() == "superadmin") {
+            try {
+                binding.cardManageClubEvents.visibility = View.VISIBLE
+                binding.cardManageClubEvents.applyClickAnimation {
+                    startActivity(Intent(this, EventsClubsActivity::class.java))
+                    overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+                }
+            } catch (e: Exception) {
+                // Card not yet added to layout — skip gracefully
             }
         }
     }

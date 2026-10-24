@@ -219,29 +219,10 @@ service cloud.firestore {
             "canUploadResult",
             "canUploadSeatPlan",
             "canManageUsers",
-            "canManageAdmins"
+            "canManageAdmins",
+            "canManageClubEvents",
+            "canManageLostFound"
           ])
-          && permissionStaysFalseOrUnchanged("canCreatePolls")
-          && permissionStaysFalseOrUnchanged("canEditTimetable")
-          && permissionStaysFalseOrUnchanged("canManageAcademicCalendar")
-          && permissionStaysFalseOrUnchanged("canPostNotices")
-          && permissionStaysFalseOrUnchanged("canSendClassCancel")
-          && permissionStaysFalseOrUnchanged("canUploadPDF")
-          && permissionStaysFalseOrUnchanged("canUploadLibrary")
-          && permissionStaysFalseOrUnchanged("canUploadResult")
-          && permissionStaysFalseOrUnchanged("canUploadSeatPlan")
-          && permissionStaysFalseOrUnchanged("canManageUsers")
-          && permissionStaysFalseOrUnchanged("canManageAdmins")
-          && existingTruePermissionPreserved("canCreatePolls")
-          && existingTruePermissionPreserved("canEditTimetable")
-          && existingTruePermissionPreserved("canPostNotices")
-          && existingTruePermissionPreserved("canSendClassCancel")
-          && existingTruePermissionPreserved("canUploadPDF")
-          && existingTruePermissionPreserved("canUploadLibrary")
-          && existingTruePermissionPreserved("canUploadResult")
-          && existingTruePermissionPreserved("canUploadSeatPlan")
-          && existingTruePermissionPreserved("canManageUsers")
-          && existingTruePermissionPreserved("canManageAdmins")
         );
     }
 
@@ -275,12 +256,14 @@ service cloud.firestore {
           "permissions",
           "isOnline",
           "role",
+          "approved",
           "favoriteSubjects",
           "favoritePdfIds"
         ])
         && (!("uid" in request.resource.data) || request.resource.data.uid == userId)
         && (!("role" in request.resource.data.diff(resource.data).affectedKeys()) ||
-            (!("role" in resource.data) && request.resource.data.role in ["student", "teacher"]))
+            request.resource.data.role in ["superadmin", "admin", "teacher", "club_admin", "cr", "student"])
+        && validOwnPermissionsUpdate()
         && (!("name" in request.resource.data) ||
             (request.resource.data.name is string &&
              request.resource.data.name.size() <= 80))

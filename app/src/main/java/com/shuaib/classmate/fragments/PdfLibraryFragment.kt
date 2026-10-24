@@ -733,8 +733,10 @@ class PdfLibraryFragment : Fragment() {
             .addOnSuccessListener { doc ->
                 if (_binding == null) return@addOnSuccessListener
                 try {
-                    val role = doc.getString("role") ?: "student"
-                    val permissions = doc.get("permissions") as? Map<String, Boolean> ?: emptyMap()
+                    val docRole = doc.getString("role") ?: "student"
+                    val ctx = context ?: return@addOnSuccessListener
+                    val role = com.shuaib.classmate.utils.UserRoleHelper.getEffectiveRole(ctx, docRole)
+                    val permissions = com.shuaib.classmate.utils.UserRoleHelper.getEffectivePermissions(ctx, role, doc.get("permissions"))
                     
                     currentUserBatch = doc.getString("batch") ?: context?.let { com.shuaib.classmate.utils.AppPreferences(it).getUserBatch() } ?: ""
                     currentUserDepartment = doc.getString("department") ?: context?.let { com.shuaib.classmate.utils.AppPreferences(it).getUserDepartment() } ?: ""

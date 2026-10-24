@@ -2,9 +2,14 @@ package com.shuaib.classmate.models
 
 import com.google.firebase.Timestamp
 
+/**
+ * GSTU Go - Lost & Found post model.
+ * Posts start as [pendingApproval]=true and must be approved by admin/superadmin
+ * before they are publicly visible. Once approved, [approved]=true and [pendingApproval]=false.
+ */
 data class LostFoundItem(
     val id: String = "",
-    val type: String = "found", // "lost" or "found"
+    val type: String = "found",             // "lost" or "found"
     val title: String = "",
     val itemCategory: String = "general",
     val description: String = "",
@@ -12,10 +17,32 @@ data class LostFoundItem(
     val contactPhone: String = "",
     val reporterName: String = "",
     val reporterId: String = "",
-    val imageUrl: String = "",
+    val imageUrl: String = "",              // Optional photo of the item
     val timestamp: Timestamp? = null,
-    val isResolved: Boolean = false
+    val isResolved: Boolean = false,
+
+    // Approval workflow (admin must approve before post is public)
+    val approved: Boolean = false,
+    val pendingApproval: Boolean = true,
+    val approvedBy: String = "",            // uid of admin who approved
+    val approvedAt: Timestamp? = null,
+
+    // Social & Engagement features
+    val loveCount: Int = 0,
+    val loveReactors: List<String> = emptyList(), // uids of users who reacted
+    val commentsCount: Int = 0,
+    val shareToken: String = "",            // Unique deep-link token for this post
+    val sharesCount: Int = 0,
+    val viewsCount: Int = 0,
+    val viewers: List<String> = emptyList(),
+    val resolvedStatus: String = "",        // "item_given" or "item_found"
+    val reportedCount: Int = 0,
+    val reportedBy: List<String> = emptyList()
 ) {
     val isFound: Boolean get() = type.equals("found", ignoreCase = true)
     val isLost: Boolean get() = type.equals("lost", ignoreCase = true)
+    val isPublic: Boolean get() = approved && !pendingApproval
+    val isItemGiven: Boolean get() = resolvedStatus.equals("item_given", ignoreCase = true)
+    val isItemFound: Boolean get() = resolvedStatus.equals("item_found", ignoreCase = true)
 }
+

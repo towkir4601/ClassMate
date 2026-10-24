@@ -42,8 +42,24 @@ class AppPreferences(context: Context) {
         return com.shuaib.classmate.models.User.slugifyDepartment(dept)
     }
 
-    fun getUserRole(): String =
-        prefs.getString("user_role", "student") ?: "student"
+    fun getTestRoleOverride(): String? =
+        prefs.getString("test_role_override", null)?.takeIf { it.isNotBlank() }
+
+    fun setTestRoleOverride(role: String?) {
+        val editor = prefs.edit()
+        if (role.isNullOrBlank()) {
+            editor.remove("test_role_override")
+        } else {
+            editor.putString("test_role_override", role.lowercase().trim())
+        }
+        editor.apply()
+    }
+
+    fun getUserRole(): String {
+        val override = getTestRoleOverride()
+        if (!override.isNullOrBlank()) return override
+        return prefs.getString("user_role", "student") ?: "student"
+    }
 
     fun setUserRole(role: String) {
         prefs.edit()
@@ -169,4 +185,27 @@ class AppPreferences(context: Context) {
             .putStringSet("deleted_lost_found_ids", current)
             .apply()
     }
+
+    fun isGuestMode(): Boolean =
+        prefs.getBoolean("is_guest_mode", false)
+
+    fun setGuestMode(enabled: Boolean) {
+        prefs.edit()
+            .putBoolean("is_guest_mode", enabled)
+            .apply()
+    }
+
+    fun hasViewedPost(postId: String): Boolean {
+        val viewed = prefs.getStringSet("viewed_post_ids", emptySet()) ?: emptySet()
+        return viewed.contains(postId)
+    }
+
+    fun markPostViewed(postId: String) {
+        val current = (prefs.getStringSet("viewed_post_ids", emptySet()) ?: emptySet()).toMutableSet()
+        current.add(postId)
+        prefs.edit()
+            .putStringSet("viewed_post_ids", current)
+            .apply()
+    }
 }
+

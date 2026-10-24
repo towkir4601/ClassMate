@@ -9,6 +9,7 @@
 /.agents/
 /.claude/
 /.cursor/
+/.gemini/
 .roorc
 skills-lock.json
 .DS_Store
@@ -21,7 +22,9 @@ app/release/
 release/
 web-staging/
 build_output.txt
+build_out.txt
 build_test.log
+install_to_device.ps1
 hs_err_pid*.log
 replay_pid*.log
 current-screen.png
@@ -31,3 +34,31 @@ notice*.xml
 *.hprof
 *.apk
 firebase-debug.log
+
+# Jolli memory
+.jolli/
+.jollimemory/
+jollimemory/
+
+# Project memory
+.projectmem/
+projectmem/
+.projectmem
+projectmem.json
+
+# Agent specifications & scratch
+agent.md
+AGENTS.md
+agents.md
+
+# Non-codebase patch and fix scripts
+patch_scripts/
+
+# Temporary test captures and previews
+test_*.png
+screen_*.png
+cropped_*.png
+other_*.png
+installed_*.png
+old_*.png
+.puku/

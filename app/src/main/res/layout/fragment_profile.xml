@@ -141,6 +141,9 @@
                     android:textAllCaps="true"
                     android:textStyle="bold"
                     android:letterSpacing="0.05"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
                     app:layout_constraintTop_toBottomOf="@id/layoutNameContainer"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
@@ -721,12 +724,12 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- 4.5 Developer & Demo Mode (Role Switcher) -->
+        <!-- Role Testing Section -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="DEVELOPER &amp; DEMO MODE"
-            android:textColor="@color/cm_accent"
+            android:text="ROLE &amp; PERMISSIONS TESTING"
+            android:textColor="@color/cm_primary"
             android:textSize="11sp"
             android:textStyle="bold"
             android:letterSpacing="0.08"
@@ -734,15 +737,15 @@
             android:layout_marginBottom="8dp"/>
 
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardRoleSwitcher"
+            android:id="@+id/cardSwitchRole"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="20dp"
             app:cardBackgroundColor="@color/cm_surface"
             app:cardCornerRadius="20dp"
             app:cardElevation="2dp"
-            app:strokeWidth="1.5dp"
-            app:strokeColor="@color/cm_primary_light"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/cm_border"
             android:clickable="true"
             android:focusable="true"
             android:background="?attr/selectableItemBackground">
@@ -750,76 +753,79 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="14dp">
+
+                <FrameLayout
+                    android:id="@+id/containerRoleIcon"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_icon_container"
+                    android:backgroundTint="#FEE2E2">
+
+                    <ImageView
+                        android:id="@+id/ivCurrentRoleIcon"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_shield_check"
+                        app:tint="#E11D48" />
+                </FrameLayout>
 
                 <LinearLayout
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
-                    <FrameLayout
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
-                        android:background="@drawable/bg_circle_accent"
-                        android:backgroundTint="@color/cm_primary_light">
-                        <TextView
-                            android:id="@+id/tvRoleSwitcherEmoji"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center"
-                            android:text="🧪"
-                            android:textSize="20sp" />
-                    </FrameLayout>
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="14dp">
 
                     <LinearLayout
-                        android:layout_width="0dp"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="14dp">
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Switch Test Role"
+                            android:text="Switch Account Role"
                             android:textColor="@color/cm_text_primary"
-                            android:textSize="15sp"
-                            android:fontFamily="sans-serif-medium"
+                            android:textSize="14sp"
                             android:textStyle="bold" />
 
                         <TextView
-                            android:id="@+id/tvCurrentActiveRoleDesc"
+                            android:id="@+id/tvCurrentRolePill"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Active: Super Admin (Full Control)"
-                            android:textColor="@color/cm_primary"
-                            android:textSize="12sp"
+                            android:layout_marginStart="8dp"
+                            android:paddingHorizontal="8dp"
+                            android:paddingVertical="2dp"
+                            android:text="SUPER ADMIN"
+                            android:textColor="#FFFFFF"
+                            android:textSize="9sp"
                             android:textStyle="bold"
-                            android:layout_marginTop="2dp" />
+                            android:background="@drawable/bg_badge_accent_pill"
+                            android:backgroundTint="#E11D48" />
                     </LinearLayout>
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnSwitchRole"
+                    <TextView
+                        android:id="@+id/tvSwitchRoleDesc"
                         android:layout_width="wrap_content"
-                        android:layout_height="36dp"
-                        android:text="Switch"
+                        android:layout_height="wrap_content"
+                        android:text="Tap to test and verify all 6 roles &amp; permissions"
+                        android:textColor="@color/cm_text_secondary"
                         android:textSize="12sp"
-                        android:textAllCaps="false"
-                        app:cornerRadius="18dp"
-                        android:insetTop="0dp"
-                        android:insetBottom="0dp" />
+                        android:layout_marginTop="2dp" />
                 </LinearLayout>
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Quick-switch live between Super Admin, University Admin, Club Admin, or Student to test and demo permissions."
-                    android:textColor="@color/cm_text_secondary"
-                    android:textSize="11.5sp"
-                    android:layout_marginTop="10dp" />
-
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_chevron_right"
+                    app:tint="@color/cm_text_secondary"
+                    android:importantForAccessibility="no" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

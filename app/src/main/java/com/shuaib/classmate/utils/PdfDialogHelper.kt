@@ -33,7 +33,7 @@ object PdfDialogHelper {
         val sheet = DialogPdfOptionsBinding.inflate(layoutInflater)
         
         sheet.tvTitle.text = pdf.title.ifBlank { "Library material" }
-        sheet.tvMeta.text = pdf.subject.ifBlank { "ClassMate Library" }
+        sheet.tvMeta.text = pdf.subject.ifBlank { "GSTU Go Library" }
 
         val url = pdf.downloadUrl.ifBlank { pdf.driveUrl.ifBlank { pdf.telegramUrl } }
         

@@ -6,10 +6,10 @@
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="16dp"
     android:layout_marginVertical="6dp"
-    app:cardBackgroundColor="#1A1F26"
+    app:cardBackgroundColor="#1F1517"
     app:cardCornerRadius="16dp"
     app:cardElevation="0dp"
-    app:strokeColor="#2E3642"
+    app:strokeColor="#3F1D24"
     app:strokeWidth="1dp">
 
     <LinearLayout
@@ -18,41 +18,54 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Top Row: Blood Group Badge, Bags Needed Badge, Timestamp & Delete -->
+        <!-- Top Header Row: Blood Group Badge, Bags Needed, Time & 3-Dot Options -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <!-- Blood Group Badge -->
             <TextView
                 android:id="@+id/tvBloodGroupBadge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_badge_accent_pill"
-                android:backgroundTint="#B91C1C"
+                android:backgroundTint="#7F1D1D"
                 android:paddingHorizontal="10dp"
                 android:paddingVertical="4dp"
-                android:text="🚨 B+ NEEDED"
-                android:textColor="#FFFFFF"
-                android:textSize="12sp"
+                android:text="🩸 B+ URGENT"
+                android:textColor="#FCA5A5"
+                android:textSize="11.5sp"
                 android:textStyle="bold" />
 
-            <!-- Bags Needed Badge -->
             <TextView
-                android:id="@+id/tvBagsBadge"
+                android:id="@+id/tvBagsNeededBadge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="6dp"
                 android:background="@drawable/bg_badge_accent_pill"
-                android:backgroundTint="#312E81"
+                android:backgroundTint="#2E1B20"
                 android:paddingHorizontal="8dp"
                 android:paddingVertical="4dp"
                 android:text="1 Bag"
-                android:textColor="#C7D2FE"
-                android:textSize="11sp"
+                android:textColor="#CBD5E1"
+                android:textSize="10.5sp"
                 android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvDonatedBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_badge_accent_pill"
+                android:backgroundTint="#14532D"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="4dp"
+                android:text="DONATED"
+                android:textColor="#86EFAC"
+                android:textSize="10.5sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
 
             <View
                 android:layout_width="0dp"
@@ -63,138 +76,226 @@
                 android:id="@+id/tvRequestTime"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Today, 2:30 PM"
+                android:text="Today, 2:15 PM"
                 android:textColor="#94A3B8"
-                android:textSize="12sp" />
+                android:textSize="11.5sp" />
 
+            <!-- Three-Dot More Options Button -->
             <ImageButton
-                android:id="@+id/btnDeleteRequest"
+                android:id="@+id/btnMoreBloodOptions"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:layout_marginStart="6dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Delete request"
-                android:padding="5dp"
-                android:src="@drawable/ic_delete"
-                app:tint="#F87171"
-                android:visibility="gone" />
+                android:contentDescription="More options"
+                android:padding="4dp"
+                android:src="@drawable/ic_more_vert"
+                app:tint="#94A3B8" />
         </LinearLayout>
 
-        <!-- Hospital / Location Title -->
+        <!-- Hospital / Location Name -->
         <TextView
-            android:id="@+id/tvHospitalTitle"
+            android:id="@+id/tvHospitalName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:ellipsize="end"
             android:maxLines="2"
-            android:text="Gopalganj Sadar Hospital"
+            android:text="Gopalganj 250 Bed General Hospital"
             android:textColor="#FFFFFF"
-            android:textSize="16sp"
+            android:textSize="15.5sp"
             android:textStyle="bold" />
 
-        <!-- Patient Name & Details (if any) -->
-        <TextView
-            android:id="@+id/tvPatientDetails"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Patient: Immediate Surgery"
-            android:textColor="#CBD5E1"
-            android:textSize="13sp"
-            android:visibility="gone" />
-
-        <!-- Urgency Note -->
+        <!-- Urgency Note / Reason -->
         <TextView
             android:id="@+id/tvUrgencyNote"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:background="@drawable/bg_lost_found_input"
-            android:padding="8dp"
-            android:text="Emergency requirement. Please donate or share."
+            android:ellipsize="end"
+            android:maxLines="3"
+            android:text="Emergency surgery at 4 PM. O+ donor urgently needed."
             android:textColor="#FCA5A5"
-            android:textSize="12sp"
-            android:visibility="gone" />
+            android:textSize="12.5sp" />
 
-        <!-- Requester Info -->
-        <TextView
-            android:id="@+id/tvRequesterInfo"
+        <!-- Requester Info Row -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Posted by Student · 01700-000000"
-            android:textColor="#94A3B8"
-            android:textSize="12sp" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-        <!-- Divider -->
+            <ImageView
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:src="@drawable/ic_person"
+                app:tint="#94A3B8" />
+
+            <TextView
+                android:id="@+id/tvRequesterInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:text="Requested by Tanvir Ahmed"
+                android:textColor="#CBD5E1"
+                android:textSize="12.5sp" />
+        </LinearLayout>
+
+        <!-- Contact Phone Row -->
+        <LinearLayout
+            android:id="@+id/layoutBloodContact"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:src="@drawable/ic_phone_receiver"
+                app:tint="#94A3B8" />
+
+            <TextView
+                android:id="@+id/tvBloodPhone"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:text="Contact: 01711-234567"
+                android:textColor="#CBD5E1"
+                android:textSize="12.5sp" />
+        </LinearLayout>
+
+        <!-- Divider Line -->
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginTop="12dp"
-            android:layout_marginBottom="12dp"
-            android:background="#2E3642" />
+            android:layout_marginBottom="8dp"
+            android:background="#2E1B20" />
 
-        <!-- Action Buttons: Call, WhatsApp, Fulfill -->
+        <!-- Social & Engagement Action Bar: Love React, Share, Views Count, Call Option -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <!-- Direct Call Button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnCallDonor"
-                style="@style/Widget.MaterialComponents.Button"
-                android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="6dp"
-                android:backgroundTint="#16A34A"
-                android:text="Call"
-                android:textAllCaps="false"
-                android:textColor="#FFFFFF"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                app:cornerRadius="10dp"
-                app:icon="@drawable/ic_phone_receiver"
-                app:iconSize="16dp"
-                app:iconTint="#FFFFFF" />
-
-            <!-- WhatsApp Message Button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnWhatsApp"
-                style="@style/Widget.MaterialComponents.Button"
-                android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_weight="1.2"
-                android:layout_marginStart="6dp"
-                android:layout_marginEnd="6dp"
-                android:backgroundTint="#25D366"
-                android:text="WhatsApp"
-                android:textAllCaps="false"
-                android:textColor="#FFFFFF"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                app:cornerRadius="10dp"
-                app:icon="@drawable/bg_pill_whatsapp"
-                app:iconSize="16dp"
-                app:iconTint="#FFFFFF" />
-
-            <!-- Mark Fulfilled Button (Only for Author or Admin) -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnMarkFulfilled"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            <!-- Love React Button -->
+            <LinearLayout
+                android:id="@+id/btnBloodLove"
                 android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:layout_marginStart="6dp"
-                android:text="Fulfilled"
-                android:textAllCaps="false"
-                android:textColor="#34D399"
+                android:layout_height="34dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="6dp">
+
+                <ImageView
+                    android:id="@+id/ivBloodLove"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_heart_outline"
+                    app:tint="#94A3B8" />
+
+                <TextView
+                    android:id="@+id/tvBloodLoveCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="5dp"
+                    android:text="0"
+                    android:textColor="#CBD5E1"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Share Option -->
+            <LinearLayout
+                android:id="@+id/btnBloodShare"
+                android:layout_width="wrap_content"
+                android:layout_height="34dp"
+                android:layout_marginStart="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="6dp">
+
+                <ImageView
+                    android:id="@+id/ivBloodShare"
+                    android:layout_width="17dp"
+                    android:layout_height="17dp"
+                    android:src="@drawable/ic_share_outline"
+                    app:tint="#94A3B8" />
+
+                <TextView
+                    android:id="@+id/tvBloodShareText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="5dp"
+                    android:text="Share"
+                    android:textColor="#CBD5E1"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- Views Counter (Including Guests) -->
+            <LinearLayout
+                android:id="@+id/layoutBloodViews"
+                android:layout_width="wrap_content"
+                android:layout_height="34dp"
+                android:layout_marginStart="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="6dp">
+
+                <ImageView
+                    android:id="@+id/ivBloodViews"
+                    android:layout_width="17dp"
+                    android:layout_height="17dp"
+                    android:src="@drawable/ic_eye_outline"
+                    app:tint="#64748B" />
+
+                <TextView
+                    android:id="@+id/tvBloodViewsCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="0 views"
+                    android:textColor="#94A3B8"
+                    android:textSize="11.5sp" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <!-- Call Option Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBloodCallAction"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="0dp"
+                android:text="Call"
+                android:textColor="#F87171"
                 android:textSize="12sp"
-                app:cornerRadius="10dp"
-                app:strokeColor="#34D399"
-                android:visibility="gone" />
+                android:textStyle="bold"
+                app:cornerRadius="16dp"
+                app:icon="@drawable/ic_phone"
+                app:iconPadding="4dp"
+                app:iconSize="14dp"
+                app:iconTint="#F87171"
+                app:strokeColor="#EF4444"
+                app:strokeWidth="1dp" />
+
         </LinearLayout>
 
     </LinearLayout>

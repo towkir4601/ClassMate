@@ -44,6 +44,7 @@ android {
         buildConfigField("String", "GROQ_API_KEY", "\"${getLocalProperty("GROQ_API_KEY")}\"")
         buildConfigField("String", "GEMINI_MODEL", "\"gemini-1.5-flash\"")
         buildConfigField("String", "GROQ_MODEL", "\"llama-3.3-70b-versatile\"")
+        buildConfigField("String", "ROUTINE_BACKEND_URL", "\"https://class-routine-kny5.onrender.com/\"")
     }
 
     buildTypes {
@@ -64,6 +65,12 @@ android {
 
     kotlinOptions {
         jvmTarget = "1.8"
+    }
+
+    sourceSets {
+        getByName("main") {
+            assets.srcDirs("src/main/assets")
+        }
     }
 
     buildFeatures {
@@ -92,8 +99,12 @@ dependencies {
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     implementation("com.itextpdf:itextpdf:5.5.13.3")
 
-    // HTTP client for Cloudinary
+    // HTTP client for Cloudinary & Render backend
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    // Coroutines for background tasks
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)

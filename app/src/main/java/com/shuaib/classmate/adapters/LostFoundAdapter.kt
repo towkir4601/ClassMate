@@ -9,12 +9,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.appcompat.widget.PopupMenu
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.shuaib.classmate.R
 import com.shuaib.classmate.activities.ImageViewerActivity
 import com.shuaib.classmate.databinding.ItemLostFoundBinding
 import com.shuaib.classmate.models.LostFoundItem
+import com.shuaib.classmate.repositories.AppNotificationRepository
+import com.shuaib.classmate.repositories.LostFoundRepository
+import com.shuaib.classmate.utils.AppPreferences
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -22,10 +26,16 @@ import java.util.Locale
 class LostFoundAdapter(
     private var items: List<LostFoundItem>,
     private var currentUserId: String = "",
+    private var currentUserName: String = "Student",
     private var isAdmin: Boolean = false,
     private val onDeleteClick: (LostFoundItem) -> Unit = {},
-    private val onItemClick: (LostFoundItem) -> Unit = {}
+    private val onItemClick: (LostFoundItem) -> Unit = {},
+    private val onStatusChangeClick: (LostFoundItem, String) -> Unit = { _, _ -> },
+    private val onReportClick: (LostFoundItem) -> Unit = {}
 ) : RecyclerView.Adapter<LostFoundAdapter.ViewHolder>() {
+
+    private val repo = LostFoundRepository()
+    private val notificationRepo = AppNotificationRepository()
 
     class ViewHolder(val binding: ItemLostFoundBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -83,6 +93,7 @@ class LostFoundAdapter(
             b.cardItemImage.setOnClickListener(null)
         }
 
+        // Status badge
         if (item.isFound) {
             b.tvTypeBadge.text = "✔ FOUND"
             b.tvTypeBadge.setTextColor(Color.parseColor("#34D399"))
@@ -93,6 +104,18 @@ class LostFoundAdapter(
             b.tvTypeBadge.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#3A2224"))
         }
 
+        // Resolved badge
+        if (item.isResolved || item.isItemGiven || item.isItemFound) {
+            b.tvResolvedStatusBadge.visibility = View.VISIBLE
+            b.tvResolvedStatusBadge.text = when {
+                item.isItemGiven -> "ITEM GIVEN"
+                item.isItemFound -> "ITEM FOUND"
+                else -> "RESOLVED"
+            }
+        } else {
+            b.tvResolvedStatusBadge.visibility = View.GONE
+        }
+
         // Delete button visibility: strictly creator or admin
         val canDelete = (item.reporterId.isNotBlank() && item.reporterId == currentUserId) || isAdmin
         b.btnDeleteItem.visibility = if (canDelete) View.VISIBLE else View.GONE
@@ -100,13 +123,133 @@ class LostFoundAdapter(
             onDeleteClick(item)
         }
 
+        // View count tracking (including guests)
+        val prefs = AppPreferences(context)
+        if (!prefs.hasViewedPost(item.id)) {
+            prefs.markPostViewed(item.id)
+            repo.recordView(item.id, currentUserId.ifBlank { null })
+        }
+        val displayViews = Math.max(item.viewsCount, if (prefs.hasViewedPost(item.id)) 1 else 0)
+        b.tvViewsCount.text = "$displayViews ${if (displayViews == 1) "view" else "views"}"
+
+        // Love react setup
+        val isLovedByMe = currentUserId.isNotBlank() && item.loveReactors.contains(currentUserId)
+        if (isLovedByMe) {
+            b.ivLove.setImageResource(R.drawable.ic_heart_filled)
+            b.ivLove.imageTintList = ColorStateList.valueOf(Color.parseColor("#F43F5E"))
+            b.tvLoveCount.setTextColor(Color.parseColor("#FDA4AF"))
+        } else {
+            b.ivLove.setImageResource(R.drawable.ic_heart_outline)
+            b.ivLove.imageTintList = ColorStateList.valueOf(Color.parseColor("#94A3B8"))
+            b.tvLoveCount.setTextColor(Color.parseColor("#CBD5E1"))
+        }
+        b.tvLoveCount.text = "${item.loveCount}"
+
+        b.btnLove.setOnClickListener {
+            if (currentUserId.isBlank()) {
+                Toast.makeText(context, "Please sign in to react to this post", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val willLove = !item.loveReactors.contains(currentUserId)
+            val updatedReactors = item.loveReactors.toMutableList()
+            if (willLove) {
+                updatedReactors.add(currentUserId)
+                b.ivLove.setImageResource(R.drawable.ic_heart_filled)
+                b.ivLove.imageTintList = ColorStateList.valueOf(Color.parseColor("#F43F5E"))
+                b.tvLoveCount.setTextColor(Color.parseColor("#FDA4AF"))
+                b.tvLoveCount.text = "${updatedReactors.size}"
+
+                // Send notification to who posted
+                notificationRepo.sendNotificationToAuthor(
+                    authorId = item.reporterId,
+                    type = "react",
+                    title = "❤️ New Reaction on Lost & Found",
+                    message = "$currentUserName loved your post: \"${item.title}\"",
+                    postId = item.id,
+                    postType = "lost_found",
+                    actorId = currentUserId,
+                    actorName = currentUserName
+                )
+            } else {
+                updatedReactors.remove(currentUserId)
+                b.ivLove.setImageResource(R.drawable.ic_heart_outline)
+                b.ivLove.imageTintList = ColorStateList.valueOf(Color.parseColor("#94A3B8"))
+                b.tvLoveCount.setTextColor(Color.parseColor("#CBD5E1"))
+                b.tvLoveCount.text = "${updatedReactors.size}"
+            }
+            repo.toggleLove(item.id, currentUserId, willLove)
+        }
+
+        // Share button setup
+        b.btnShare.setOnClickListener {
+            repo.recordShare(item.id)
+            val shareText = "🔍 GSTU Go - ${if (item.isFound) "Found Item" else "Lost Item"}:\n" +
+                    "${item.title}\n" +
+                    "📍 Location: ${item.location}\n" +
+                    "📞 Contact: ${item.contactPhone}\n\n" +
+                    "View on ClassMate / GSTU Go app."
+            val sendIntent = Intent().apply {
+                action = Intent.ACTION_SEND
+                putExtra(Intent.EXTRA_TEXT, shareText)
+                type = "text/plain"
+            }
+            context.startActivity(Intent.createChooser(sendIntent, "Share Item"))
+
+            // Send notification to author
+            if (currentUserId.isNotBlank()) {
+                notificationRepo.sendNotificationToAuthor(
+                    authorId = item.reporterId,
+                    type = "share",
+                    title = "🔗 Your Post was Shared",
+                    message = "$currentUserName shared your post: \"${item.title}\"",
+                    postId = item.id,
+                    postType = "lost_found",
+                    actorId = currentUserId,
+                    actorName = currentUserName
+                )
+            }
+        }
+
+        // Call option
+        b.btnCallAction.setOnClickListener {
+            handleContactAction(context, item)
+        }
         b.layoutContact.setOnClickListener {
             handleContactAction(context, item)
+        }
+
+        // Three-Dot More Options Menu
+        b.btnMoreOptions.setOnClickListener { v ->
+            showThreeDotMenu(v, context, item)
         }
 
         b.cardItemRoot.setOnClickListener {
             onItemClick(item)
         }
+    }
+
+    private fun showThreeDotMenu(anchor: View, context: Context, item: LostFoundItem) {
+        val popup = PopupMenu(context, anchor)
+        // Item Given if found post, Item Found if lost post
+        val statusActionTitle = if (item.isFound) "Item Given" else "Item Found"
+        popup.menu.add(0, 1, 0, statusActionTitle)
+        popup.menu.add(0, 2, 1, "Report Post")
+
+        popup.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                1 -> {
+                    val status = if (item.isFound) "item_given" else "item_found"
+                    onStatusChangeClick(item, status)
+                    true
+                }
+                2 -> {
+                    onReportClick(item)
+                    true
+                }
+                else -> false
+            }
+        }
+        popup.show()
     }
 
     private fun handleContactAction(context: Context, item: LostFoundItem) {
@@ -126,8 +269,9 @@ class LostFoundAdapter(
         notifyDataSetChanged()
     }
 
-    fun setUserAndRole(userId: String, adminStatus: Boolean) {
+    fun setUserAndRole(userId: String, userName: String, adminStatus: Boolean) {
         currentUserId = userId
+        currentUserName = userName.ifBlank { "Student" }
         isAdmin = adminStatus
         notifyDataSetChanged()
     }

@@ -239,7 +239,7 @@ object AppUpdateManager {
                         context.startActivity(intent)
                         Toast.makeText(
                             context,
-                            "Please enable \"Install unknown apps\" for ClassMate, then try again.",
+                            "Please enable \"Install unknown apps\" for GSTU Go, then try again.",
                             Toast.LENGTH_LONG
                         ).show()
                         return@setOnClickListener
@@ -324,7 +324,7 @@ object AppUpdateManager {
                 context.startActivity(intent)
                 Toast.makeText(
                     context, 
-                    "Please enable the \"Install unknown apps\" permission for ClassMate, then try again.", 
+                    "Please enable the \"Install unknown apps\" permission for GSTU Go, then try again.", 
                     Toast.LENGTH_LONG
                 ).show()
                 return

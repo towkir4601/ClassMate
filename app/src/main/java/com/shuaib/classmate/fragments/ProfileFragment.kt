@@ -48,6 +48,7 @@ import com.shuaib.classmate.databinding.DialogRoleSwitcherBinding
 import com.shuaib.classmate.databinding.FragmentProfileBinding
 import com.shuaib.classmate.models.PdfFile
 import com.shuaib.classmate.utils.HapticHelper
+import com.shuaib.classmate.utils.UserRoleHelper
 
 import com.shuaib.classmate.models.User
 import com.shuaib.classmate.storage.LibraryUrlOpener
@@ -135,6 +136,14 @@ class ProfileFragment : Fragment() {
 
         binding.fabEditPhoto.setOnClickListener {
             showPhotoOptions()
+        }
+
+        binding.cardSwitchRole.setOnClickListener {
+            showRoleSwitcherDialog()
+        }
+
+        binding.tvRoleBadge.setOnClickListener {
+            showRoleSwitcherDialog()
         }
 
 
@@ -605,11 +614,15 @@ class ProfileFragment : Fragment() {
                     try {
                         val approvedVal = document.get("approved")
                         val isApproved = approvedVal == true || approvedVal == "true"
-                        val permissions = document.get("permissions") as? Map<String, Boolean> ?: User.DEFAULT_PERMISSIONS
-                        val localDemoRole = context?.let { AppPreferences(it).getDemoRole() }.orEmpty()
+                        val ctx = context ?: return@addSnapshotListener
+                        val docRole = document.getString("role") ?: "student"
+                        val localDemoRole = AppPreferences(ctx).getDemoRole()
                         val firestoreDemoRole = document.getString("demoRole") ?: ""
                         val effectiveDemoRole = localDemoRole.ifBlank { firestoreDemoRole }
-
+                        val candidateRole = effectiveDemoRole.ifBlank { docRole }
+                        val effectiveRole = UserRoleHelper.getEffectiveRole(ctx, candidateRole)
+                        val effectivePermissions = UserRoleHelper.getEffectivePermissions(ctx, effectiveRole, document.get("permissions"))
+                        
                         val user = User(
                             uid = document.id,
                             name = document.getString("name") ?: "",
@@ -621,14 +634,14 @@ class ProfileFragment : Fragment() {
                             bloodGroup = document.getString("bloodGroup") ?: "",
                             homeDistrict = document.getString("homeDistrict") ?: "",
                             address = document.getString("address") ?: "",
-                            role = document.getString("role") ?: "student",
-                            approved = isApproved,
+                            role = effectiveRole,
+                            permissions = effectivePermissions,
+                            approved = if (UserRoleHelper.isTestRoleActive(ctx)) true else isApproved,
                             photoUrl = document.getString("photoUrl") ?: "",
                             authProvider = document.getString("authProvider") ?: "",
                             oneSignalPlayerId = document.getString("oneSignalPlayerId") ?: "",
                             favoriteSubjects = document.get("favoriteSubjects") as? List<String> ?: emptyList(),
                             favoritePdfIds = document.get("favoritePdfIds") as? List<String> ?: emptyList(),
-                            permissions = permissions,
                             assignedClubId = document.getString("assignedClubId") ?: (if (effectiveDemoRole == "club_admin") "club_computer_society" else ""),
                             assignedClubName = document.getString("assignedClubName") ?: (if (effectiveDemoRole == "club_admin") "GSTU Computer Club (GSTUCC)" else ""),
                             demoRole = effectiveDemoRole,
@@ -649,11 +662,13 @@ class ProfileFragment : Fragment() {
 
     private fun applyRoleBadge(textView: TextView, role: String) {
         val (fill, label) = when (role.lowercase()) {
-            "superadmin" -> Pair("#FF4D6D", "SUPER ADMIN")
-            "admin", "university_admin" -> Pair("#2563EB", "UNIVERSITY ADMIN")
-            "club_admin" -> Pair("#8B5CF6", "CLUB ADMIN (GSTUCC)")
-            "teacher" -> Pair("#3B82F6", "TEACHER")
-            else -> Pair("#10B981", "STUDENT")
+            "superadmin"                -> "#E11D48" to "SUPER ADMIN"
+            "admin", "university_admin" -> "#D97706" to "ADMIN"
+            "teacher"                   -> "#2563EB" to "TEACHER"
+            "club_admin"                -> "#7C3AED" to "CLUB ADMIN"
+            "cr"                        -> "#059669" to "CLASS REP (CR)"
+            "student"                   -> "#475569" to "STUDENT"
+            else                        -> "#34D399" to role.uppercase()
         }
         textView.text = label
         textView.setTextColor(Color.WHITE)
@@ -680,17 +695,26 @@ class ProfileFragment : Fragment() {
             }
             Toast.makeText(requireContext(), "✅ $verifyReason", Toast.LENGTH_SHORT).show()
         }
-        applyRoleBadge(binding.tvRoleBadge, activeRole)
+        applyRoleBadge(binding.tvRoleBadge, user.role)
 
-        // 1. Role switcher card preview
-        val (roleEmoji, roleDesc) = when (activeRole) {
-            "superadmin" -> Pair("👑", "Active: Super Admin (Full Control)")
-            "admin", "university_admin" -> Pair("🏛️", "Active: University Admin (Academic)")
-            "club_admin" -> Pair("🎯", "Active: Club Admin (GSTU Computer Club)")
-            else -> Pair("🎓", "Active: Regular Student (Clean View)")
+        // Update role testing card
+        val roleKey = user.role.lowercase()
+        val (roleColorHex, rolePillText, roleIconRes) = when (roleKey) {
+            "superadmin" -> Triple("#E11D48", "SUPER ADMIN", R.drawable.ic_shield_check)
+            "admin"      -> Triple("#D97706", "DEPT ADMIN", R.drawable.ic_building)
+            "teacher"    -> Triple("#2563EB", "TEACHER", R.drawable.ic_person)
+            "club_admin" -> Triple("#7C3AED", "CLUB ADMIN", R.drawable.ic_trophy)
+            "cr"         -> Triple("#059669", "CLASS REP (CR)", R.drawable.ic_badge)
+            else         -> Triple("#475569", "STUDENT", R.drawable.ic_users)
         }
-        binding.tvRoleSwitcherEmoji.text = roleEmoji
-        binding.tvCurrentActiveRoleDesc.text = roleDesc
+        val roleColorParsed = Color.parseColor(roleColorHex)
+        binding.tvCurrentRolePill.text = rolePillText
+        binding.tvCurrentRolePill.backgroundTintList = ColorStateList.valueOf(roleColorParsed)
+        val alphaColor = Color.argb(35, Color.red(roleColorParsed), Color.green(roleColorParsed), Color.blue(roleColorParsed))
+        binding.containerRoleIcon.backgroundTintList = ColorStateList.valueOf(alphaColor)
+        binding.ivCurrentRoleIcon.setImageResource(roleIconRes)
+        binding.ivCurrentRoleIcon.imageTintList = ColorStateList.valueOf(roleColorParsed)
+        binding.tvSwitchRoleDesc.text = "Currently testing as ${user.getRoleDisplayName()}. Tap to change."
 
         fetchUserFavorites(user.favoriteSubjects, user.favoritePdfIds)
 
@@ -910,6 +934,113 @@ class ProfileFragment : Fragment() {
                 com.shuaib.classmate.services.ShakeToTorchService.stop(requireContext())
             }
         }
+    }
+
+    private fun showRoleSwitcherDialog() {
+        if (!isAdded || context == null) return
+        val ctx = requireContext()
+        val dialog = BottomSheetDialog(ctx)
+        val dialogView = layoutInflater.inflate(R.layout.dialog_switch_role, null)
+        dialog.setContentView(dialogView)
+
+        val currentRole = UserRoleHelper.getEffectiveRole(ctx, currentUser?.role)
+
+        val itemSuperAdmin = dialogView.findViewById<View>(R.id.itemRoleSuperAdmin)
+        val itemAdmin = dialogView.findViewById<View>(R.id.itemRoleAdmin)
+        val itemTeacher = dialogView.findViewById<View>(R.id.itemRoleTeacher)
+        val itemClubAdmin = dialogView.findViewById<View>(R.id.itemRoleClubAdmin)
+        val itemCR = dialogView.findViewById<View>(R.id.itemRoleCR)
+        val itemStudent = dialogView.findViewById<View>(R.id.itemRoleStudent)
+
+        val checkSuperAdmin = dialogView.findViewById<View>(R.id.ivCheckSuperAdmin)
+        val checkAdmin = dialogView.findViewById<View>(R.id.ivCheckAdmin)
+        val checkTeacher = dialogView.findViewById<View>(R.id.ivCheckTeacher)
+        val checkClubAdmin = dialogView.findViewById<View>(R.id.ivCheckClubAdmin)
+        val checkCR = dialogView.findViewById<View>(R.id.ivCheckCR)
+        val checkStudent = dialogView.findViewById<View>(R.id.ivCheckStudent)
+
+        val btnClose = dialogView.findViewById<android.widget.ImageButton>(R.id.btnCloseRoleDialog)
+        btnClose?.setOnClickListener { dialog.dismiss() }
+
+        // Highlight currently active role
+        checkSuperAdmin?.isVisible = currentRole == "superadmin"
+        checkAdmin?.isVisible = currentRole == "admin"
+        checkTeacher?.isVisible = currentRole == "teacher"
+        checkClubAdmin?.isVisible = currentRole == "club_admin"
+        checkCR?.isVisible = currentRole == "cr"
+        checkStudent?.isVisible = currentRole == "student" || currentRole.isBlank()
+
+        fun performRoleSwitch(newRole: String, roleTitle: String) {
+            val safeCtx = context ?: return
+
+            // 1. Instantly set test role in preferences
+            UserRoleHelper.setTestRole(safeCtx, newRole)
+
+            // 2. Instantly update currentUser in memory and refresh UI
+            val perms = User.getRoleDefaultPermissions(newRole)
+            val updatedUser = (currentUser ?: User(
+                uid = auth.currentUser?.uid ?: "test_user",
+                name = auth.currentUser?.displayName ?: "User",
+                email = auth.currentUser?.email ?: ""
+            )).copy(
+                role = newRole,
+                permissions = perms,
+                approved = true
+            )
+            currentUser = updatedUser
+            updateUI(updatedUser)
+
+            // 3. Dismiss dialog immediately so user experiences instant response
+            dialog.dismiss()
+
+            Toast.makeText(
+                safeCtx,
+                "Switched to $roleTitle! Active for all app features.",
+                Toast.LENGTH_SHORT
+            ).show()
+
+            // 4. Try updating Firestore in background (best-effort)
+            val uid = auth.currentUser?.uid
+            if (!uid.isNullOrBlank()) {
+                val updates = mapOf(
+                    "role" to newRole,
+                    "approved" to true,
+                    "permissions" to perms,
+                    "updatedAt" to com.google.firebase.Timestamp.now()
+                )
+                firestore.collection("users").document(uid).update(updates)
+                    .addOnFailureListener { e ->
+                        android.util.Log.w("ProfileFragment", "Remote Firestore role update skipped: ${e.message}")
+                    }
+            }
+        }
+
+        // Helper to bind clicks recursively on the card and its container
+        fun bindCard(card: View?, newRole: String, roleTitle: String) {
+            if (card == null) return
+            val listener = View.OnClickListener { performRoleSwitch(newRole, roleTitle) }
+            card.setOnClickListener(listener)
+            if (card is ViewGroup) {
+                for (i in 0 until card.childCount) {
+                    val child = card.getChildAt(i)
+                    child.setOnClickListener(listener)
+                    if (child is ViewGroup) {
+                        for (j in 0 until child.childCount) {
+                            child.getChildAt(j).setOnClickListener(listener)
+                        }
+                    }
+                }
+            }
+        }
+
+        bindCard(itemSuperAdmin, "superadmin", "Super Admin")
+        bindCard(itemAdmin, "admin", "Dept Admin")
+        bindCard(itemTeacher, "teacher", "Teacher")
+        bindCard(itemClubAdmin, "club_admin", "Club Admin")
+        bindCard(itemCR, "cr", "Class Representative (CR)")
+        bindCard(itemStudent, "student", "Student")
+
+        dialog.show()
     }
 
     override fun onDestroyView() {

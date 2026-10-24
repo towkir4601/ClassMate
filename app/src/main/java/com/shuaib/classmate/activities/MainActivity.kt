@@ -384,14 +384,14 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     // Manual parsing to prevent crashes if Firestore field types (like approved) are wrong
-                    val role = doc.getString("role") ?: "student"
-                    val demoRole = AppPreferences(this@MainActivity).getDemoRole().ifBlank { doc.getString("demoRole") ?: "" }
-                    val effectiveRole = demoRole.ifBlank { role }
+                    // Manual parsing to prevent crashes if Firestore field types (like approved) are wrong
+                    val docRole = doc.getString("role") ?: "student"
                     val batch = doc.getString("batch") ?: ""
-                    val permissions = doc.get("permissions") as? Map<String, Boolean> ?: emptyMap()
+                    val effectiveRole = com.shuaib.classmate.utils.UserRoleHelper.getEffectiveRole(this@MainActivity, docRole)
+                    val permissions = com.shuaib.classmate.utils.UserRoleHelper.getEffectivePermissions(this@MainActivity, effectiveRole, doc.get("permissions"))
                     
                     val r = effectiveRole.trim().lowercase()
-                    isAdmin = (r == "superadmin" || r == "admin" || r == "university_admin" || permissions.values.any { it == true })
+                    isAdmin = (r in listOf("superadmin", "admin", "university_admin", "teacher", "club_admin", "cr") || permissions.values.any { it == true })
 
                     // Verify approval status for non-admin accounts
                     val approvedVal = doc.get("approved")
@@ -400,7 +400,7 @@ class MainActivity : AppCompatActivity() {
                         is String -> approvedVal.toBoolean()
                         else -> false
                     }
-                    if (r != "superadmin" && r != "admin" && r != "university_admin" && !isApproved) {
+                    if (r != "superadmin" && r != "admin" && r != "university_admin" && !isApproved && !com.shuaib.classmate.utils.UserRoleHelper.isTestRoleActive(this@MainActivity)) {
                         val intent = Intent(this@MainActivity, PendingApprovalActivity::class.java).apply {
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         }

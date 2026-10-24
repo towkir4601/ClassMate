@@ -18,59 +18,56 @@
             android:layout_height="?attr/actionBarSize"
             app:navigationIcon="@drawable/ic_arrow_back"
             app:navigationIconTint="@color/cm_text_primary"
-            app:title="Blood Bank Network"
+            app:title="Blood Bank &amp; Donors"
             app:titleTextColor="@color/cm_text_primary" />
 
-        <!-- Segmented Tab Switcher (Donors vs Blood Requests) -->
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginBottom="12dp"
-            android:background="@drawable/bg_lost_found_input"
-            android:orientation="horizontal"
-            android:padding="4dp">
-
-            <TextView
-                android:id="@+id/tabDonors"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:background="@drawable/bg_badge_accent_pill"
-                android:backgroundTint="#B91C1C"
-                android:gravity="center"
-                android:text="🩸 Donors Directory"
-                android:textColor="#FFFFFF"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tabRequests"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="📢 Blood Posts"
-                android:textColor="#94A3B8"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <!-- Donors Tab Filters (Search + Chips + Banner) -->
-        <LinearLayout
-            android:id="@+id/containerDonorFilters"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingHorizontal="16dp"
             android:paddingBottom="12dp">
 
+            <!-- Segmented Tab Switcher: Urgent Requests vs Donors Directory -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/bg_dialog_input_dark"
+                android:orientation="horizontal"
+                android:padding="3dp">
+
+                <TextView
+                    android:id="@+id/tabBloodRequests"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_badge_accent_pill"
+                    android:backgroundTint="#7F1D1D"
+                    android:gravity="center"
+                    android:text="🚨 Urgent Requests"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tabDonors"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="👥 Donors Directory"
+                    android:textColor="#94A3B8"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
             <!-- Search box -->
             <com.google.android.material.textfield.TextInputLayout
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Search donors by name or department..."
+                android:hint="Search by hospital, name or department..."
                 app:boxCornerRadiusBottomEnd="14dp"
                 app:boxCornerRadiusBottomStart="14dp"
                 app:boxCornerRadiusTopEnd="14dp"
@@ -88,8 +85,9 @@
                     android:textSize="14sp" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Blood group filter chips -->
+            <!-- Blood group filter chips (Visible for Donors tab, or optional for Requests) -->
             <HorizontalScrollView
+                android:id="@+id/scrollBloodChips"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
@@ -108,7 +106,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:checked="true"
-                        android:text="All Donors" />
+                        android:text="All Blood Groups" />
 
                     <com.google.android.material.chip.Chip
                         android:id="@+id/chipAPos"
@@ -165,17 +163,18 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="AB-" />
+
                 </com.google.android.material.chip.ChipGroup>
             </HorizontalScrollView>
 
-            <!-- Active Urgent Request Notice Banner (if any) -->
+            <!-- Active Emergency Blood Request Banner -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardActiveEmergencyBanner"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 android:visibility="gone"
-                app:cardBackgroundColor="#2A1618"
+                app:cardBackgroundColor="#2A1215"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
                 app:strokeColor="#7F1D1D"
@@ -188,87 +187,58 @@
                     android:orientation="horizontal"
                     android:padding="12dp">
 
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_blood_drop"
-                        app:tint="@color/cm_error" />
+                    <TextView
+                        android:id="@+id/tvBannerBloodGroup"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_badge_accent_pill"
+                        android:backgroundTint="#B91C1C"
+                        android:gravity="center"
+                        android:text="B+"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
 
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="10dp"
+                        android:layout_marginStart="12dp"
                         android:layout_weight="1"
                         android:orientation="vertical">
 
                         <TextView
-                            android:id="@+id/tvActiveEmergencyTitle"
+                            android:id="@+id/tvBannerTitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="🚨 Urgent Blood Needed"
+                            android:text="🚨 URGENT: B+ Needed"
                             android:textColor="#FCA5A5"
                             android:textSize="13sp"
                             android:textStyle="bold" />
 
                         <TextView
-                            android:id="@+id/tvActiveEmergencySubtitle"
+                            android:id="@+id/tvBannerSubtitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Hospital · Contact"
+                            android:layout_marginTop="2dp"
+                            android:text="Gopalganj Sadar Hospital"
                             android:textColor="#CBD5E1"
-                            android:textSize="11.5sp" />
+                            android:textSize="12sp" />
                     </LinearLayout>
 
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnCallActiveEmergency"
+                        android:id="@+id/btnBannerCall"
                         style="@style/Widget.MaterialComponents.Button.TextButton"
                         android:layout_width="wrap_content"
-                        android:layout_height="36dp"
-                        android:paddingHorizontal="10dp"
+                        android:layout_height="wrap_content"
                         android:text="Call"
-                        android:textColor="@color/cm_error"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
+                        android:textColor="#EF4444"
+                        android:textStyle="bold"
+                        app:icon="@drawable/ic_phone"
+                        app:iconTint="#EF4444" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
-
-        <!-- Requests Tab Header -->
-        <LinearLayout
-            android:id="@+id/containerRequestsHeader"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="16dp"
-            android:paddingBottom="12dp"
-            android:visibility="gone">
-
-            <TextView
-                android:id="@+id/tvRequestsCount"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Urgent Blood Requests (0)"
-                android:textColor="#CBD5E1"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnHeaderNewPost"
-                style="@style/Widget.MaterialComponents.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="38dp"
-                android:backgroundTint="#B91C1C"
-                android:text="+ New Post"
-                android:textAllCaps="false"
-                android:textColor="#FFFFFF"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                app:cornerRadius="10dp" />
-        </LinearLayout>
-
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -281,18 +251,18 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 
-            <!-- Donors RecyclerView -->
+            <!-- Blood Requests List -->
             <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvDonors"
+                android:id="@+id/rvBloodRequests"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
                 android:paddingTop="8dp"
                 android:paddingBottom="96dp" />
 
-            <!-- Blood Requests RecyclerView -->
+            <!-- Donors List -->
             <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvBloodRequests"
+                android:id="@+id/rvDonors"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
@@ -307,7 +277,6 @@
                 android:layout_gravity="center"
                 android:visibility="gone" />
 
-            <!-- Empty State for Donors -->
             <LinearLayout
                 android:id="@+id/emptyState"
                 android:layout_width="match_parent"
@@ -329,7 +298,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:text="No donors found"
+                    android:text="No requests found"
                     android:textColor="@color/cm_text_primary"
                     android:textSize="18sp"
                     android:textStyle="bold" />
@@ -340,43 +309,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:gravity="center"
-                    android:text="Try selecting another blood group or update your blood group."
-                    android:textColor="@color/cm_text_muted"
-                    android:textSize="14sp" />
-            </LinearLayout>
-
-            <!-- Empty State for Requests -->
-            <LinearLayout
-                android:id="@+id/emptyRequestsState"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:padding="32dp"
-                android:visibility="gone">
-
-                <ImageView
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
-                    android:src="@drawable/ic_blood_drop"
-                    app:tint="#10B981" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="No Urgent Blood Requests"
-                    android:textColor="@color/cm_text_primary"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:gravity="center"
-                    android:text="All emergency requests are caught up or fulfilled.\nNeed blood? Click below to post a request."
+                    android:text="No active requests at the moment. You can post an emergency request."
                     android:textColor="@color/cm_text_muted"
                     android:textSize="14sp" />
             </LinearLayout>
@@ -384,9 +317,8 @@
         </FrameLayout>
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <!-- Bottom Actions Container for Donors Tab -->
+    <!-- Bottom Actions Container -->
     <LinearLayout
-        android:id="@+id/layoutBottomDonors"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
@@ -424,35 +356,6 @@
             android:textStyle="bold"
             app:backgroundTint="@color/cm_error"
             app:cornerRadius="24dp" />
-    </LinearLayout>
-
-    <!-- Bottom Actions Container for Requests Tab -->
-    <LinearLayout
-        android:id="@+id/layoutBottomRequests"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:background="@color/cm_surface"
-        android:elevation="12dp"
-        android:paddingHorizontal="16dp"
-        android:paddingBottom="16dp"
-        android:paddingTop="10dp"
-        android:visibility="gone">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnPostBloodRequest"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:text="🚨 Post Urgent Blood Request"
-            android:textColor="#FFFFFF"
-            android:textStyle="bold"
-            app:backgroundTint="#B91C1C"
-            app:cornerRadius="24dp"
-            app:icon="@drawable/ic_blood_drop"
-            app:iconGravity="textStart"
-            app:iconTint="#FFFFFF" />
     </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

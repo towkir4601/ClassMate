@@ -36,7 +36,7 @@ object LibraryShareHelper {
             }
 
             append("🔗 Link: ").append(link).append("\n\n")
-            append("Shared via ClassMate App")
+            append("Shared via GSTU Go App")
         }
 
         val sendIntent = Intent(Intent.ACTION_SEND).apply {

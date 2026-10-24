@@ -14,6 +14,7 @@ import android.widget.TextView
 import android.widget.Toast
 import android.widget.ArrayAdapter
 import android.widget.AdapterView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.os.bundleOf
 import androidx.core.view.isVisible
@@ -43,10 +44,17 @@ import com.shuaib.classmate.utils.applyClickAnimation
 import com.shuaib.classmate.viewmodels.TimetableViewModel
 import com.shuaib.classmate.models.BusSchedule
 import com.shuaib.classmate.adapters.BusScheduleAdapter
+import com.shuaib.classmate.network.RoutineRetrofitClient
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
@@ -72,6 +80,7 @@ class TimetableFragment : Fragment() {
     private var timetableRealtimeRegistration: ListenerRegistration? = null
     private var noticesRealtimeRegistration: ListenerRegistration? = null
     private var isAdmin = false
+    private var isSuperAdmin = false  // superadmin-only: upload Excel
     private var currentPeriods = emptyList<Period>()
     private var currentBatchFilter = "All"
     private var isSpinnerInitialized = false
@@ -85,6 +94,21 @@ class TimetableFragment : Fragment() {
     private var currentHeroSubject: String? = null
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
     private val showLoadingRunnable = Runnable { showLoadingState() }
+
+    // Cached metadata for Excel routine template upload dialog
+    private var lastEnteredFaculty: String? = null
+    private var lastEnteredYear: String? = null
+    private var lastEnteredSemester: String? = null
+    private var lastUploadedBatchId: Int = -1
+
+    // ── File picker for Excel upload (registered before onCreateView) ──
+    private val excelFilePicker = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            confirmAndUploadExcel(uri)
+        }
+    }
 
     private val days = listOf(
         "saturday", "sunday", "monday", "tuesday", "wednesday", "thursday", "friday"
@@ -1220,19 +1244,237 @@ class TimetableFragment : Fragment() {
             .addSnapshotListener { snapshot, error ->
                 if (error != null || _binding == null) return@addSnapshotListener
                 try {
-                    val role = snapshot?.getString("role") ?: "student"
-                    val permissions = snapshot?.get("permissions") as? Map<String, Boolean> ?: emptyMap()
-                    
+                    val docRole = snapshot?.getString("role") ?: "student"
+                    val ctx = context ?: return@addSnapshotListener
+                    val role = com.shuaib.classmate.utils.UserRoleHelper.getEffectiveRole(ctx, docRole)
+                    val permissions = com.shuaib.classmate.utils.UserRoleHelper.getEffectivePermissions(ctx, role, snapshot?.get("permissions"))
+
                     isAdmin = (role == "superadmin" || role == "admin" || permissions["canEditTimetable"] == true)
+                    isSuperAdmin = (role == "superadmin")
+
                     binding.btnAddCountdown.isVisible = isAdmin
                     if (isAdmin) {
                         binding.countdownSection.isVisible = true
                     }
+
+                    // Show Generate Routine card to superadmin AND admin; upload button only to superadmin
+                    val showRoutineCard = role == "superadmin" || role == "admin"
+                    binding.cardGenerateRoutine.isVisible = showRoutineCard
+                    binding.btnUploadExcel.isVisible = isSuperAdmin
+
+                    if (showRoutineCard) {
+                        setupGenerateRoutineCard()
+                    }
                 } catch (e: Exception) {
                     android.util.Log.e("TimetableFragment", "Error parsing user for admin check", e)
                     isAdmin = false
+                    isSuperAdmin = false
                 }
             }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Generate Routine (Render backend integration)
+    // ─────────────────────────────────────────────────────────────
+
+    private var routineCardSetupDone = false
+
+    private fun setupGenerateRoutineCard() {
+        if (routineCardSetupDone) return
+        routineCardSetupDone = true
+
+        // Ping server on first reveal
+        pingRenderServer()
+
+        binding.btnCheckServer.setOnClickListener {
+            it.animateSpringScale(0.9f)
+            pingRenderServer()
+        }
+
+        binding.btnUploadExcel.setOnClickListener {
+            it.animateSpringScale(0.9f)
+            // Open system file picker filtered to spreadsheet MIME types
+            excelFilePicker.launch(
+                arrayOf(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "application/vnd.ms-excel"
+                )
+            )
+        }
+
+        binding.btnViewBatch.setOnClickListener {
+            it.animateSpringScale(0.9f)
+            val intent = Intent(requireContext(), com.shuaib.classmate.activities.RoutineBatchActivity::class.java)
+            if (lastUploadedBatchId > 0) {
+                intent.putExtra(com.shuaib.classmate.activities.RoutineBatchActivity.EXTRA_BATCH_ID, lastUploadedBatchId)
+            }
+            startActivity(intent)
+        }
+    }
+
+    private fun pingRenderServer() {
+        val b = _binding ?: return
+        b.tvServerStatus.text = "● CHECKING…"
+        b.tvServerStatus.setTextColor(android.graphics.Color.parseColor("#CCFFFFFF"))
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val response = withContext(Dispatchers.IO) {
+                    RoutineRetrofitClient.apiService.checkHealth()
+                }
+                if (_binding == null) return@launch
+                if (response.isSuccessful) {
+                    val status = response.body()?.status ?: "ok"
+                    binding.tvServerStatus.text = "● ONLINE"
+                    binding.tvServerStatus.setTextColor(android.graphics.Color.parseColor("#4ADE80"))
+                    android.util.Log.d("TimetableFragment", "Render server status: $status")
+                } else {
+                    binding.tvServerStatus.text = "● ERROR ${response.code()}"
+                    binding.tvServerStatus.setTextColor(android.graphics.Color.parseColor("#F87171"))
+                }
+            } catch (e: Exception) {
+                if (_binding == null) return@launch
+                binding.tvServerStatus.text = "● OFFLINE"
+                binding.tvServerStatus.setTextColor(android.graphics.Color.parseColor("#F87171"))
+                android.util.Log.w("TimetableFragment", "Health check failed", e)
+            }
+        }
+    }
+
+    private fun confirmAndUploadExcel(uri: Uri) {
+        if (!isSuperAdmin) return
+
+        // Default or pre-filled values (preserve previously entered metadata if available)
+        val currentBatch = if (currentBatchFilter.matches(Regex("^[1-4]-[1-2]$"))) currentBatchFilter else "2-1"
+        val batchParts = currentBatch.split("-")
+        val defaultYear = lastEnteredYear ?: (batchParts.getOrNull(0) ?: "2")
+        val defaultSem = lastEnteredSemester ?: (batchParts.getOrNull(1) ?: "1")
+        val defaultFaculty = lastEnteredFaculty ?: "Engineering"
+
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_upload_routine_excel, null)
+        val etFaculty = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etRoutineFaculty)
+        val etYear = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etRoutineYear)
+        val etSemester = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etRoutineSemester)
+
+        etFaculty.setText(defaultFaculty)
+        etYear.setText(defaultYear)
+        etSemester.setText(defaultSem)
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Upload Excel Routine Template")
+            .setView(dialogView)
+            .setPositiveButton("Upload") { _, _ ->
+                val faculty = etFaculty.text?.toString()?.trim()?.ifBlank { defaultFaculty } ?: defaultFaculty
+                val year = etYear.text?.toString()?.trim()?.ifBlank { defaultYear } ?: defaultYear
+                val semester = etSemester.text?.toString()?.trim()?.ifBlank { defaultSem } ?: defaultSem
+
+                // Preserve entered values for subsequent uploads
+                lastEnteredFaculty = faculty
+                lastEnteredYear = year
+                lastEnteredSemester = semester
+
+                uploadExcelToRender(uri, faculty, year, semester)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun uploadExcelToRender(uri: Uri, faculty: String, year: String, semester: String) {
+        val ctx = context?.applicationContext ?: return
+        val b = _binding ?: return
+
+        // Show progress
+        b.pbUpload.isVisible = true
+        b.tvUploadStatus.isVisible = true
+        b.tvUploadStatus.text = "⏳ Uploading routine template… (it may take 1-2 minutes at first time)"
+        b.btnUploadExcel.isEnabled = false
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                // Read the file bytes on a background thread
+                val (bytes, fileName) = withContext(Dispatchers.IO) {
+                    val inputStream = ctx.contentResolver.openInputStream(uri)
+                        ?: throw IllegalStateException("Cannot open selected file")
+                    val bytes = inputStream.use { it.readBytes() }
+
+                    // Resolve a human-readable filename if available
+                    var name = "routine.xlsx"
+                    ctx.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                        val nameIndex = cursor.getColumnIndex(
+                            android.provider.OpenableColumns.DISPLAY_NAME
+                        )
+                        if (cursor.moveToFirst() && nameIndex >= 0) {
+                            name = cursor.getString(nameIndex).ifBlank { name }
+                        }
+                    }
+                    Pair(bytes, name)
+                }
+
+                val requestBody = bytes.toRequestBody(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        .toMediaTypeOrNull()
+                )
+                val filePart = MultipartBody.Part.createFormData("file", fileName, requestBody)
+
+                val textMediaType = "text/plain".toMediaTypeOrNull()
+                val facultyPart = faculty.toRequestBody(textMediaType)
+                val yearPart = year.toRequestBody(textMediaType)
+                val semesterPart = semester.toRequestBody(textMediaType)
+
+                val response = withContext(Dispatchers.IO) {
+                    RoutineRetrofitClient.apiService.uploadExcelFile(
+                        file = filePart,
+                        faculty = facultyPart,
+                        year = yearPart,
+                        semester = semesterPart
+                    )
+                }
+
+                if (_binding == null) return@launch
+                b.pbUpload.isVisible = false
+                b.btnUploadExcel.isEnabled = true
+
+                if (response.isSuccessful) {
+                    val bodyStr = withContext(Dispatchers.IO) { response.body()?.string() } ?: ""
+                    val (successMsg, parsedBatchId) = try {
+                        val json = JSONObject(bodyStr)
+                        val msg = json.optString("message", "Routine template ingested successfully!")
+                        val bId = if (json.has("batchId")) json.optInt("batchId", -1) else json.optInt("batch_id", -1)
+                        Pair(msg, bId)
+                    } catch (_: Exception) {
+                        Pair("Routine template ingested successfully!", -1)
+                    }
+                    if (parsedBatchId > 0) {
+                        lastUploadedBatchId = parsedBatchId
+                    }
+                    b.tvUploadStatus.text = "✅ $successMsg\nTap 'View Batches' to inspect batch & generate routine."
+                    b.tvUploadStatus.setTextColor(android.graphics.Color.parseColor("#4ADE80"))
+                    Toast.makeText(context, "Routine template ingested! Tap 'View Batches' to proceed.", Toast.LENGTH_LONG).show()
+                } else {
+                    val errStr = withContext(Dispatchers.IO) { response.errorBody()?.string() } ?: ""
+                    val cleanErrMsg = try {
+                        val json = JSONObject(errStr)
+                        json.optString("message").ifBlank {
+                            json.optString("error", errStr)
+                        }
+                    } catch (_: Exception) {
+                        errStr
+                    }
+                    b.tvUploadStatus.text = "❌ Upload failed: $cleanErrMsg"
+                    b.tvUploadStatus.setTextColor(android.graphics.Color.parseColor("#F87171"))
+                    Toast.makeText(context, cleanErrMsg, Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                if (_binding == null) return@launch
+                b.pbUpload.isVisible = false
+                b.btnUploadExcel.isEnabled = true
+                val msg = e.message ?: "Unknown error"
+                b.tvUploadStatus.text = "❌ Error: $msg"
+                b.tvUploadStatus.setTextColor(android.graphics.Color.parseColor("#F87171"))
+                android.util.Log.e("TimetableFragment", "Excel upload error", e)
+                Toast.makeText(context, "Upload error: $msg", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     private fun showAddCountdownDialog() {

@@ -62,44 +62,56 @@ class SplashActivity : AppCompatActivity() {
     }
 
     /**
-     * Executes the multi-stage cinematic animation sequence:
-     * 1. Campus photo subtle Ken Burns zoom
-     * 2. Top University Title slide down + fade in
-     * 3. HD GSTU Emblem scale-in with overshoot + halo glow
-     * 4. GSTU Go titles slide up + fade in
-     * 5. Bottom tagline fade-in
+     * Staggered, choreographed entrance animation:
+     * 1. Campus building background fades in with subtle zoom
+     * 2. Vignette gradient smoothly covers background
+     * 3. Header university title descends into view
+     * 4. HD GSTU GO logo scales in with custom overshoot bounce
+     * 5. Halo aura glows around the logo
+     * 6. App title & Bengali badge slide up into position
+     * 7. Tagline & indeterminate progress bar appear gracefully at the footer
      */
     private fun startEntranceAnimations() {
-        // 1. Initial states
-        binding.ivCampusBg.scaleX = 1.0f
-        binding.ivCampusBg.scaleY = 1.0f
+        // Initial setup for animated views
+        binding.ivCampusBg.scaleX = 1.08f
+        binding.ivCampusBg.scaleY = 1.08f
+        binding.ivCampusBg.alpha = 0f
+
+        binding.vVignetteOverlay.alpha = 0f
 
         binding.tvUniversityName.alpha = 0f
-        binding.tvUniversityName.translationY = -60f
+        binding.tvUniversityName.translationY = -40f
 
         binding.flLogoContainer.alpha = 0f
-        binding.flLogoContainer.scaleX = 0.65f
-        binding.flLogoContainer.scaleY = 0.65f
+        binding.flLogoContainer.scaleX = 0.5f
+        binding.flLogoContainer.scaleY = 0.5f
 
         binding.ivLogoGlow.alpha = 0f
 
         binding.tvAppTitle.alpha = 0f
-        binding.tvAppTitle.translationY = 40f
+        binding.tvAppTitle.translationY = 50f
 
         binding.tvAppSubtitleBn.alpha = 0f
         binding.tvAppSubtitleBn.translationY = 30f
 
         binding.llFooter.alpha = 0f
 
-        // 2. Campus background gentle Ken Burns zoom immediately
+        // 1. Campus background fade & settle
         binding.ivCampusBg.animate()
-            .scaleX(1.06f)
-            .scaleY(1.06f)
-            .setDuration(2600L)
+            .alpha(0.85f)
+            .scaleX(1.0f)
+            .scaleY(1.0f)
+            .setDuration(1200L)
             .setInterpolator(DecelerateInterpolator())
             .start()
 
-        // 3. Top header drops smoothly
+        // 2. Vignette dark overlay
+        binding.vVignetteOverlay.animate()
+            .alpha(1f)
+            .setDuration(800L)
+            .start()
+
+        // 3. Header title descends
         binding.tvUniversityName.animate()
             .alpha(1f)
             .translationY(0f)
@@ -160,6 +172,8 @@ class SplashActivity : AppCompatActivity() {
 
         if (!prefs.isOnboardingComplete()) {
             scheduleNavigation(OnboardingActivity::class.java)
+        } else if (prefs.isGuestMode()) {
+            scheduleNavigation(MainActivity::class.java)
         } else if (currentUser != null) {
             fetchProfileAndRoute(currentUser.uid)
         } else {

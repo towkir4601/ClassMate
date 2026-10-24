@@ -35,6 +35,7 @@ import com.shuaib.classmate.databinding.ActivityLoginBinding
 import com.shuaib.classmate.databinding.DialogForgotPasswordBinding
 import com.shuaib.classmate.models.User
 import com.shuaib.classmate.utils.AnimUtils
+import com.shuaib.classmate.utils.AppPreferences
 import com.shuaib.classmate.utils.AuthDebug
 import com.shuaib.classmate.utils.AuthErrorMapper
 import com.shuaib.classmate.utils.StudentIdUtils
@@ -99,6 +100,9 @@ class LoginActivity : AppCompatActivity() {
         binding.tvRegister.setOnClickListener {
             startActivity(Intent(this, RegisterActivity::class.java))
             overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+        }
+        binding.btnContinueAsGuest.setOnClickListener {
+            continueAsGuest()
         }
     }
 
@@ -516,6 +520,13 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun isStudentId(value: String): Boolean = StudentIdUtils.isValid(value)
+
+    private fun continueAsGuest() {
+        AppPreferences(this).setGuestMode(true)
+        startActivity(Intent(this, MainActivity::class.java))
+        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+        finishAffinity()
+    }
 
     private fun googleConfigError(clientId: String): String? {
         return when {

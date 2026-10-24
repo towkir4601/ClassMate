@@ -1,6 +1,7 @@
 package com.shuaib.classmate.repositories
 
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.shuaib.classmate.models.LostFoundItem
@@ -79,19 +80,25 @@ class LostFoundRepository {
     }
 
     fun getAllActiveItems(onResult: (List<LostFoundItem>) -> Unit) {
+        // Legacy call - routes to getApprovedItems for backward compat
+        getApprovedItems(onResult)
+    }
+
+    /** Public view: Returns only admin-approved, unresolved, non-expired items */
+    fun getApprovedItems(onResult: (List<LostFoundItem>) -> Unit) {
         val nowMs = System.currentTimeMillis()
         val fifteenDaysMs = 15L * 24 * 60 * 60 * 1000L
         val cutoffMs = nowMs - fifteenDaysMs
 
         collection
             .whereEqualTo("isResolved", false)
+            .whereEqualTo("approved", true)
             .orderBy("timestamp", Query.Direction.DESCENDING)
             .get()
             .addOnSuccessListener { snapshot ->
                 val activeList = mutableListOf<LostFoundItem>()
                 if (snapshot != null && !snapshot.isEmpty) {
                     val expiredDocs = mutableListOf<com.google.firebase.firestore.DocumentSnapshot>()
-
                     for (doc in snapshot.documents) {
                         val item = doc.toObject(LostFoundItem::class.java)?.copy(id = doc.id) ?: continue
                         if (isDeletedLocally(item.id)) continue
@@ -102,18 +109,15 @@ class LostFoundRepository {
                             activeList.add(item)
                         }
                     }
-
                     // Auto delete expired items from Firestore (> 15 days old)
                     if (expiredDocs.isNotEmpty()) {
                         val batch = firestore.batch()
-                        for (doc in expiredDocs) {
-                            batch.delete(doc.reference)
-                        }
+                        expiredDocs.forEach { batch.delete(it.reference) }
                         batch.commit()
                     }
                 }
-
-                val localActive = localItems.filter { !it.isResolved && !isDeletedLocally(it.id) }
+                // Local items: show only approved ones (or ones just created by admin)
+                val localActive = localItems.filter { it.approved && !it.isResolved && !isDeletedLocally(it.id) }
                 val availableSamples = sampleItems.filter { !isDeletedLocally(it.id) }
                 val merged = (localActive + activeList + availableSamples)
                     .filter { !isDeletedLocally(it.id) && !it.isResolved }
@@ -121,12 +125,30 @@ class LostFoundRepository {
                 onResult(merged)
             }
             .addOnFailureListener {
-                val localActive = localItems.filter { !it.isResolved && !isDeletedLocally(it.id) }
+                val localActive = localItems.filter { it.approved && !it.isResolved && !isDeletedLocally(it.id) }
                 val availableSamples = sampleItems.filter { !isDeletedLocally(it.id) }
                 val merged = (localActive + availableSamples)
                     .filter { !isDeletedLocally(it.id) && !it.isResolved }
                     .distinctBy { it.id }
                 onResult(merged)
+            }
+    }
+
+    /** Admin moderation view: Returns only PENDING (not yet approved) items */
+    fun getPendingItems(onResult: (List<LostFoundItem>) -> Unit) {
+        collection
+            .whereEqualTo("isResolved", false)
+            .whereEqualTo("pendingApproval", true)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val pending = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(LostFoundItem::class.java)?.copy(id = doc.id)
+                }?.filter { !isDeletedLocally(it.id) } ?: emptyList()
+                onResult(pending)
+            }
+            .addOnFailureListener {
+                onResult(emptyList())
             }
     }
 
@@ -136,21 +158,22 @@ class LostFoundRepository {
         onFailure: (Exception) -> Unit
     ) {
         val docRef = collection.document()
+        // Generate a short unique share token for deep linking
+        val shareToken = docRef.id.take(8).uppercase()
         val toSave = item.copy(
             id = docRef.id,
             timestamp = Timestamp.now(),
-            isResolved = false
+            isResolved = false,
+            approved = false,
+            pendingApproval = true,
+            shareToken = shareToken
         )
-        // Store in local active cache so it is immediately visible even if cloud rules reject
+        // Store in local cache; do NOT show in public feed until approved
         localItems.removeAll { it.id == toSave.id }
-        localItems.add(0, toSave)
 
         docRef.set(toSave)
             .addOnSuccessListener { onSuccess(docRef.id) }
-            .addOnFailureListener {
-                // Return success so user is not blocked by missing cloud rules deployment
-                onSuccess(docRef.id)
-            }
+            .addOnFailureListener { onSuccess(docRef.id) }
     }
 
     fun markResolved(
@@ -177,4 +200,75 @@ class LostFoundRepository {
                 onSuccess()
             }
     }
+
+    /** Record a post view (from guest or logged in user) */
+    fun recordView(itemId: String, userId: String? = null) {
+        val updates = mutableMapOf<String, Any>(
+            "viewsCount" to FieldValue.increment(1)
+        )
+        if (!userId.isNullOrBlank()) {
+            updates["viewers"] = FieldValue.arrayUnion(userId)
+        }
+        collection.document(itemId).update(updates)
+    }
+
+    /** Toggle love react for a logged in user */
+    fun toggleLove(
+        itemId: String,
+        userId: String,
+        isLoving: Boolean,
+        onResult: (newCount: Int) -> Unit = {}
+    ) {
+        val docRef = collection.document(itemId)
+        firestore.runTransaction { transaction ->
+            val snapshot = transaction.get(docRef)
+            val currentReactors = (snapshot.get("loveReactors") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+            val newReactors = currentReactors.toMutableList()
+            if (isLoving) {
+                if (!newReactors.contains(userId)) newReactors.add(userId)
+            } else {
+                newReactors.remove(userId)
+            }
+            transaction.update(docRef, mapOf(
+                "loveReactors" to newReactors,
+                "loveCount" to newReactors.size
+            ))
+            newReactors.size
+        }.addOnSuccessListener { newCount ->
+            onResult(newCount)
+        }.addOnFailureListener {
+            // Local fallback
+            onResult(1)
+        }
+    }
+
+    /** Record a post share */
+    fun recordShare(itemId: String) {
+        collection.document(itemId).update("sharesCount", FieldValue.increment(1))
+    }
+
+    /** Mark item resolved with specific status: "item_given" or "item_found" */
+    fun markItemResolved(itemId: String, status: String, onSuccess: () -> Unit = {}) {
+        val updates = mapOf(
+            "isResolved" to true,
+            "resolvedStatus" to status
+        )
+        collection.document(itemId).update(updates)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onSuccess() }
+    }
+
+    /** Report post for spam/inappropriate content */
+    fun reportItem(itemId: String, userId: String, reason: String, onSuccess: () -> Unit = {}) {
+        val updates = mutableMapOf<String, Any>(
+            "reportedCount" to FieldValue.increment(1)
+        )
+        if (userId.isNotBlank()) {
+            updates["reportedBy"] = FieldValue.arrayUnion(userId)
+        }
+        collection.document(itemId).update(updates)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onSuccess() }
+    }
 }
+
