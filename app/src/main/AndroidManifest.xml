@@ -130,6 +130,13 @@
             android:name=".activities.CvMakerActivity"
             android:exported="false" />
         <activity
+            android:name=".activities.CampusFeedFeaturesActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activities.CampusFeedActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".activities.ImportantContactsActivity"
             android:exported="false" />
         <activity
@@ -233,7 +240,7 @@
         <receiver
             android:name=".widget.ClassMateWidget"
             android:exported="true"
-            android:label="ClassMate Widget">
+            android:label="GSTU Go Widget">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>

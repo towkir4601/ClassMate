@@ -22,13 +22,14 @@ import java.util.Date
 import java.util.Locale
 
 class BloodRequestAdapter(
-    private var requests: List<BloodRequest>,
+    requests: List<BloodRequest>,
     private var currentUserId: String = "",
     private var currentUserName: String = "Student",
     private val onBloodDonatedClick: (BloodRequest) -> Unit = {},
     private val onReportClick: (BloodRequest) -> Unit = {}
 ) : RecyclerView.Adapter<BloodRequestAdapter.ViewHolder>() {
 
+    private var requests: MutableList<BloodRequest> = requests.toMutableList()
     private val repo = BloodRequestRepository()
     private val notificationRepo = AppNotificationRepository()
 
@@ -84,7 +85,7 @@ class BloodRequestAdapter(
         if (isLovedByMe) {
             b.ivBloodLove.setImageResource(R.drawable.ic_heart_filled)
             b.ivBloodLove.imageTintList = ColorStateList.valueOf(Color.parseColor("#F43F5E"))
-            b.tvBloodLoveCount.setTextColor(Color.parseColor("#FDA4AF"))
+            b.tvBloodLoveCount.setTextColor(Color.parseColor("#E11D48"))
         } else {
             b.ivBloodLove.setImageResource(R.drawable.ic_heart_outline)
             b.ivBloodLove.imageTintList = ColorStateList.valueOf(Color.parseColor("#94A3B8"))
@@ -97,22 +98,25 @@ class BloodRequestAdapter(
                 Toast.makeText(context, "Please sign in to react to this request", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val willLove = !req.loveReactors.contains(currentUserId)
-            val updatedReactors = req.loveReactors.toMutableList()
+            val currentPos = holder.bindingAdapterPosition
+            if (currentPos == RecyclerView.NO_POSITION || currentPos >= requests.size) return@setOnClickListener
+            val currentReq = requests[currentPos]
+            val willLove = !currentReq.loveReactors.contains(currentUserId)
+            val updatedReactors = currentReq.loveReactors.toMutableList()
             if (willLove) {
-                updatedReactors.add(currentUserId)
+                if (!updatedReactors.contains(currentUserId)) updatedReactors.add(currentUserId)
                 b.ivBloodLove.setImageResource(R.drawable.ic_heart_filled)
                 b.ivBloodLove.imageTintList = ColorStateList.valueOf(Color.parseColor("#F43F5E"))
-                b.tvBloodLoveCount.setTextColor(Color.parseColor("#FDA4AF"))
+                b.tvBloodLoveCount.setTextColor(Color.parseColor("#E11D48"))
                 b.tvBloodLoveCount.text = "${updatedReactors.size}"
 
                 // Send notification to requester
                 notificationRepo.sendNotificationToAuthor(
-                    authorId = req.requesterId,
+                    authorId = currentReq.requesterId,
                     type = "react",
                     title = "❤️ New Support on Blood Request",
-                    message = "$currentUserName reacted with love to your blood request for ${req.bloodGroup} at ${req.hospitalName}.",
-                    postId = req.id,
+                    message = "$currentUserName reacted with love to your blood request for ${currentReq.bloodGroup} at ${currentReq.hospitalName}.",
+                    postId = currentReq.id,
                     postType = "blood_request",
                     actorId = currentUserId,
                     actorName = currentUserName
@@ -124,19 +128,25 @@ class BloodRequestAdapter(
                 b.tvBloodLoveCount.setTextColor(Color.parseColor("#CBD5E1"))
                 b.tvBloodLoveCount.text = "${updatedReactors.size}"
             }
-            repo.toggleLove(req.id, currentUserId, willLove)
+            requests[currentPos] = currentReq.copy(
+                loveReactors = updatedReactors,
+                loveCount = updatedReactors.size
+            )
+            repo.toggleLove(currentReq.id, currentUserId, willLove)
         }
 
-        // Share button setup
+        // Share button setup (Instagram-style share with unique link)
+        b.ivBloodShare.setImageResource(R.drawable.ic_instagram_share)
         b.btnBloodShare.setOnClickListener {
             repo.recordShare(req.id)
-            val shareText = "🚨 GSTU Go - URGENT BLOOD NEEDED 🚨\n" +
+            val uniqueLink = "https://gstu-go.web.app/blood?id=${req.id}"
+            val shareText = "🚨 GSTU Go — URGENT BLOOD NEEDED 🚨\n" +
                     "🩸 Blood Group: ${req.bloodGroup}\n" +
                     "🏥 Hospital: ${req.hospitalName}\n" +
                     "📦 Bags Needed: ${req.bagsNeeded}\n" +
                     "${if (req.urgencyNote.isNotBlank()) "📝 Note: ${req.urgencyNote}\n" else ""}" +
                     "📞 Contact: ${req.contactPhone}\n\n" +
-                    "Please reach out or share to help save a life!"
+                    "🔗 View Request on GSTU Go:\n$uniqueLink"
             val sendIntent = Intent().apply {
                 action = Intent.ACTION_SEND
                 putExtra(Intent.EXTRA_TEXT, shareText)
@@ -203,7 +213,7 @@ class BloodRequestAdapter(
     override fun getItemCount(): Int = requests.size
 
     fun updateList(newRequests: List<BloodRequest>) {
-        requests = newRequests
+        requests = newRequests.toMutableList()
         notifyDataSetChanged()
     }
 

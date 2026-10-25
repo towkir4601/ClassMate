@@ -42,7 +42,7 @@ class NoticeCommentsBottomSheetFragment : BottomSheetDialogFragment() {
 
     private var noticeId = ""
     private var isAdmin = false
-    private var currentUserName = "Classmate"
+    private var currentUserName = "Student"
     private var currentUserAvatar = ""
     private var allComments: List<NoticeComment> = emptyList()
     private var likedCommentIds: Set<String> = emptySet()
@@ -132,14 +132,14 @@ class NoticeCommentsBottomSheetFragment : BottomSheetDialogFragment() {
                 false
             }
         }
-        binding.tvComposerAvatar.text = "C"
+        binding.tvComposerAvatar.text = "G"
     }
 
     private fun loadCurrentUser() {
         val user = FirebaseAuth.getInstance().currentUser
-        currentUserName = user?.displayName ?: user?.email?.substringBefore("@") ?: "Classmate"
+        currentUserName = user?.displayName ?: user?.email?.substringBefore("@") ?: "Student"
         currentUserAvatar = user?.photoUrl?.toString().orEmpty()
-        binding.tvComposerAvatar.text = currentUserName.firstOrNull()?.uppercaseChar()?.toString() ?: "C"
+        binding.tvComposerAvatar.text = currentUserName.firstOrNull()?.uppercaseChar()?.toString() ?: "G"
         if (currentUserId.isBlank()) return
         db.collection("users").document(currentUserId).get()
             .addOnSuccessListener { doc ->

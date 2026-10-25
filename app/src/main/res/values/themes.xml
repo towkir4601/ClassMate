@@ -197,4 +197,9 @@
         <item name="backgroundTint">@android:color/transparent</item>
         <item name="android:background">@android:color/transparent</item>
     </style>
+
+    <style name="FloatingPostDialogAnimation">
+        <item name="android:windowEnterAnimation">@anim/anim_floating_post_enter</item>
+        <item name="android:windowExitAnimation">@anim/anim_floating_post_exit</item>
+    </style>
 </resources>

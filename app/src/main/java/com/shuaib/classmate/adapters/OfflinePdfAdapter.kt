@@ -34,7 +34,7 @@ class OfflinePdfAdapter(
         val pdf = pdfs[position]
         holder.binding.apply {
             tvTitle.text = pdf.title
-            tvSubject.text = pdf.subject.ifBlank { "ClassMate Library" }
+            tvSubject.text = pdf.subject.ifBlank { "GSTU Go Library" }
             
             val kb = pdf.sizeBytes / 1024.0
             val mb = kb / 1024.0

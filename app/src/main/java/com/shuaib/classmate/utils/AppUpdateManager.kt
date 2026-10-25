@@ -61,7 +61,7 @@ object AppUpdateManager {
             return@withContext AppUpdateInfo(
                 latestVersionName = "9.9.9",
                 changelog = """
-                    # ClassMate Update v9.9.9
+                    # GSTU Go Update v9.9.9
                     
                     This is a **mock update** designed to verify that the in-app updater is functioning as expected.
                     
@@ -70,7 +70,7 @@ object AppUpdateManager {
                     * **Bus Schedules**: Integrated live bus timings and routes.
                     * **Offline Storage**: Improved PDF caching and database performance.
                     
-                    *Enjoy the updated ClassMate experience!*
+                    *Enjoy the updated GSTU Go experience!*
                 """.trimIndent(),
                 // Using a small text file from the repo to simulate downloading an APK quickly for testing
                 apkDownloadUrl = "https://raw.githubusercontent.com/towkir4601/ClassMate/main/README.md",

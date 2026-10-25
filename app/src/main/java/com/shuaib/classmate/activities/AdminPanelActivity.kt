@@ -255,6 +255,20 @@ class AdminPanelActivity : AppCompatActivity() {
                 // Card not yet added to layout — skip gracefully
             }
         }
+
+        // CampusFeed & Features (Visible to superadmin and all other admins)
+        val isAnyAdminRole = user.role.lowercase() in listOf("superadmin", "admin", "teacher", "club_admin", "cr") || user.isAnyAdmin()
+        if (isAnyAdminRole) {
+            try {
+                binding.cardCampusFeedAdmin.visibility = View.VISIBLE
+                binding.cardCampusFeedAdmin.applyClickAnimation {
+                    startActivity(Intent(this, CampusFeedFeaturesActivity::class.java))
+                    overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+                }
+            } catch (e: Exception) {
+                // Skip gracefully
+            }
+        }
     }
 
     private fun testTelegramConnection() {

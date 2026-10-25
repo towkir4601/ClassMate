@@ -116,7 +116,7 @@
         <ImageView style="@style/NoticeForwardOptionIconStyle" android:src="@drawable/ic_person" app:tint="@color/cm_primary_soft" />
         <LinearLayout style="@style/NoticeForwardOptionTextStyle">
             <TextView style="@style/NoticeForwardOptionTitleStyle" android:text="Send to DM" />
-            <TextView style="@style/NoticeForwardOptionSubtitleStyle" android:text="Choose a classmate" />
+            <TextView style="@style/NoticeForwardOptionSubtitleStyle" android:text="Choose a student" />
         </LinearLayout>
         <ImageView style="@style/NoticeForwardChevronStyle" android:src="@drawable/ic_chevron_right" app:tint="@color/cm_text_secondary" />
     </LinearLayout>
@@ -127,7 +127,7 @@
         <ImageView style="@style/NoticeForwardOptionIconStyle" android:src="@drawable/ic_copy" app:tint="@color/cm_primary_soft" />
         <LinearLayout style="@style/NoticeForwardOptionTextStyle">
             <TextView style="@style/NoticeForwardOptionTitleStyle" android:text="Copy Link" />
-            <TextView style="@style/NoticeForwardOptionSubtitleStyle" android:text="classmate://notice/{id}" />
+            <TextView style="@style/NoticeForwardOptionSubtitleStyle" android:text="Copy direct notice link" />
         </LinearLayout>
         <ImageView style="@style/NoticeForwardChevronStyle" android:src="@drawable/ic_chevron_right" app:tint="@color/cm_text_secondary" />
     </LinearLayout>

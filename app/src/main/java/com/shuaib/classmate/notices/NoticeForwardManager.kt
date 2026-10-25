@@ -57,7 +57,7 @@ object NoticeForwardManager {
                 subject = json.optString("subject", "General"),
                 priority = json.optString("priority", "normal"),
                 deadlineAt = if (json.has("deadlineAt")) json.optLong("deadlineAt") else null,
-                createdByName = json.optString("createdByName", "ClassMate")
+                createdByName = json.optString("createdByName", "GSTU Go")
             )
         }.getOrNull()?.takeIf { it.noticeId.isNotBlank() }
     }

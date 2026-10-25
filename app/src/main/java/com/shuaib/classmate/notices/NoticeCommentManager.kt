@@ -39,7 +39,7 @@ object NoticeCommentManager {
             "commentId" to doc.id,
             "noticeId" to noticeId,
             "userId" to effectiveUserId,
-            "userName" to userName.ifBlank { "Classmate" },
+            "userName" to userName.ifBlank { "Student" },
             "userAvatar" to userAvatar,
             "content" to trimmed,
             "parentCommentId" to parentCommentId,

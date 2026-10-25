@@ -67,6 +67,34 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "campus_feed",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "isQuarantined",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "hotScore",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "campus_feed",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "isQuarantined",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

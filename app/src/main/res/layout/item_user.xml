@@ -76,7 +76,7 @@
             android:textColor="@color/cm_text_secondary"
             android:textSize="13sp"
             android:layout_marginTop="2dp"
-            tools:text="student@classmate.edu" />
+            tools:text="student@gstu.ac.bd" />
 
         <TextView
             android:id="@+id/tvStudentId"

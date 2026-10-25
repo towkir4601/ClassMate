@@ -275,7 +275,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:gravity="center"
-            android:text="Start the conversation with a classmate."
+            android:text="Start the conversation with a student."
             android:textColor="@color/cm_text_secondary"
             android:textSize="14sp" />
 
