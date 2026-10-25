@@ -16,6 +16,9 @@ interface NoticeDao {
     @Query("SELECT * FROM notices WHERE isDeleted = 0 AND isCancel = 1 ORDER BY timestampMillis DESC")
     fun observeCancelNotices(): Flow<List<NoticeEntity>>
 
+    @Query("SELECT * FROM notices WHERE isDeleted = 0 AND isCancel = 1 ORDER BY timestampMillis DESC")
+    suspend fun getCancelNoticesSync(): List<NoticeEntity>
+
     @Query("SELECT * FROM notices WHERE id = :noticeId AND isDeleted = 0 LIMIT 1")
     fun observeNotice(noticeId: String): Flow<NoticeEntity?>
 

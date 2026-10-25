@@ -27,13 +27,13 @@ class TimetableRepository private constructor(private val context: Context) {
     private val db = FirestoreManager.db
     private val healedPeriodKeys = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
 
-    fun observePeriods(day: String): Flow<List<Period>> {
+    fun observePeriods(day: String, targetDate: String? = null): Flow<List<Period>> {
         val normalizedDay = day.lowercase()
         return kotlinx.coroutines.flow.combine(
             timetableDao.observePeriods(normalizedDay),
             noticeDao.observeCancelNotices()
         ) { entities, noticeEntities ->
-            val today = DateHelper.today()
+            val effectiveDate = targetDate ?: DateHelper.today()
             val activeCancelNotices = noticeEntities
                 .map { it.toNotice() }
                 .filter { it.isCancel && !it.isDeleted }
@@ -76,20 +76,44 @@ class TimetableRepository private constructor(private val context: Context) {
                 } else {
                     entity.cancelDate
                 }
-                entity.copy(cancelDate = resolvedCancelDate).toPeriod(today)
+                entity.copy(cancelDate = resolvedCancelDate).toPeriod(effectiveDate)
             }
         }
     }
 
-    suspend fun getPeriodsForDay(day: String): List<Period> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+    suspend fun getPeriodsForDay(day: String, targetDate: String? = null): List<Period> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
         val normalizedDay = day.lowercase()
         var entities = timetableDao.getPeriodsSync(normalizedDay)
         if (entities.isEmpty()) {
             runCatching { syncDayFromFirestore(normalizedDay) }
             entities = timetableDao.getPeriodsSync(normalizedDay)
         }
-        val today = DateHelper.today()
-        entities.map { it.toPeriod(today) }.sortedBy { DateHelper.parseTimeToMinutes(it.startTime) }
+        val effectiveDate = targetDate ?: DateHelper.today()
+        val noticeEntities = runCatching { noticeDao.getCancelNoticesSync() }.getOrNull() ?: emptyList()
+        val activeCancelNotices = noticeEntities
+            .map { it.toNotice() }
+            .filter { it.isCancel && !it.isDeleted }
+            .mapNotNull { notice ->
+                val cancelDate = com.shuaib.classmate.utils.SubjectList.effectiveCancelDate(notice)
+                val cancelDay = com.shuaib.classmate.utils.SubjectList.dayOfWeekFromIso(cancelDate)
+                if (cancelDate.isNotBlank() && cancelDay == normalizedDay) {
+                    val subj = notice.subject.takeIf { it.isNotBlank() && !it.equals("General", true) }
+                        ?: notice.body.substringBefore(" class has been cancelled", "")
+                    if (subj.isNotBlank()) Pair(subj, cancelDate) else null
+                } else {
+                    null
+                }
+            }
+
+        entities.map { entity ->
+            val noticeCancelDate = activeCancelNotices
+                .firstOrNull { (subj, _) ->
+                    com.shuaib.classmate.utils.SubjectList.isSameCourse(entity.subject, subj)
+                }
+                ?.second
+            val resolvedCancelDate = if (!noticeCancelDate.isNullOrBlank()) noticeCancelDate else entity.cancelDate
+            entity.copy(cancelDate = resolvedCancelDate).toPeriod(effectiveDate)
+        }.sortedBy { DateHelper.parseTimeToMinutes(it.startTime) }
     }
 
     fun startRealtimeDaySync(

@@ -70,11 +70,14 @@ class AcademicsFragment : Fragment() {
         }
 
         binding.swipeRefresh.setOnRefreshListener {
-            loadPeriodsForDay(days[selectedDayIndex])
+            val day = days[selectedDayIndex]
+            val repo = TimetableRepository.getInstance(requireContext().applicationContext)
+            repo.enqueueNetworkSync()
             viewLifecycleOwner.lifecycleScope.launch {
-                kotlinx.coroutines.delay(800)
+                runCatching { repo.syncDayFromFirestore(day, com.google.firebase.firestore.Source.SERVER) }
                 _binding?.swipeRefresh?.isRefreshing = false
             }
+            loadPeriodsForDay(day)
         }
     }
 
@@ -127,11 +130,24 @@ class AcademicsFragment : Fragment() {
         )
     }
 
-    private fun getDateForDayIndex(targetIndex: Int): LocalDate {
+    private fun getTargetDateForIndex(index: Int): LocalDate {
         val today = LocalDate.now()
         val todayIndex = getTodayIndex()
-        val diff = targetIndex - todayIndex
-        return today.plusDays(diff.toLong())
+        return if (todayIndex == 5 || todayIndex == 6) {
+            val diff = (index - todayIndex + 7) % 7
+            today.plusDays(diff.toLong())
+        } else {
+            val saturday = today.minusDays(todayIndex.toLong())
+            saturday.plusDays(index.toLong())
+        }
+    }
+
+    private fun getFullDateForIndex(index: Int): String {
+        return getTargetDateForIndex(index).format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd", java.util.Locale.US))
+    }
+
+    private fun getDateForDayIndex(targetIndex: Int): LocalDate {
+        return getTargetDateForIndex(targetIndex)
     }
 
     private fun getExceptionForSelectedDay(): AcademicCalendarException? {
@@ -194,12 +210,24 @@ class AcademicsFragment : Fragment() {
         loadPeriodsForDay(days[index])
     }
 
+    private var timetableRealtimeRegistration: ListenerRegistration? = null
+    private var observePeriodsJob: kotlinx.coroutines.Job? = null
+
     private fun loadPeriodsForDay(day: String) {
         val ctx = context ?: return
         val appContext = ctx.applicationContext
         val semester = AppPreferences(appContext).getUserSemester().ifBlank { "2-1" }
+        val userDeptId = AppPreferences(appContext).getUserDepartmentId()
 
-        viewLifecycleOwner.lifecycleScope.launch {
+        observePeriodsJob?.cancel()
+        timetableRealtimeRegistration?.remove()
+
+        timetableRealtimeRegistration = TimetableRepository.getInstance(appContext)
+            .startRealtimeDaySync(day, viewLifecycleOwner.lifecycleScope)
+
+        val targetDateString = getFullDateForIndex(selectedDayIndex)
+
+        observePeriodsJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
                 if (activeExceptionsList.isEmpty()) {
                     try {
@@ -216,15 +244,46 @@ class AcademicsFragment : Fragment() {
                     return@launch
                 }
 
-                val periods = TimetableRepository.getInstance(appContext).getPeriodsForDay(day)
-                if (_binding == null) return@launch
+                TimetableRepository.getInstance(appContext)
+                    .observePeriods(day, targetDateString)
+                    .collect { rawPeriods ->
+                        if (_binding == null) return@collect
 
-                val filtered = periods.filter {
-                    val b = if (it.batch == "14") "2-1" else it.batch
-                    b.isEmpty() || b.equals("all", ignoreCase = true) || b == semester
-                }.sortedBy { DateHelper.parseTimeToMinutes(it.startTime) }
+                        val currentException = getExceptionForSelectedDay()
+                        if (currentException != null) {
+                            renderPeriods(emptyList())
+                            return@collect
+                        }
 
-                renderPeriods(filtered)
+                        val filtered = rawPeriods
+                            .filter { period ->
+                                val deptMatches = period.departmentId.isBlank() || userDeptId.isBlank() || period.departmentId == userDeptId || period.departmentId == "all"
+                                if (!deptMatches) return@filter false
+
+                                !period.isTemporary || period.temporaryDate.isBlank() || period.temporaryDate == targetDateString
+                            }
+                            .filter { period ->
+                                val b = if (period.batch == "14") "2-1" else period.batch
+                                b.isEmpty() || b.equals("all", ignoreCase = true) || b == semester
+                            }
+                            .map { period ->
+                                val isCancelledForDay = period.cancelDate == targetDateString
+                                val isSubForDay = period.substituteDate == targetDateString && period.substituteTeacher.isNotBlank()
+                                val isOverriddenForDay = period.overrideDate == targetDateString
+                                period.copy(
+                                    isCancelled = isCancelledForDay,
+                                    isSubstitute = isSubForDay,
+                                    substituteTeacher = if (isSubForDay) period.substituteTeacher else "",
+                                    isDynamicOverride = isOverriddenForDay,
+                                    startTime = if (isOverriddenForDay && period.overrideStartTime.isNotBlank()) period.overrideStartTime else period.startTime,
+                                    endTime = if (isOverriddenForDay && period.overrideEndTime.isNotBlank()) period.overrideEndTime else period.endTime,
+                                    room = if (isOverriddenForDay && period.overrideRoom.isNotBlank()) period.overrideRoom else period.room
+                                )
+                            }
+                            .sortedBy { DateHelper.parseTimeToMinutes(it.startTime) }
+
+                        renderPeriods(filtered)
+                    }
             } catch (e: Exception) {
                 renderPeriods(emptyList())
             }
@@ -303,19 +362,23 @@ class AcademicsFragment : Fragment() {
     }
 
     private fun getTodayIndex(): Int {
-        return when (Calendar.getInstance().get(Calendar.DAY_OF_WEEK)) {
-            Calendar.SATURDAY -> 0
-            Calendar.SUNDAY -> 1
-            Calendar.MONDAY -> 2
-            Calendar.TUESDAY -> 3
-            Calendar.WEDNESDAY -> 4
-            Calendar.THURSDAY -> 5
-            Calendar.FRIDAY -> 6
-            else -> 0
+        return when (LocalDate.now().dayOfWeek) {
+            java.time.DayOfWeek.SATURDAY  -> 0
+            java.time.DayOfWeek.SUNDAY    -> 1
+            java.time.DayOfWeek.MONDAY    -> 2
+            java.time.DayOfWeek.TUESDAY   -> 3
+            java.time.DayOfWeek.WEDNESDAY -> 4
+            java.time.DayOfWeek.THURSDAY  -> 5
+            java.time.DayOfWeek.FRIDAY    -> 6
+            else                          -> 0
         }
     }
 
     override fun onDestroyView() {
+        observePeriodsJob?.cancel()
+        observePeriodsJob = null
+        timetableRealtimeRegistration?.remove()
+        timetableRealtimeRegistration = null
         calendarListener?.remove()
         calendarListener = null
         super.onDestroyView()

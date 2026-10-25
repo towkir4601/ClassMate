@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 class TimetableViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = TimetableRepository.getInstance(application)
 
-    fun observePeriods(day: String): Flow<List<Period>> = repository.observePeriods(day)
+    fun observePeriods(day: String, targetDate: String? = null): Flow<List<Period>> = repository.observePeriods(day, targetDate)
 
     fun refreshDay(day: String) {
         repository.enqueueNetworkSync()

@@ -52,6 +52,27 @@ object SubjectList {
         }
     }
 
+    fun cleanCourseTitle(title: String): String {
+        var s = title.trim()
+        if (s.contains("-")) {
+            s = s.substringAfter("-").trim()
+        } else {
+            s = s.replaceFirst(Regex("^[A-Za-z]{2,5}\\s*-?\\s*\\d{3,4}[A-Za-z]?\\s*[-:]?\\s*"), "").trim()
+        }
+        return s.replace(Regex("[^A-Za-z0-9 ]"), " ").replace(Regex("\\s+"), " ").trim().lowercase(java.util.Locale.US)
+    }
+
+    fun extractCourseNumber(codeOrSubject: String): String {
+        val trimmed = codeOrSubject.trim()
+        if (trimmed.isBlank()) return ""
+        val candidate = if (trimmed.contains("-")) trimmed.substringBefore("-").trim() else trimmed
+        val match = Regex("\\b\\d{3,4}\\b").find(candidate)
+            ?: Regex("\\d{3,4}").find(candidate)
+            ?: Regex("\\b\\d{3,4}\\b").find(trimmed)
+            ?: Regex("\\d{3,4}").find(trimmed)
+        return match?.value ?: ""
+    }
+
     fun isSameCourse(subjectA: String, subjectB: String): Boolean {
         val a = subjectA.trim()
         val b = subjectB.trim()
@@ -60,15 +81,51 @@ object SubjectList {
 
         val codeA = extractCourseCode(a)
         val codeB = extractCourseCode(b)
-        if (codeA.isNotBlank() && codeB.isNotBlank()) {
-            return codeA.equals(codeB, ignoreCase = true)
-        }
-
-        val nameA = if (a.contains("-")) a.substringAfter("-").trim() else a
-        val nameB = if (b.contains("-")) b.substringAfter("-").trim() else b
-        if (nameA.isNotBlank() && nameB.isNotBlank() && nameA.equals(nameB, ignoreCase = true)) {
+        if (codeA.isNotBlank() && codeB.isNotBlank() && codeA.equals(codeB, ignoreCase = true)) {
             return true
         }
+
+        val numA = extractCourseNumber(if (codeA.isNotBlank()) codeA else a)
+        val numB = extractCourseNumber(if (codeB.isNotBlank()) codeB else b)
+        if (numA.isNotBlank() && numB.isNotBlank() && numA != numB) {
+            return false
+        }
+
+        val titleA = cleanCourseTitle(a)
+        val titleB = cleanCourseTitle(b)
+
+        val isLabA = titleA.contains("sessional") || titleA.contains("lab")
+        val isLabB = titleB.contains("sessional") || titleB.contains("lab")
+        if (isLabA != isLabB && titleA.isNotBlank() && titleB.isNotBlank()) {
+            return false
+        }
+
+        if (titleA.isNotBlank() && titleB.isNotBlank() && titleA == titleB) {
+            return true
+        }
+
+        if (numA.isNotBlank() && numA == numB) {
+            val prefixA = codeA.filter { it.isLetter() }.uppercase(java.util.Locale.US)
+            val prefixB = codeB.filter { it.isLetter() }.uppercase(java.util.Locale.US)
+            val prefixesCompatible = prefixA == prefixB ||
+                    prefixA.isBlank() || prefixB.isBlank() ||
+                    ((prefixA == "CE" || prefixA == "CSE") && (prefixB == "CE" || prefixB == "CSE")) ||
+                    ((prefixA == "SWE" || prefixA == "CSE") && (prefixB == "SWE" || prefixB == "CSE"))
+
+            if (prefixesCompatible) {
+                if (titleA.isBlank() || titleB.isBlank()) return true
+                if (titleA.contains(titleB) || titleB.contains(titleA)) return true
+            }
+        }
+
+        if (titleA.isNotBlank() && titleB.isNotBlank()) {
+            val normA = titleA.replace(" ", "")
+            val normB = titleB.replace(" ", "")
+            if (normA == normB || normA.trimEnd('s') == normB.trimEnd('s')) {
+                return true
+            }
+        }
+
         return false
     }
 

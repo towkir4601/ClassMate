@@ -442,7 +442,9 @@ class TimetableFragment : Fragment() {
                 selectedDayFlow
                     .filter { it.isNotBlank() }
                     .flatMapLatest { day ->
-                        timetableViewModel.observePeriods(day)
+                        val dayIndex = days.indexOf(day.lowercase())
+                        val targetDateString = if (dayIndex != -1) getFullDateForIndex(dayIndex) else null
+                        timetableViewModel.observePeriods(day, targetDateString)
                     }
                     .collect { periods ->
                         if (isViewingRoutine) {

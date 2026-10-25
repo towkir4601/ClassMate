@@ -648,7 +648,10 @@ class PostNoticeActivity : AppCompatActivity() {
         }
 
         val selectedSubject = com.shuaib.classmate.utils.SubjectList.subjects.find {
-            it.name.equals(rawSubject, true) || it.fullName.equals(rawSubject, true) || it.code.equals(rawSubject, true)
+            it.name.equals(rawSubject, true) ||
+                it.fullName.equals(rawSubject, true) ||
+                it.code.equals(rawSubject, true) ||
+                com.shuaib.classmate.utils.SubjectList.isSameCourse(it.fullName, rawSubject)
         }?.fullName ?: rawSubject
 
         val isToday = binding.rbToday.isChecked
