@@ -129,14 +129,14 @@ class ImageViewerActivity : AppCompatActivity() {
         btnSave.isEnabled = false
 
         try {
-            val fileName = "ClassMate_Notice_${System.currentTimeMillis()}.jpg"
+            val fileName = "GSTU_Go_Notice_${System.currentTimeMillis()}.jpg"
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 // Android 10+ — use MediaStore (no permission needed)
                 val values = ContentValues().apply {
                     put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
                     put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-                    put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/ClassMate")
+                    put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/GSTU_Go")
                     put(MediaStore.Images.Media.IS_PENDING, 1)
                 }
                 val resolver = contentResolver

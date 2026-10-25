@@ -4,6 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_dialog_rounded"
+    android:backgroundTint="#FFFFFF"
     android:orientation="vertical"
     android:padding="20dp">
 
@@ -13,7 +14,8 @@
         android:layout_height="4dp"
         android:layout_gravity="center_horizontal"
         android:layout_marginBottom="14dp"
-        android:background="@drawable/bg_handle" />
+        android:background="@drawable/bg_handle"
+        android:backgroundTint="#CBD5E1" />
 
     <!-- Header Title with Close '✕' Button -->
     <LinearLayout
@@ -22,13 +24,19 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <ImageView
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:background="@drawable/bg_squircle_dark"
-            android:padding="5dp"
-            android:src="@drawable/ic_location_pin"
-            app:tint="#6366F1" />
+        <LinearLayout
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/bg_badge_accent_pill"
+            android:backgroundTint="#E0F2FE"
+            android:gravity="center">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_location_pin"
+                app:tint="#0284C7" />
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="0dp"
@@ -41,7 +49,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Post Lost / Found Item"
-                android:textColor="#FFFFFF"
+                android:textColor="#0F172A"
                 android:textSize="18sp"
                 android:textStyle="bold" />
 
@@ -49,7 +57,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Broadcast lost belongings to GSTU campus"
-                android:textColor="#94A3B8"
+                android:textColor="#64748B"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -60,7 +68,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Close"
             android:src="@drawable/ic_close"
-            app:tint="#94A3B8" />
+            app:tint="#64748B" />
     </LinearLayout>
 
     <View
@@ -68,7 +76,7 @@
         android:layout_height="1dp"
         android:layout_marginTop="14dp"
         android:layout_marginBottom="16dp"
-        android:background="#262E3B" />
+        android:background="#E2E8F0" />
 
     <!-- Type Switcher (FOUND vs LOST) -->
     <LinearLayout
@@ -76,6 +84,7 @@
         android:layout_height="44dp"
         android:layout_marginBottom="16dp"
         android:background="@drawable/bg_lost_found_input"
+        android:backgroundTint="#F1F5F9"
         android:orientation="horizontal"
         android:padding="3dp">
 
@@ -85,7 +94,7 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:background="@drawable/bg_badge_accent_pill"
-            android:backgroundTint="#166534"
+            android:backgroundTint="#16A34A"
             android:gravity="center"
             android:text="✔  FOUND ITEM"
             android:textColor="#FFFFFF"
@@ -99,7 +108,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:text="🔍  LOST ITEM"
-            android:textColor="#94A3B8"
+            android:textColor="#64748B"
             android:textSize="13sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -109,7 +118,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Item Name &amp; Description *"
-        android:textColor="#E2E8F0"
+        android:textColor="#0F172A"
         android:textSize="13sp"
         android:textStyle="bold" />
 
@@ -118,7 +127,7 @@
         android:layout_height="48dp"
         android:layout_marginTop="6dp"
         android:layout_marginBottom="14dp"
-        android:background="@drawable/bg_dialog_input_dark"
+        android:background="@drawable/bg_lost_found_input"
         android:gravity="center_vertical"
         android:paddingHorizontal="14dp">
 
@@ -126,7 +135,7 @@
             android:layout_width="18dp"
             android:layout_height="18dp"
             android:src="@drawable/ic_document_sheet"
-            app:tint="#94A3B8" />
+            app:tint="#64748B" />
 
         <EditText
             android:id="@+id/etReportTitle"
@@ -136,8 +145,8 @@
             android:background="@null"
             android:hint="e.g. Casio FX-991EX, Student ID, Wallet"
             android:inputType="textCapSentences"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#64748B"
+            android:textColor="#0F172A"
+            android:textColorHint="#94A3B8"
             android:textSize="14sp" />
     </LinearLayout>
 
@@ -146,7 +155,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Location Spotted or Lost *"
-        android:textColor="#E2E8F0"
+        android:textColor="#0F172A"
         android:textSize="13sp"
         android:textStyle="bold" />
 
@@ -155,7 +164,7 @@
         android:layout_height="48dp"
         android:layout_marginTop="6dp"
         android:layout_marginBottom="14dp"
-        android:background="@drawable/bg_dialog_input_dark"
+        android:background="@drawable/bg_lost_found_input"
         android:gravity="center_vertical"
         android:paddingHorizontal="14dp">
 
@@ -163,7 +172,7 @@
             android:layout_width="18dp"
             android:layout_height="18dp"
             android:src="@drawable/ic_location_pin"
-            app:tint="#94A3B8" />
+            app:tint="#64748B" />
 
         <EditText
             android:id="@+id/etReportLocation"
@@ -173,8 +182,8 @@
             android:background="@null"
             android:hint="e.g. Central Library 2nd floor, Cafeteria"
             android:inputType="textCapWords"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#64748B"
+            android:textColor="#0F172A"
+            android:textColorHint="#94A3B8"
             android:textSize="14sp" />
     </LinearLayout>
 
@@ -183,7 +192,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Contact Phone Number *"
-        android:textColor="#E2E8F0"
+        android:textColor="#0F172A"
         android:textSize="13sp"
         android:textStyle="bold" />
 
@@ -192,7 +201,7 @@
         android:layout_height="48dp"
         android:layout_marginTop="6dp"
         android:layout_marginBottom="16dp"
-        android:background="@drawable/bg_dialog_input_dark"
+        android:background="@drawable/bg_lost_found_input"
         android:gravity="center_vertical"
         android:paddingHorizontal="14dp">
 
@@ -200,7 +209,7 @@
             android:layout_width="18dp"
             android:layout_height="18dp"
             android:src="@drawable/ic_phone_receiver"
-            app:tint="#94A3B8" />
+            app:tint="#64748B" />
 
         <EditText
             android:id="@+id/etReportPhone"
@@ -210,8 +219,8 @@
             android:background="@null"
             android:hint="017xxxxxxxx or Front Desk"
             android:inputType="phone"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#64748B"
+            android:textColor="#0F172A"
+            android:textColorHint="#94A3B8"
             android:textSize="14sp" />
     </LinearLayout>
 
@@ -221,7 +230,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="18dp"
         android:background="@drawable/bg_badge_accent_pill"
-        android:backgroundTint="#1E293B"
+        android:backgroundTint="#F0F9FF"
         android:gravity="center_vertical"
         android:padding="10dp">
 
@@ -229,7 +238,7 @@
             android:layout_width="16dp"
             android:layout_height="16dp"
             android:src="@drawable/ic_bell_outline"
-            app:tint="#A5B4FC" />
+            app:tint="#0284C7" />
 
         <TextView
             android:layout_width="0dp"
@@ -237,7 +246,7 @@
             android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:text="Admins will review and approve your post to keep the board spam-free."
-            android:textColor="#CBD5E1"
+            android:textColor="#0369A1"
             android:textSize="11.5sp" />
     </LinearLayout>
 
@@ -246,7 +255,7 @@
         android:id="@+id/btnPublishReport"
         android:layout_width="match_parent"
         android:layout_height="52dp"
-        android:backgroundTint="#6366F1"
+        android:backgroundTint="#0284C7"
         android:text="Publish to Lost &amp; Found"
         android:textAllCaps="false"
         android:textColor="#FFFFFF"

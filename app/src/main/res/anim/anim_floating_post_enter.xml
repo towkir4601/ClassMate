@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shareInterpolator="false">
+
+    <!-- macOS-style scale expansion from the FAB icon origin -->
+    <scale
+        android:duration="500"
+        android:fromXScale="0.18"
+        android:toXScale="1.0"
+        android:fromYScale="0.18"
+        android:toYScale="1.0"
+        android:pivotX="88%"
+        android:pivotY="92%"
+        android:interpolator="@anim/mac_overshoot_interpolator" />
+
+    <!-- Trajectory translation from origin to center -->
+    <translate
+        android:duration="500"
+        android:fromXDelta="50dp"
+        android:toXDelta="0"
+        android:fromYDelta="140dp"
+        android:toYDelta="0"
+        android:interpolator="@android:interpolator/decelerate_cubic" />
+
+    <!-- Fast alpha reveal so the expanding window is clearly visible while animating -->
+    <alpha
+        android:duration="200"
+        android:fromAlpha="0.0"
+        android:toAlpha="1.0"
+        android:interpolator="@android:interpolator/linear" />
+</set>

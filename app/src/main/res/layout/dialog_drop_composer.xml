@@ -1,0 +1,430 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Large Floating Post Hover Page (70% screen height, top-right post icon, spacious text box, poll/petition below text box) -->
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:cardCornerRadius="26dp"
+    app:cardElevation="12dp"
+    app:cardBackgroundColor="@color/cm_sky_surface"
+    app:cardPreventCornerOverlap="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="18dp"
+        android:paddingBottom="16dp">
+
+        <!-- Top Bar: Left = Close/Dismiss, Center = Title, Right = Top-Right Post Action Icon -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="14dp">
+
+            <!-- Dismiss Button on Left -->
+            <ImageView
+                android:id="@+id/btnCancelDrop"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:padding="8dp"
+                android:src="@drawable/ic_close"
+                app:tint="@color/cm_text_muted"
+                android:contentDescription="Close" />
+
+            <!-- Clean Centered Title -->
+            <TextView
+                android:id="@+id/tvComposerHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:text="Create Post"
+                android:textColor="@color/cm_text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <!-- Top-Right Post Action Icon: Clicking this publishes the post -->
+            <FrameLayout
+                android:id="@+id/btnSubmitDrop"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:background="@drawable/bg_campus_sky_fab"
+                android:elevation="4dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:id="@+id/ivSubmitIcon"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_post"
+                    app:tint="#FFFFFF"
+                    android:contentDescription="Post" />
+
+                <ProgressBar
+                    android:id="@+id/pbSubmitLoading"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_gravity="center"
+                    android:indeterminateTint="#FFFFFF"
+                    android:visibility="gone" />
+            </FrameLayout>
+        </RelativeLayout>
+
+        <!-- Scrollable Middle Section with Large Text Box -->
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:fillViewport="true"
+            android:scrollbars="vertical"
+            android:overScrollMode="never">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- Large Spacious Text Box: Only "What's happening..." hint with 65% opacity -->
+                <EditText
+                    android:id="@+id/etDropContent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="170dp"
+                    android:background="@drawable/bg_lost_found_input"
+                    android:padding="16dp"
+                    android:gravity="top"
+                    android:hint="What's happening..."
+                    android:textColor="@color/cm_text_primary"
+                    android:textColorHint="#A664748B"
+                    android:textSize="15.5sp"
+                    android:lineSpacingExtra="4dp" />
+
+                <!-- Feature Options: Placed directly below the text box (one-click select, another click deselect) -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Attach:"
+                        android:textColor="@color/cm_text_muted"
+                        android:textSize="12sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <!-- Poll Option Toggle Chip -->
+                    <TextView
+                        android:id="@+id/chipTypePoll"
+                        android:layout_width="wrap_content"
+                        android:layout_height="34dp"
+                        android:paddingHorizontal="14dp"
+                        android:layout_marginEnd="8dp"
+                        android:gravity="center"
+                        android:background="@drawable/bg_campus_sky_tab_inactive"
+                        android:text="📊 Poll"
+                        android:textColor="@color/cm_sky_text_muted"
+                        android:textSize="12.5sp"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                    <!-- Petition Option Toggle Chip -->
+                    <TextView
+                        android:id="@+id/chipTypePetition"
+                        android:layout_width="wrap_content"
+                        android:layout_height="34dp"
+                        android:paddingHorizontal="14dp"
+                        android:gravity="center"
+                        android:background="@drawable/bg_campus_sky_tab_inactive"
+                        android:text="✍️ Petition"
+                        android:textColor="@color/cm_sky_text_muted"
+                        android:textSize="12.5sp"
+                        android:clickable="true"
+                        android:focusable="true" />
+                </LinearLayout>
+
+                <!-- Optional Image Preview -->
+                <FrameLayout
+                    android:id="@+id/layoutImagePreview"
+                    android:layout_width="match_parent"
+                    android:layout_height="150dp"
+                    android:layout_marginTop="10dp"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:id="@+id/ivComposerPreview"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:background="@drawable/bg_circle_avatar" />
+
+                    <ImageView
+                        android:id="@+id/btnRemoveImage"
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:layout_gravity="top|end"
+                        android:layout_margin="8dp"
+                        android:background="@drawable/bg_circle_dark"
+                        android:padding="6dp"
+                        android:src="@drawable/ic_close"
+                        app:tint="#FFFFFF"
+                        android:contentDescription="Remove image" />
+                </FrameLayout>
+
+                <!-- Dynamic POLL CONFIGURATION (Shown when Poll is selected) -->
+                <LinearLayout
+                    android:id="@+id/sectionPollConfig"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="POLL CHOICES"
+                        android:textColor="@color/cm_sky_primary"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.08"
+                        android:layout_marginBottom="6dp" />
+
+                    <EditText
+                        android:id="@+id/etPollOption1"
+                        android:layout_width="match_parent"
+                        android:layout_height="42dp"
+                        android:layout_marginBottom="6dp"
+                        android:paddingHorizontal="12dp"
+                        android:background="@drawable/bg_lost_found_input"
+                        android:hint="Option 1"
+                        android:textColor="@color/cm_text_primary"
+                        android:textColorHint="#A664748B"
+                        android:textSize="13sp" />
+
+                    <EditText
+                        android:id="@+id/etPollOption2"
+                        android:layout_width="match_parent"
+                        android:layout_height="42dp"
+                        android:layout_marginBottom="6dp"
+                        android:paddingHorizontal="12dp"
+                        android:background="@drawable/bg_lost_found_input"
+                        android:hint="Option 2"
+                        android:textColor="@color/cm_text_primary"
+                        android:textColorHint="#A664748B"
+                        android:textSize="13sp" />
+
+                    <!-- Container for dynamically added options -->
+                    <LinearLayout
+                        android:id="@+id/layoutPollExtraOptions"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+
+                    <!-- Button to add more poll options -->
+                    <TextView
+                        android:id="@+id/btnPollAddOption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="34dp"
+                        android:layout_marginTop="2dp"
+                        android:paddingHorizontal="14dp"
+                        android:gravity="center"
+                        android:background="@drawable/bg_campus_sky_tab_active"
+                        android:text="+ Add option"
+                        android:textColor="@color/cm_sky_primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Dynamic COMMUNITY STANDARD PETITION CONFIGURATION (Shown when Petition is selected) -->
+                <LinearLayout
+                    android:id="@+id/sectionPetitionConfig"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="CAMPUS PETITION DETAILS"
+                        android:textColor="@color/cm_sky_primary"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.08"
+                        android:layout_marginBottom="6dp" />
+
+                    <!-- 1. Demand / Title -->
+                    <EditText
+                        android:id="@+id/etPetitionTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="42dp"
+                        android:layout_marginBottom="6dp"
+                        android:paddingHorizontal="12dp"
+                        android:background="@drawable/bg_lost_found_input"
+                        android:hint="Petition Title (e.g. 24h AC Library Study Hall)"
+                        android:textColor="@color/cm_text_primary"
+                        android:textColorHint="#A664748B"
+                        android:textSize="13sp" />
+
+                    <!-- 2. Addressed To Authority -->
+                    <EditText
+                        android:id="@+id/etPetitionAddressedTo"
+                        android:layout_width="match_parent"
+                        android:layout_height="42dp"
+                        android:layout_marginBottom="6dp"
+                        android:paddingHorizontal="12dp"
+                        android:background="@drawable/bg_lost_found_input"
+                        android:hint="Addressed To (e.g. Vice-Chancellor, Dean, Provost)"
+                        android:textColor="@color/cm_text_primary"
+                        android:textColorHint="#A664748B"
+                        android:textSize="13sp" />
+
+                    <!-- 3. Signature Target Goal -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginTop="2dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Signature Goal:"
+                            android:textColor="@color/cm_text_muted"
+                            android:textSize="12sp"
+                            android:layout_marginEnd="8dp" />
+
+                        <EditText
+                            android:id="@+id/etPetitionTarget"
+                            android:layout_width="0dp"
+                            android:layout_height="40dp"
+                            android:layout_weight="1"
+                            android:paddingHorizontal="12dp"
+                            android:background="@drawable/bg_lost_found_input"
+                            android:hint="Goal (e.g. 100)"
+                            android:inputType="number"
+                            android:text="100"
+                            android:textColor="@color/cm_text_primary"
+                            android:textColorHint="#A664748B"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <!-- Quick Goal Chips -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="6dp">
+
+                        <TextView
+                            android:id="@+id/chipGoal50"
+                            android:layout_width="wrap_content"
+                            android:layout_height="28dp"
+                            android:paddingHorizontal="12dp"
+                            android:layout_marginEnd="6dp"
+                            android:gravity="center"
+                            android:background="@drawable/bg_campus_sky_tab_inactive"
+                            android:text="50"
+                            android:textColor="@color/cm_sky_text_muted"
+                            android:textSize="11.5sp" />
+
+                        <TextView
+                            android:id="@+id/chipGoal100"
+                            android:layout_width="wrap_content"
+                            android:layout_height="28dp"
+                            android:paddingHorizontal="12dp"
+                            android:layout_marginEnd="6dp"
+                            android:gravity="center"
+                            android:background="@drawable/bg_campus_sky_tab_active"
+                            android:text="100"
+                            android:textColor="@color/cm_sky_primary"
+                            android:textSize="11.5sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/chipGoal250"
+                            android:layout_width="wrap_content"
+                            android:layout_height="28dp"
+                            android:paddingHorizontal="12dp"
+                            android:layout_marginEnd="6dp"
+                            android:gravity="center"
+                            android:background="@drawable/bg_campus_sky_tab_inactive"
+                            android:text="250"
+                            android:textColor="@color/cm_sky_text_muted"
+                            android:textSize="11.5sp" />
+
+                        <TextView
+                            android:id="@+id/chipGoal500"
+                            android:layout_width="wrap_content"
+                            android:layout_height="28dp"
+                            android:paddingHorizontal="12dp"
+                            android:gravity="center"
+                            android:background="@drawable/bg_campus_sky_tab_inactive"
+                            android:text="500"
+                            android:textColor="@color/cm_sky_text_muted"
+                            android:textSize="11.5sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- Bottom Action Bar: Attachment & Character Counter -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:id="@+id/btnAttachImage"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:padding="8dp"
+                android:src="@drawable/ic_attach"
+                app:tint="@color/cm_sky_primary"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Attach Image" />
+
+            <ImageView
+                android:id="@+id/btnAttachCamera"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:layout_marginStart="6dp"
+                android:padding="8dp"
+                android:src="@drawable/ic_camera"
+                app:tint="@color/cm_sky_primary"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Take Photo" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/tvCharacterCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0/500"
+                android:textColor="@color/cm_text_muted"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

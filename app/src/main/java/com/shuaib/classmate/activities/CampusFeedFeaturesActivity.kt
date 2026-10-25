@@ -2,6 +2,7 @@ package com.shuaib.classmate.activities
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -12,6 +13,7 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.shuaib.classmate.R
 import com.shuaib.classmate.databinding.ActivityCampusFeedFeaturesBinding
+import com.shuaib.classmate.utils.UserRoleHelper
 
 
 class CampusFeedFeaturesActivity : AppCompatActivity() {
@@ -26,6 +28,23 @@ class CampusFeedFeaturesActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setupListeners()
+        setupAdminAccess()
+    }
+
+    private fun setupAdminAccess() {
+        val role = UserRoleHelper.getEffectiveRole(this)
+        val perms = UserRoleHelper.getEffectivePermissions(this, role)
+        val r = role.trim().lowercase()
+        val isAdmin = (r == "superadmin" || r == "admin" || r == "teacher" || r == "club_admin" || r == "cr" || perms.values.any { it == true })
+
+        if (isAdmin) {
+            binding.layoutAdminBetaBar.visibility = View.VISIBLE
+            binding.btnLaunchLiveFeed.setOnClickListener {
+                startActivity(Intent(this, CampusFeedActivity::class.java))
+            }
+        } else {
+            binding.layoutAdminBetaBar.visibility = View.GONE
+        }
     }
 
     private fun setupListeners() {
@@ -124,13 +143,13 @@ class CampusFeedFeaturesActivity : AppCompatActivity() {
         val shareText = """
             🚀 Exciting news for GSTU students!
             
-            ClassMate is introducing *CampusFeed* — a dedicated student community platform:
+            GSTU Go is introducing *CampusFeed* — a dedicated student community platform:
             💬 Post & Share Opinions
             📊 Real-time Campus Polls
             🎯 Interest Circles & Teams
             📜 Digital Student Petitions
             
-            Check it out now on ClassMate App!
+            Check it out now on GSTU Go App!
         """.trimIndent()
 
         val sendIntent = Intent().apply {

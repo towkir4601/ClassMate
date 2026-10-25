@@ -1297,8 +1297,35 @@ service cloud.firestore {
       );
     }
 
+    // ── CampusFeed & Community Square ─────────────────────────────────────────
+    match /campus_feed/{postId} {
+      allow read, write: if true;
+
+      match /{subcollection=**} {
+        allow read, write: if true;
+      }
+    }
+
+    match /campus_feed_waitlist/{uid} {
+      allow read, write: if true;
+    }
+
+    match /campus_feed_suggestions/{id} {
+      allow read, write: if true;
+    }
+
+    match /campus_feed_bookmarks/{id} {
+      allow read, write: if true;
+    }
+
+    // ── Lost & Found ──────────────────────────────────────────────────────────
+    match /lost_and_found/{itemId} {
+      allow read, write: if true;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
   }
 }
+

@@ -85,7 +85,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="✨ CLASSMATE AI COMPOSER"
+                            android:text="✨ GSTU GO AI COMPOSER"
                             android:textColor="@color/cm_primary"
                             android:textSize="12sp"
                             android:textStyle="bold"

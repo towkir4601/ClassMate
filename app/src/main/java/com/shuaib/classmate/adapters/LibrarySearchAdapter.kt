@@ -40,7 +40,7 @@ class LibrarySearchAdapter(
             tvMeta.text = listOf(
                 visuals.label,
                 "uploaded ${formatTime(file)}",
-                file.uploadedBy.ifBlank { "ClassMate Library" }
+                file.uploadedBy.ifBlank { "GSTU Go Library" }
             ).joinToString(" - ")
 
             iconContainer.background = ContextCompat.getDrawable(root.context, visuals.backgroundRes)

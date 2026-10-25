@@ -948,7 +948,7 @@ class MainActivity : AppCompatActivity() {
     private fun showPermissionRationaleDialog() {
         AlertDialog.Builder(this)
             .setTitle("Notification Permission Needed")
-            .setMessage("ClassMate needs permission to show you important notices.")
+            .setMessage("GSTU Go needs permission to show you important notices.")
             .setPositiveButton("OK") { _, _ ->
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)

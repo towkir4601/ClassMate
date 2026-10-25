@@ -22,7 +22,7 @@ import java.util.Date
 import java.util.Locale
 
 class LostFoundAdapter(
-    private var items: List<LostFoundItem>,
+    items: List<LostFoundItem>,
     private var currentUserId: String = "",
     private var currentUserName: String = "Student",
     private var isAdmin: Boolean = false,
@@ -32,6 +32,7 @@ class LostFoundAdapter(
     private val onReportClick: (LostFoundItem) -> Unit = {}
 ) : RecyclerView.Adapter<LostFoundAdapter.ViewHolder>() {
 
+    private var items: MutableList<LostFoundItem> = items.toMutableList()
     private val repo = LostFoundRepository()
     private val notificationRepo = AppNotificationRepository()
 
@@ -52,37 +53,37 @@ class LostFoundAdapter(
         val context = holder.itemView.context
 
         b.tvItemTitle.text = item.title
-        b.tvItemTitle.setTextColor(Color.WHITE)
+        b.tvItemTitle.setTextColor(Color.parseColor("#0F172A"))
 
         b.tvItemLocation.text = item.location.ifBlank { "Campus" }
-        b.tvItemLocation.setTextColor(Color.parseColor("#CBD5E1"))
+        b.tvItemLocation.setTextColor(Color.parseColor("#334155"))
 
         b.tvContactInfo.text = "Contact: ${item.contactPhone.ifBlank { item.reporterName.ifBlank { "Campus Desk" } }}"
-        b.tvContactInfo.setTextColor(Color.parseColor("#CBD5E1"))
+        b.tvContactInfo.setTextColor(Color.parseColor("#334155"))
 
         b.tvItemTime.text = formatItemTime(item.timestamp?.seconds)
-        b.tvItemTime.setTextColor(Color.parseColor("#94A3B8"))
+        b.tvItemTime.setTextColor(Color.parseColor("#64748B"))
 
         if (item.description.isNotBlank() && !item.description.equals(item.title, ignoreCase = true)) {
             b.tvItemDescription.visibility = View.VISIBLE
             b.tvItemDescription.text = item.description
-            b.tvItemDescription.setTextColor(Color.parseColor("#94A3B8"))
+            b.tvItemDescription.setTextColor(Color.parseColor("#475569"))
         } else {
             b.tvItemDescription.visibility = View.GONE
         }
 
-        // Status badge
+        // Status badge (Day theme)
         if (item.isFound) {
             b.tvTypeBadge.text = "✔ FOUND"
-            b.tvTypeBadge.setTextColor(Color.parseColor("#34D399"))
-            b.tvTypeBadge.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#243427"))
+            b.tvTypeBadge.setTextColor(Color.parseColor("#15803D"))
+            b.tvTypeBadge.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#DCFCE7"))
         } else {
             b.tvTypeBadge.text = "🔍 LOST"
-            b.tvTypeBadge.setTextColor(Color.parseColor("#F87171"))
-            b.tvTypeBadge.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#3A2224"))
+            b.tvTypeBadge.setTextColor(Color.parseColor("#B91C1C"))
+            b.tvTypeBadge.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#FEE2E2"))
         }
 
-        // Resolved badge
+        // Resolved badge (Day theme)
         if (item.isResolved || item.isItemGiven || item.isItemFound) {
             b.tvResolvedStatusBadge.visibility = View.VISIBLE
             b.tvResolvedStatusBadge.text = when {
@@ -90,6 +91,8 @@ class LostFoundAdapter(
                 item.isItemFound -> "ITEM FOUND"
                 else -> "RESOLVED"
             }
+            b.tvResolvedStatusBadge.setTextColor(Color.parseColor("#0369A1"))
+            b.tvResolvedStatusBadge.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#E0F2FE"))
         } else {
             b.tvResolvedStatusBadge.visibility = View.GONE
         }
@@ -109,17 +112,18 @@ class LostFoundAdapter(
         }
         val displayViews = Math.max(item.viewsCount, if (prefs.hasViewedPost(item.id)) 1 else 0)
         b.tvViewsCount.text = "$displayViews ${if (displayViews == 1) "view" else "views"}"
+        b.tvViewsCount.setTextColor(Color.parseColor("#64748B"))
 
-        // Love react setup
+        // Love react setup (Day theme + toggleable)
         val isLovedByMe = currentUserId.isNotBlank() && item.loveReactors.contains(currentUserId)
         if (isLovedByMe) {
             b.ivLove.setImageResource(R.drawable.ic_heart_filled)
             b.ivLove.imageTintList = ColorStateList.valueOf(Color.parseColor("#F43F5E"))
-            b.tvLoveCount.setTextColor(Color.parseColor("#FDA4AF"))
+            b.tvLoveCount.setTextColor(Color.parseColor("#E11D48"))
         } else {
             b.ivLove.setImageResource(R.drawable.ic_heart_outline)
-            b.ivLove.imageTintList = ColorStateList.valueOf(Color.parseColor("#94A3B8"))
-            b.tvLoveCount.setTextColor(Color.parseColor("#CBD5E1"))
+            b.ivLove.imageTintList = ColorStateList.valueOf(Color.parseColor("#64748B"))
+            b.tvLoveCount.setTextColor(Color.parseColor("#475569"))
         }
         b.tvLoveCount.text = "${item.loveCount}"
 
@@ -128,22 +132,25 @@ class LostFoundAdapter(
                 Toast.makeText(context, "Please sign in to react to this post", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val willLove = !item.loveReactors.contains(currentUserId)
-            val updatedReactors = item.loveReactors.toMutableList()
+            val currentPos = holder.bindingAdapterPosition
+            if (currentPos == RecyclerView.NO_POSITION || currentPos >= items.size) return@setOnClickListener
+            val currentItem = items[currentPos]
+            val willLove = !currentItem.loveReactors.contains(currentUserId)
+            val updatedReactors = currentItem.loveReactors.toMutableList()
             if (willLove) {
-                updatedReactors.add(currentUserId)
+                if (!updatedReactors.contains(currentUserId)) updatedReactors.add(currentUserId)
                 b.ivLove.setImageResource(R.drawable.ic_heart_filled)
                 b.ivLove.imageTintList = ColorStateList.valueOf(Color.parseColor("#F43F5E"))
-                b.tvLoveCount.setTextColor(Color.parseColor("#FDA4AF"))
+                b.tvLoveCount.setTextColor(Color.parseColor("#E11D48"))
                 b.tvLoveCount.text = "${updatedReactors.size}"
 
                 // Send notification to who posted
                 notificationRepo.sendNotificationToAuthor(
-                    authorId = item.reporterId,
+                    authorId = currentItem.reporterId,
                     type = "react",
                     title = "❤️ New Reaction on Lost & Found",
-                    message = "$currentUserName loved your post: \"${item.title}\"",
-                    postId = item.id,
+                    message = "$currentUserName loved your post: \"${currentItem.title}\"",
+                    postId = currentItem.id,
                     postType = "lost_found",
                     actorId = currentUserId,
                     actorName = currentUserName
@@ -151,21 +158,32 @@ class LostFoundAdapter(
             } else {
                 updatedReactors.remove(currentUserId)
                 b.ivLove.setImageResource(R.drawable.ic_heart_outline)
-                b.ivLove.imageTintList = ColorStateList.valueOf(Color.parseColor("#94A3B8"))
-                b.tvLoveCount.setTextColor(Color.parseColor("#CBD5E1"))
+                b.ivLove.imageTintList = ColorStateList.valueOf(Color.parseColor("#64748B"))
+                b.tvLoveCount.setTextColor(Color.parseColor("#475569"))
                 b.tvLoveCount.text = "${updatedReactors.size}"
             }
-            repo.toggleLove(item.id, currentUserId, willLove)
+            // Update in-memory item so subsequent clicks can take out the reaction or react again smoothly
+            items[currentPos] = currentItem.copy(
+                loveReactors = updatedReactors,
+                loveCount = updatedReactors.size
+            )
+            repo.toggleLove(currentItem.id, currentUserId, willLove)
         }
 
-        // Share button setup
+        // Share button setup (Instagram-style share with unique link)
+        b.ivShare.setImageResource(R.drawable.ic_instagram_share)
+        b.ivShare.imageTintList = ColorStateList.valueOf(Color.parseColor("#64748B"))
+        b.tvShareText.setTextColor(Color.parseColor("#475569"))
+
         b.btnShare.setOnClickListener {
             repo.recordShare(item.id)
-            val shareText = "🔍 GSTU Go - ${if (item.isFound) "Found Item" else "Lost Item"}:\n" +
-                    "${item.title}\n" +
+            val uniqueLink = "https://gstu-go.web.app/lostfound?id=${item.id}"
+            val shareText = "🔍 GSTU Go — ${if (item.isFound) "Found Item Notice" else "Lost Item Alert"}:\n" +
+                    "📦 ${item.title}\n" +
                     "📍 Location: ${item.location}\n" +
-                    "📞 Contact: ${item.contactPhone}\n\n" +
-                    "View on ClassMate / GSTU Go app."
+                    "${if (item.description.isNotBlank() && !item.description.equals(item.title, ignoreCase = true)) "📝 Details: ${item.description}\n" else ""}" +
+                    "📞 Contact: ${item.contactPhone.ifBlank { "Campus Desk" }}\n\n" +
+                    "🔗 View Post on GSTU Go:\n$uniqueLink"
             val sendIntent = Intent().apply {
                 action = Intent.ACTION_SEND
                 putExtra(Intent.EXTRA_TEXT, shareText)
@@ -243,7 +261,7 @@ class LostFoundAdapter(
     override fun getItemCount(): Int = items.size
 
     fun updateList(newItems: List<LostFoundItem>) {
-        items = newItems
+        items = newItems.toMutableList()
         notifyDataSetChanged()
     }
 

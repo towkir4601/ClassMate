@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Single Poll Option inside CampusFeed Post -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rootPollOption"
+    android:layout_width="match_parent"
+    android:layout_height="38dp"
+    android:layout_marginBottom="6dp"
+    android:background="@drawable/bg_poll_option"
+    android:foreground="?android:attr/selectableItemBackground">
+
+    <!-- Percentage Fill Indicator -->
+    <View
+        android:id="@+id/viewPollFill"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:background="#202563EB"
+        android:visibility="gone"
+        tools:layout_width="140dp"
+        tools:visibility="visible" />
+
+    <!-- Text Content -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="14dp">
+
+        <TextView
+            android:id="@+id/tvOptionText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/cm_text_primary"
+            android:textSize="13sp"
+            tools:text="Yes, extend hours" />
+
+        <TextView
+            android:id="@+id/tvOptionPercent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:textColor="@color/cm_primary"
+            android:textSize="12.5sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:text="68%"
+            tools:visibility="visible" />
+    </LinearLayout>
+
+</FrameLayout>

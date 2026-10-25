@@ -95,7 +95,7 @@
                             android:maxLines="1"
                             android:textColor="@color/cm_text_secondary"
                             android:textSize="13sp"
-                            tools:text="admin@classmate.edu" />
+                            tools:text="admin@gstu.ac.bd" />
 
                         <TextView
                             android:id="@+id/tvRoleBadge"

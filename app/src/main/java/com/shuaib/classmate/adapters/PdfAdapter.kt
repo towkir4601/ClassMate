@@ -45,7 +45,7 @@ class PdfAdapter(
             val isQb = pdf.year.isNotBlank() || pdf.examType.isNotBlank()
             tvSubject.text = if (isQb) "${pdf.subject} • ${pdf.examType} ${pdf.year}" else pdf.subject
             
-            tvUploadedBy.text = if (pdf.uploadedBy.isBlank()) "ClassMate Library" else "By ${pdf.uploadedBy}"
+            tvUploadedBy.text = if (pdf.uploadedBy.isBlank()) "GSTU Go Library" else "By ${pdf.uploadedBy}"
             tvFileMeta.text = listOf(
                 formatBytes(pdf.sizeBytes),
                 "uploaded ${formatTime(pdf)}"

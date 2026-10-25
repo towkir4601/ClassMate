@@ -15,6 +15,7 @@ import android.widget.TextView
 import android.widget.Toast
 import android.view.MotionEvent
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
@@ -26,7 +27,11 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.shuaib.classmate.R
 import com.shuaib.classmate.activities.AcademicCalendarActivity
 import com.shuaib.classmate.activities.BloodDonorDirectoryActivity
+import com.shuaib.classmate.activities.CampusFeedActivity
 import com.shuaib.classmate.activities.CampusFeedFeaturesActivity
+import com.shuaib.classmate.adapters.CampusFeedAdapter
+import com.shuaib.classmate.models.CampusFeedPost
+import com.shuaib.classmate.repository.CampusFeedRepository
 import com.shuaib.classmate.activities.CgpaCalculatorActivity
 import com.shuaib.classmate.activities.CoverPageActivity
 import com.shuaib.classmate.activities.CvMakerActivity
@@ -78,6 +83,11 @@ class HomeFragment : Fragment() {
     private val bloodRequestRepo = BloodRequestRepository()
     private val appNotificationRepo = AppNotificationRepository()
     private var notificationListener: com.google.firebase.firestore.ListenerRegistration? = null
+
+    // CampusFeed Beta role check & live adapter
+    private var isAdminUser = false
+    private var homeCampusFeedAdapter: CampusFeedAdapter? = null
+    private var homeFeedListener: com.google.firebase.firestore.ListenerRegistration? = null
 
     private var todayPeriods = listOf<Period>()
     private var activeExceptions = listOf<AcademicCalendarException>()
@@ -193,10 +203,19 @@ class HomeFragment : Fragment() {
 
     private fun setupHeader() {
         val user = auth.currentUser
-        val name = user?.displayName?.split(" ")?.firstOrNull() ?: "Classmate"
+        val name = user?.displayName?.split(" ")?.firstOrNull() ?: "Student"
         binding.tvUserGreeting.text = "Welcome, $name"
 
         val uid = user?.uid
+        val ctx = context
+        if (ctx != null) {
+            val cachedRole = UserRoleHelper.getEffectiveRole(ctx)
+            val cachedPerms = UserRoleHelper.getEffectivePermissions(ctx, cachedRole)
+            val r = cachedRole.trim().lowercase()
+            isAdminUser = (r == "superadmin" || r == "admin" || r == "teacher" || r == "club_admin" || r == "cr" || cachedPerms.values.any { it == true })
+            updateCampusFeedVisibility(isAdminUser, uid ?: "", name)
+        }
+
         if (uid != null) {
             firestore.collection("users").document(uid).get()
                 .addOnSuccessListener { doc ->
@@ -213,7 +232,39 @@ class HomeFragment : Fragment() {
                             .circleCrop()
                             .into(binding.ivUserAvatarHeader)
                     }
+
+                    // Check role: superadmin / other admin get the Live CampusFeed Beta Preview
+                    val safeCtx = context ?: return@addOnSuccessListener
+                    val docRole = doc.getString("role")
+                    val effectiveRole = UserRoleHelper.getEffectiveRole(safeCtx, docRole)
+                    val effectivePerms = UserRoleHelper.getEffectivePermissions(safeCtx, effectiveRole, doc.get("permissions"))
+                    val r = effectiveRole.trim().lowercase()
+                    isAdminUser = (r == "superadmin" || r == "admin" || r == "teacher" || r == "club_admin" || r == "cr" || effectivePerms.values.any { it == true })
+                    updateCampusFeedVisibility(isAdminUser, uid, fullName.ifBlank { name })
                 }
+                .addOnFailureListener {
+                    if (_binding == null) return@addOnFailureListener
+                    val safeCtx = context ?: return@addOnFailureListener
+                    val cachedRole = UserRoleHelper.getEffectiveRole(safeCtx)
+                    val cachedPerms = UserRoleHelper.getEffectivePermissions(safeCtx, cachedRole)
+                    val r = cachedRole.trim().lowercase()
+                    isAdminUser = (r == "superadmin" || r == "admin" || r == "teacher" || r == "club_admin" || r == "cr" || cachedPerms.values.any { it == true })
+                    updateCampusFeedVisibility(isAdminUser, uid, name)
+                }
+        }
+    }
+
+    private fun updateCampusFeedVisibility(isAdmin: Boolean, uid: String, name: String) {
+        if (_binding == null) return
+        if (isAdmin) {
+            binding.layoutCampusFeedLiveAdmin.isVisible = true
+            binding.layoutCampusFeedComingSoon.isVisible = false
+            if (uid.isNotEmpty()) {
+                setupHomeCampusFeed(uid, name)
+            }
+        } else {
+            binding.layoutCampusFeedLiveAdmin.isVisible = false
+            binding.layoutCampusFeedComingSoon.isVisible = true
         }
     }
 
@@ -283,12 +334,36 @@ class HomeFragment : Fragment() {
 
         binding.cardCampusFeed.setOnClickListener {
             val ctx = context ?: return@setOnClickListener
-            startActivity(Intent(ctx, CampusFeedFeaturesActivity::class.java))
+            if (isAdminUser) {
+                startActivity(Intent(ctx, CampusFeedActivity::class.java))
+            } else {
+                startActivity(Intent(ctx, CampusFeedFeaturesActivity::class.java))
+            }
         }
 
         binding.btnViewFullFeatures.setOnClickListener {
             val ctx = context ?: return@setOnClickListener
             startActivity(Intent(ctx, CampusFeedFeaturesActivity::class.java))
+        }
+
+        binding.btnViewFullFeaturesAdmin.setOnClickListener {
+            val ctx = context ?: return@setOnClickListener
+            startActivity(Intent(ctx, CampusFeedFeaturesActivity::class.java))
+        }
+
+        binding.bannerAdminFeatures.setOnClickListener {
+            val ctx = context ?: return@setOnClickListener
+            startActivity(Intent(ctx, CampusFeedFeaturesActivity::class.java))
+        }
+
+        binding.btnAdminFeaturesChip.setOnClickListener {
+            val ctx = context ?: return@setOnClickListener
+            startActivity(Intent(ctx, CampusFeedFeaturesActivity::class.java))
+        }
+
+        binding.btnCampusFeedShowMore.setOnClickListener {
+            val ctx = context ?: return@setOnClickListener
+            startActivity(Intent(ctx, CampusFeedActivity::class.java))
         }
     }
 
@@ -351,6 +426,15 @@ class HomeFragment : Fragment() {
         view.findViewById<View>(R.id.toolItemCalendar).setOnClickListener {
             dialog.dismiss()
             startActivity(Intent(ctx, AcademicCalendarActivity::class.java))
+        }
+
+        view.findViewById<View>(R.id.toolItemCampusFeed).setOnClickListener {
+            dialog.dismiss()
+            if (isAdminUser) {
+                startActivity(Intent(ctx, CampusFeedActivity::class.java))
+            } else {
+                startActivity(Intent(ctx, CampusFeedFeaturesActivity::class.java))
+            }
         }
 
         dialog.show()
@@ -1532,7 +1616,75 @@ class HomeFragment : Fragment() {
         holidayFlipperHandler.removeCallbacks(holidayFlipperRunnable)
     }
 
+    private fun setupHomeCampusFeed(uid: String, name: String) {
+        val ctx = context ?: return
+        val feedRepo = CampusFeedRepository()
+
+        if (homeCampusFeedAdapter == null) {
+            homeCampusFeedAdapter = CampusFeedAdapter(
+                currentUserId = uid,
+                currentUserName = name,
+                onLoveClick = { post, willLove ->
+                    feedRepo.toggleLove(post.id, uid, willLove)
+                },
+                onPollVote = { post, option ->
+                    feedRepo.votePoll(post.id, uid, option)
+                },
+                onPetitionSign = { post ->
+                    feedRepo.signPetition(post.id, uid)
+                },
+                onCommentClick = { _ ->
+                    startActivity(Intent(ctx, CampusFeedActivity::class.java))
+                },
+                onShareClick = { post ->
+                    feedRepo.recordShare(post.id)
+                    val uniqueLink = "https://gstu-go.web.app/feed?id=${post.id}"
+                    val shareText = "🗣️ GSTU CampusFeed — ${post.authorName}:\n\"${post.content}\"\n\n🔗 Open on GSTU Go:\n$uniqueLink"
+                    val sendIntent = Intent().apply {
+                        action = Intent.ACTION_SEND
+                        putExtra(Intent.EXTRA_TEXT, shareText)
+                        type = "text/plain"
+                    }
+                    startActivity(Intent.createChooser(sendIntent, "Share Campus Post"))
+                },
+                onReportClick = { post ->
+                    feedRepo.reportPost(post.id, uid, "Admin review")
+                    Toast.makeText(ctx, "Post reported for moderation.", Toast.LENGTH_SHORT).show()
+                }
+            )
+            binding.rvHomeCampusFeed.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(ctx)
+            binding.rvHomeCampusFeed.adapter = homeCampusFeedAdapter
+        }
+
+        homeFeedListener?.remove()
+        homeFeedListener = feedRepo.getForYouQuery().limit(5)
+            .addSnapshotListener { snapshot, error ->
+                if (_binding == null) return@addSnapshotListener
+                if (error != null) {
+                    android.util.Log.w("HomeFragment", "CampusFeed hot query error: ${error.message}, falling back to simple query")
+                    feedRepo.getSimpleFeedQuery().limit(5).get().addOnSuccessListener { fbSnap ->
+                        if (_binding == null) return@addOnSuccessListener
+                        val fallbackPosts = fbSnap.documents.mapNotNull { doc ->
+                            doc.toObject(CampusFeedPost::class.java)?.copy(id = doc.id)
+                        }.filter { !it.isQuarantined }.take(2)
+                        homeCampusFeedAdapter?.submitList(fallbackPosts)
+                        binding.layoutHomeFeedEmpty.isVisible = fallbackPosts.isEmpty()
+                    }
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val posts = snapshot.documents.mapNotNull { doc ->
+                        doc.toObject(CampusFeedPost::class.java)?.copy(id = doc.id)
+                    }.filter { !it.isQuarantined }.take(2)
+                    homeCampusFeedAdapter?.submitList(posts)
+                    binding.layoutHomeFeedEmpty.isVisible = posts.isEmpty()
+                }
+            }
+    }
+
     override fun onDestroyView() {
+        homeFeedListener?.remove()
+        homeFeedListener = null
         notificationListener?.remove()
         notificationListener = null
         countdownListener?.remove()

@@ -179,18 +179,18 @@ class ProfileFragment : Fragment() {
                         android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
                     )
                     appWidgetManager.requestPinAppWidget(myProvider, null, successCallback)
-                    Toast.makeText(context, "Requesting to pin ClassMate Widget...", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Requesting to pin GSTU Go Widget...", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(
                         context,
-                        "Launcher does not support automatic pinning. Long press home screen > Widgets > Find ClassMate Widget",
+                        "Launcher does not support automatic pinning. Long press home screen > Widgets > Find GSTU Go Widget",
                         Toast.LENGTH_LONG
                     ).show()
                 }
             } else {
                 Toast.makeText(
                     context,
-                    "Long press your home screen > Widgets > Find ClassMate Widget",
+                    "Long press your home screen > Widgets > Find GSTU Go Widget",
                     Toast.LENGTH_LONG
                 ).show()
             }
@@ -269,7 +269,7 @@ class ProfileFragment : Fragment() {
                 if (isAvailable) {
                     AppUpdateManager.showUpdateDialog(requireContext(), updateInfo, viewLifecycleOwner.lifecycleScope)
                 } else {
-                    Toast.makeText(requireContext(), "ClassMate is up to date!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "GSTU Go is up to date!", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 binding.pbCheckUpdates.visibility = View.GONE
@@ -421,7 +421,7 @@ class ProfileFragment : Fragment() {
     private fun showDndPermissionDialog() {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Silent Mode Access Required")
-            .setMessage("To allow ClassMate to shift your phone into complete Silent mode during class, Do Not Disturb access is required. If not granted, the app will fall back to Vibrate mode.")
+            .setMessage("To allow GSTU Go to shift your phone into complete Silent mode during class, Do Not Disturb access is required. If not granted, the app will fall back to Vibrate mode.")
             .setPositiveButton("Grant Access") { _, _ ->
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
                     val intent = Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)

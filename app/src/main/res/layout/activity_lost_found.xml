@@ -1,181 +1,195 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0F1318"
-    android:fitsSystemWindows="true"
-    android:orientation="vertical">
+    android:background="@color/cm_bg"
+    android:fitsSystemWindows="true">
 
-    <!-- Top App Bar (Matching Pic 1) -->
-    <LinearLayout
+    <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="14dp">
+        android:background="#FFFFFF"
+        app:elevation="0dp">
 
-        <ImageButton
-            android:id="@+id/btnBack"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Back"
-            android:src="@drawable/ic_arrow_back"
-            app:tint="#FFFFFF" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="14dp"
-            android:text="Lost &amp; Found Board"
-            android:textColor="#FFFFFF"
-            android:textSize="19sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <!-- Search Input Bar (Matching Pic 1) -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="6dp"
-        android:background="@drawable/bg_lost_found_input"
-        android:gravity="center_vertical"
-        android:paddingHorizontal="14dp">
-
-        <ImageView
-            android:layout_width="18dp"
-            android:layout_height="18dp"
-            android:src="@drawable/ic_search_modern"
-            app:tint="#94A3B8" />
-
-        <EditText
-            android:id="@+id/etSearchLostFound"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginStart="10dp"
-            android:layout_weight="1"
-            android:background="@null"
-            android:hint="Search lost cards, electronics, keys..."
-            android:imeOptions="actionSearch"
-            android:inputType="text"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#64748B"
-            android:textSize="14sp" />
-
-        <ImageButton
-            android:id="@+id/btnClearSearch"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_close"
-            android:visibility="gone"
-            app:tint="#94A3B8" />
-    </LinearLayout>
-
-    <!-- Filter Pills: All, Lost, Found (Matching Pic 1) -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="14dp"
-        android:orientation="horizontal">
-
-        <TextView
-            android:id="@+id/pillFilterAll"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_badge_accent_pill"
-            android:backgroundTint="#3B3864"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="7dp"
-            android:text="All"
-            android:textColor="#C7D2FE"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/pillFilterLost"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:background="@drawable/bg_lost_found_pill_unselected"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="7dp"
-            android:text="Lost"
-            android:textColor="#94A3B8"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/pillFilterFound"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:background="@drawable/bg_lost_found_pill_unselected"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="7dp"
-            android:text="Found"
-            android:textColor="#94A3B8"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <!-- Section Header: Reported Items (3) + Report Item (Matching Pic 1) -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="20dp"
-        android:layout_marginBottom="8dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <TextView
-            android:id="@+id/tvReportedItemsCount"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Reported Items (3)"
-            android:textColor="#FFFFFF"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-
+        <!-- Top App Bar -->
         <LinearLayout
-            android:id="@+id/btnReportItemHeader"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="6dp">
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp">
+
+            <ImageButton
+                android:id="@+id/btnBack"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Back"
+                android:src="@drawable/ic_arrow_back"
+                app:tint="@color/cm_text_primary" />
 
             <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="14dp"
+                android:layout_weight="1"
+                android:text="Lost &amp; Found Board"
+                android:textColor="@color/cm_text_primary"
+                android:textSize="19sp"
+                android:textStyle="bold" />
+
+            <!-- Optional quick report icon in header -->
+            <LinearLayout
+                android:id="@+id/btnReportItemHeader"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="⊕ "
-                android:textColor="#818CF8"
-                android:textSize="16sp"
+                android:background="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="4dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⊕ "
+                    android:textColor="#0284C7"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Report"
+                    android:textColor="#0284C7"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Search Input Bar -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="46dp"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="2dp"
+            android:background="@drawable/bg_lost_found_input"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="14dp">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_search_modern"
+                app:tint="#64748B" />
+
+            <EditText
+                android:id="@+id/etSearchLostFound"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:background="@null"
+                android:hint="Search lost cards, electronics, keys..."
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:textColor="@color/cm_text_primary"
+                android:textColorHint="#94A3B8"
+                android:textSize="14sp" />
+
+            <ImageButton
+                android:id="@+id/btnClearSearch"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_close"
+                android:visibility="gone"
+                app:tint="#64748B" />
+        </LinearLayout>
+
+        <!-- Filter Pills: All, Lost, Found -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="10dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/pillFilterAll"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_badge_accent_pill"
+                android:backgroundTint="#0284C7"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="7dp"
+                android:text="All"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/pillFilterLost"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Report Item"
-                android:textColor="#818CF8"
-                android:textSize="14sp"
+                android:layout_marginStart="10dp"
+                android:background="@drawable/bg_lost_found_pill_unselected"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="7dp"
+                android:text="Lost"
+                android:textColor="#475569"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/pillFilterFound"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:background="@drawable/bg_lost_found_pill_unselected"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="7dp"
+                android:text="Found"
+                android:textColor="#475569"
+                android:textSize="13sp"
                 android:textStyle="bold" />
         </LinearLayout>
-    </LinearLayout>
+
+        <!-- Section Header: Reported Items Count -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginBottom="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvReportedItemsCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Reported Items"
+                android:textColor="@color/cm_text_primary"
+                android:textSize="16.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#E2E8F0" />
+    </com.google.android.material.appbar.AppBarLayout>
 
     <!-- Swipe Refresh Layout & List -->
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipeRefreshLostFound"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <FrameLayout
             android:layout_width="match_parent"
@@ -186,7 +200,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
-                android:paddingBottom="24dp" />
+                android:paddingTop="6dp"
+                android:paddingBottom="88dp" />
 
             <!-- Empty State -->
             <LinearLayout
@@ -203,14 +218,14 @@
                     android:layout_width="56dp"
                     android:layout_height="56dp"
                     android:src="@drawable/ic_search_modern"
-                    app:tint="#64748B" />
+                    app:tint="#94A3B8" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     android:text="No Items Found"
-                    android:textColor="#FFFFFF"
+                    android:textColor="@color/cm_text_primary"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
@@ -219,9 +234,35 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:text="Be the first to report a lost or found item"
-                    android:textColor="#94A3B8"
+                    android:textColor="@color/cm_text_muted"
                     android:textSize="13sp" />
             </LinearLayout>
         </FrameLayout>
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-</LinearLayout>
+
+    <!-- Bottom Floating Action: "Report Item" (Like "Request Blood" in Blood Bank) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="16dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnFloatingReportItem"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="⊕ Report Lost / Found Item"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            app:backgroundTint="#0284C7"
+            app:cornerRadius="24dp"
+            app:elevation="4dp" />
+    </LinearLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

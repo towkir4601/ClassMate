@@ -26,7 +26,7 @@ data class NoticeComment(
                 commentId = doc.getString("commentId") ?: doc.id,
                 noticeId = doc.getString("noticeId").orEmpty(),
                 userId = doc.getString("userId").orEmpty(),
-                userName = doc.getString("userName").orEmpty().ifBlank { "Classmate" },
+                userName = doc.getString("userName").orEmpty().ifBlank { "Student" },
                 userAvatar = doc.getString("userAvatar").orEmpty(),
                 content = doc.getString("content").orEmpty(),
                 parentCommentId = doc.getString("parentCommentId")?.takeIf { it.isNotBlank() },

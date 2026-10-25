@@ -44,7 +44,7 @@ class NoticeReminderBottomSheet : BottomSheetDialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.btnClose.setOnClickListener { dismiss() }
-        binding.tvReminderSubtitle.text = noticeTitle.ifBlank { "Choose when ClassMate should alert you" }
+        binding.tvReminderSubtitle.text = noticeTitle.ifBlank { "Choose when GSTU Go should alert you" }
         NoticeReminderManager.getCurrentReminder(noticeId) { reminderAt ->
             if (_binding == null) return@getCurrentReminder
             if (reminderAt == null) renderReminderOptions(null) else renderExistingReminder(reminderAt)

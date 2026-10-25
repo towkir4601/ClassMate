@@ -48,7 +48,7 @@
             android:background="@drawable/bg_chat_input_modern"
             android:drawableStart="@drawable/ic_search_modern"
             android:drawablePadding="10dp"
-            android:hint="Search classmates..."
+            android:hint="Search students..."
             android:inputType="text"
             android:paddingHorizontal="14dp"
             android:textColor="@color/cm_text_primary"
@@ -171,7 +171,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:text="No classmates found"
+            android:text="No students found"
             android:textColor="@color/cm_text_secondary"
             android:textSize="15sp" />
     </LinearLayout>

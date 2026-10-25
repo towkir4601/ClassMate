@@ -9,7 +9,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="✨ CLASSMATE AI COMPOSER"
+        android:text="✨ GSTU GO AI COMPOSER"
         android:textColor="@color/cm_primary"
         android:textSize="12sp"
         android:textStyle="bold"
@@ -19,7 +19,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Paste messy draft details, dates, cancelled slots, or rough admin scribble. ClassMate AI will automatically structure, format, and prepare the notice fields for you."
+        android:text="Paste messy draft details, dates, cancelled slots, or rough admin scribble. GSTU Go AI will automatically structure, format, and prepare the notice fields for you."
         android:textColor="@color/cm_text_secondary"
         android:textSize="12.5sp"
         android:layout_marginBottom="16dp"

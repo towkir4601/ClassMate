@@ -89,7 +89,7 @@ class OfflinePdfViewerActivity : AppCompatActivity() {
         setupToolbar()
         setupFloatingPill()
 
-        val title = intent.getStringExtra(EXTRA_TITLE).orEmpty().ifBlank { "ClassMate PDF" }
+        val title = intent.getStringExtra(EXTRA_TITLE).orEmpty().ifBlank { "GSTU Go PDF" }
         binding.tvTitle.text = title
 
         val path = intent.getStringExtra(EXTRA_FILE_PATH).orEmpty()

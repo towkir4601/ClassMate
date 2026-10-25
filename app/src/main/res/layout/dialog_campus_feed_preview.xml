@@ -241,7 +241,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="Find classmates who love software development, robotics, design, writing, sports, or photography."
+                    android:text="Find students who love software development, robotics, design, writing, sports, or photography."
                     android:textColor="#475569"
                     android:textSize="12sp" />
             </LinearLayout>

@@ -148,8 +148,8 @@ class DmListFragment : Fragment() {
             showEmptyState(
                 when {
                     query.isNotBlank() -> "No contacts found matching \"$query\""
-                    !userLoadFinished -> "Loading classmates..."
-                    else -> "No classmates available"
+                    !userLoadFinished -> "Loading students..."
+                    else -> "No students available"
                 }
             )
         } else {

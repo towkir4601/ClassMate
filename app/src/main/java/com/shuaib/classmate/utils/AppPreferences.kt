@@ -184,5 +184,14 @@ class AppPreferences(context: Context) {
             .putStringSet("viewed_post_ids", current)
             .apply()
     }
+
+    fun getOrCreateGuestId(): String {
+        var gid = prefs.getString("campus_guest_id", "") ?: ""
+        if (gid.isBlank()) {
+            gid = "guest_" + java.util.UUID.randomUUID().toString().replace("-", "").take(10)
+            prefs.edit().putString("campus_guest_id", gid).apply()
+        }
+        return gid
+    }
 }
 

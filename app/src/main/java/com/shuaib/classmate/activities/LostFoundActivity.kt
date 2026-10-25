@@ -111,6 +111,10 @@ class LostFoundActivity : AppCompatActivity() {
             showReportDialog()
         }
 
+        binding.btnFloatingReportItem.setOnClickListener {
+            showReportDialog()
+        }
+
         adapter = LostFoundAdapter(
             items = emptyList(),
             currentUserId = currentUserId,
@@ -188,13 +192,14 @@ class LostFoundActivity : AppCompatActivity() {
 
         val selectedBg = R.drawable.bg_badge_accent_pill
         val unselectedBg = R.drawable.bg_lost_found_pill_unselected
-        val textMuted = Color.parseColor("#94A3B8")
-        val selectedText = Color.parseColor("#C7D2FE")
+        val textMuted = Color.parseColor("#475569")
+        val selectedText = Color.WHITE
+        val selectedTint = android.content.res.ColorStateList.valueOf(Color.parseColor("#0284C7"))
 
         // All pill
         binding.pillFilterAll.setBackgroundResource(if (filter == "all") selectedBg else unselectedBg)
         if (filter == "all") {
-            binding.pillFilterAll.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#3B3864"))
+            binding.pillFilterAll.backgroundTintList = selectedTint
             binding.pillFilterAll.setTextColor(selectedText)
         } else {
             binding.pillFilterAll.backgroundTintList = null
@@ -204,7 +209,7 @@ class LostFoundActivity : AppCompatActivity() {
         // Lost pill
         binding.pillFilterLost.setBackgroundResource(if (filter == "lost") selectedBg else unselectedBg)
         if (filter == "lost") {
-            binding.pillFilterLost.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#3B3864"))
+            binding.pillFilterLost.backgroundTintList = selectedTint
             binding.pillFilterLost.setTextColor(selectedText)
         } else {
             binding.pillFilterLost.backgroundTintList = null
@@ -214,7 +219,7 @@ class LostFoundActivity : AppCompatActivity() {
         // Found pill
         binding.pillFilterFound.setBackgroundResource(if (filter == "found") selectedBg else unselectedBg)
         if (filter == "found") {
-            binding.pillFilterFound.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#3B3864"))
+            binding.pillFilterFound.backgroundTintList = selectedTint
             binding.pillFilterFound.setTextColor(selectedText)
         } else {
             binding.pillFilterFound.backgroundTintList = null
@@ -321,18 +326,18 @@ class LostFoundActivity : AppCompatActivity() {
         fun updateTabs() {
             if (selectedType == "found") {
                 tabFound.setBackgroundResource(R.drawable.bg_badge_accent_pill)
-                tabFound.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#2E7D32"))
+                tabFound.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#16A34A"))
                 tabFound.setTextColor(Color.WHITE)
 
                 tabLost.background = null
-                tabLost.setTextColor(Color.parseColor("#94A3B8"))
+                tabLost.setTextColor(Color.parseColor("#64748B"))
             } else {
                 tabLost.setBackgroundResource(R.drawable.bg_badge_accent_pill)
-                tabLost.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#B91C1C"))
+                tabLost.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#DC2626"))
                 tabLost.setTextColor(Color.WHITE)
 
                 tabFound.background = null
-                tabFound.setTextColor(Color.parseColor("#94A3B8"))
+                tabFound.setTextColor(Color.parseColor("#64748B"))
             }
         }
 

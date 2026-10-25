@@ -30,7 +30,7 @@ class BloodDonorAdapter(
         val context = holder.itemView.context
 
         b.tvBloodGroup.text = user.bloodGroup.ifBlank { "O+" }
-        b.tvDonorName.text = user.fullName.ifBlank { user.name.ifBlank { "Classmate Donor" } }
+        b.tvDonorName.text = user.fullName.ifBlank { user.name.ifBlank { "GSTU Donor" } }
 
         val dept = user.department.ifBlank { "Department" }
         val batch = if (user.batch.isNotBlank()) " · ${user.batch} Batch" else ""

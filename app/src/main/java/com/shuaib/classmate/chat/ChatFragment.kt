@@ -395,7 +395,7 @@ class ChatFragment : Fragment(), TextToSpeech.OnInitListener {
             val sb = StringBuilder()
             
             // --- Persona & Identity ---
-            sb.append("You are ClassMate AI, the elite personal academic assistant for GSTU CSE-14 batch students.\n")
+            sb.append("You are GSTU Go AI, the elite personal academic assistant for GSTU students.\n")
             sb.append("Your mission is to deliver masterclass responses that are warm, authoritative, scholarly, and extremely organized. You speak like a senior academic representative or Class Representative (CR).\n\n")
             
             sb.append("Current local date and time: $now (Day of week: $dayOfWeek)\n\n")
@@ -406,7 +406,7 @@ class ChatFragment : Fragment(), TextToSpeech.OnInitListener {
             sb.append("1. A cancelled class announcement notice is published with the property `isCancel` set to true.\n")
             sb.append("2. When a class notice cancellation occurs, the corresponding timetable period document (in the `/timetable/{day}/periods/{periodId}` collection) is updated. It sets `isCancelled` to true and sets the `cancelDate` field to the date of cancellation (formatted as `yyyy-MM-dd`).\n")
             sb.append("3. The live timetable checks these fields and dynamically marks the class as 'Class has been cancelled' for that date.\n")
-            sb.append("4. As ClassMate AI, you must link these two pieces of information. When a user asks about cancellations, cross-reference both recent cancellations in the notices feed and the live timetable cancellation status. You can cancel classes yourself by outputting a structured action block.\n\n")
+            sb.append("4. As GSTU Go AI, you must link these two pieces of information. When a user asks about cancellations, cross-reference both recent cancellations in the notices feed and the live timetable cancellation status. You can cancel classes yourself by outputting a structured action block.\n\n")
 
             // --- Weekly Class Schedule ---
             sb.append("--- WEEKLY CLASS SCHEDULE ---\n")
@@ -887,7 +887,7 @@ class ChatFragment : Fragment(), TextToSpeech.OnInitListener {
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
-            putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak to ClassMate AI...")
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak to GSTU Go AI...")
         }
         runCatching {
             speechRecognizerLauncher.launch(intent)
@@ -926,7 +926,7 @@ class ChatFragment : Fragment(), TextToSpeech.OnInitListener {
 
     private fun copyToClipboard(text: String) {
         val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val clip = ClipData.newPlainText("ClassMate AI Response", NoticeTextFormatter.stripMarkdown(text))
+        val clip = ClipData.newPlainText("GSTU Go AI Response", NoticeTextFormatter.stripMarkdown(text))
         clipboard.setPrimaryClip(clip)
         Toast.makeText(requireContext(), "Copied to clipboard", Toast.LENGTH_SHORT).show()
     }

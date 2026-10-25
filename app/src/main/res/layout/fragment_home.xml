@@ -31,9 +31,8 @@
                     android:id="@+id/ivAppLogo"
                     android:layout_width="44dp"
                     android:layout_height="44dp"
-                    android:background="@drawable/bg_squircle_dark"
-                    android:padding="6dp"
-                    android:src="@drawable/ic_classmate_logo_mark" />
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/gstu_go_logo" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -671,242 +670,446 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- CampusFeed Preview Banner (Charming Sky-White Color, Centered below Quick Access) -->
+            <!-- CampusFeed Live Preview Card (Charming Sky-White Theme) -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardCampusFeed"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
-                app:cardBackgroundColor="#F0F9FF"
+                app:cardBackgroundColor="#F8FAFC"
                 app:cardCornerRadius="18dp"
-                app:cardElevation="1dp"
+                app:cardElevation="0dp"
                 app:strokeColor="#BAE6FD"
                 app:strokeWidth="1.5dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_horizontal"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:orientation="vertical">
 
-                    <!-- Coming Soon Tag (Charming Sky-Blue Pill) -->
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:background="@drawable/bg_badge_accent_pill"
-                        android:backgroundTint="#E0F2FE"
-                        android:paddingHorizontal="12dp"
-                        android:paddingVertical="5dp"
-                        android:text="🚀 Coming Soon... Features under active development"
-                        android:textColor="#0284C7"
-                        android:textSize="11sp"
-                        android:textStyle="bold" />
-
-                    <!-- Headline: CampusFeed (Centered) -->
+                    <!-- ========================================== -->
+                    <!-- 1. ADMIN / SUPERADMIN LIVE BETA VIEW       -->
+                    <!-- ========================================== -->
                     <LinearLayout
-                        android:layout_width="wrap_content"
+                        android:id="@+id/layoutCampusFeedLiveAdmin"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:gravity="center"
-                        android:orientation="horizontal">
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:visibility="gone"
+                        tools:visibility="visible">
 
-                        <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
-                            android:src="@drawable/ic_notice"
-                            app:tint="#0284C7" />
+                        <!-- Header Row: Icon + Headline + Beta Admin Badge -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:src="@drawable/ic_debate_voice"
+                                app:tint="#0284C7" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:layout_weight="1"
+                                android:text="CampusFeed"
+                                android:textColor="#0F172A"
+                                android:textSize="17sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="@drawable/bg_badge_accent_pill"
+                                android:backgroundTint="#FEF3C7"
+                                android:paddingHorizontal="9dp"
+                                android:paddingVertical="3dp"
+                                android:text="🧪 Beta · Admin Preview"
+                                android:textColor="#D97706"
+                                android:textSize="10.5sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/btnAdminFeaturesChip"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:background="@drawable/bg_badge_accent_pill"
+                                android:backgroundTint="#E0F2FE"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:foreground="?attr/selectableItemBackground"
+                                android:paddingHorizontal="8dp"
+                                android:paddingVertical="3dp"
+                                android:text="✨ Features"
+                                android:textColor="#0284C7"
+                                android:textSize="10.5sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:text="CampusFeed"
-                            android:textColor="#0F172A"
-                            android:textSize="18.5sp"
-                            android:textStyle="bold" />
+                            android:layout_marginTop="2dp"
+                            android:text="Real-time thoughts, polls &amp; student petitions across GSTU"
+                            android:textColor="#64748B"
+                            android:textSize="12sp" />
+
+                        <!-- Features Roadmap Banner inside Admin Preview -->
+                        <LinearLayout
+                            android:id="@+id/bannerAdminFeatures"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:background="@drawable/bg_badge_accent_pill"
+                            android:backgroundTint="#E0F2FE"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?attr/selectableItemBackground"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingHorizontal="12dp"
+                            android:paddingVertical="8dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="✨"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:layout_weight="1"
+                                android:text="Explore features: Opinions, Polls, Circles &amp; Petitions"
+                                android:textColor="#0284C7"
+                                android:textSize="11.5sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Roadmap ›"
+                                android:textColor="#0369A1"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <!-- Live Posts Preview Container (Shows top 1-2 posts) -->
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/rvHomeCampusFeed"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:nestedScrollingEnabled="false"
+                            tools:listitem="@layout/item_campus_feed_post" />
+
+                        <!-- Empty State for Feed (when no posts yet) -->
+                        <LinearLayout
+                            android:id="@+id/layoutHomeFeedEmpty"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:padding="14dp"
+                            android:background="@drawable/bg_dialog_input_dark"
+                            android:backgroundTint="#FFFFFF"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:visibility="gone">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Campus square is open! 🎓"
+                                android:textColor="#0F172A"
+                                android:textSize="13.5sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:gravity="center"
+                                android:text="Be the first to test dropping a thought, poll, or petition!"
+                                android:textColor="#64748B"
+                                android:textSize="11.5sp" />
+                        </LinearLayout>
+
+                        <!-- Dual Action Buttons: Open Live Feed & View Features Roadmap -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:orientation="vertical">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnCampusFeedShowMore"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp"
+                                android:backgroundTint="#0284C7"
+                                android:text="Open Live CampusFeed 💬"
+                                android:textAllCaps="false"
+                                android:textColor="#FFFFFF"
+                                android:textSize="13sp"
+                                android:textStyle="bold"
+                                app:cornerRadius="12dp" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnViewFullFeaturesAdmin"
+                                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                android:layout_width="match_parent"
+                                android:layout_height="42dp"
+                                android:layout_marginTop="8dp"
+                                android:text="View CampusFeed Features &amp; Roadmap 🚀"
+                                android:textAllCaps="false"
+                                android:textColor="#0284C7"
+                                android:textSize="12.5sp"
+                                android:textStyle="bold"
+                                app:cornerRadius="12dp"
+                                app:strokeColor="#BAE6FD"
+                                app:strokeWidth="1.2dp" />
+                        </LinearLayout>
+
+
                     </LinearLayout>
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="3dp"
-                        android:gravity="center"
-                        android:text="The all-in-one student community feed for GSTU"
-                        android:textColor="#475569"
-                        android:textSize="12.5sp" />
-
-                    <!-- Features List Preview (Clean Crisp White Surface) -->
+                    <!-- ========================================== -->
+                    <!-- 2. GENERAL USER COMING SOON BETA VIEW      -->
+                    <!-- ========================================== -->
                     <LinearLayout
+                        android:id="@+id/layoutCampusFeedComingSoon"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:background="@drawable/bg_dialog_input_dark"
-                        android:backgroundTint="#FFFFFF"
+                        android:gravity="center_horizontal"
                         android:orientation="vertical"
-                        android:padding="12dp">
+                        android:padding="16dp"
+                        android:visibility="visible">
 
-                        <!-- Feature 1: Share Opinions -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
+                        <!-- Beta Tag (Charming Sky-Blue Pill) -->
+                        <TextView
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
+                            android:background="@drawable/bg_badge_accent_pill"
+                            android:backgroundTint="#E0F2FE"
+                            android:paddingHorizontal="12dp"
+                            android:paddingVertical="5dp"
+                            android:text="🚀 Beta · Features under active development"
+                            android:textColor="#0284C7"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="💬"
-                                android:textSize="14sp" />
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="8dp"
-                                android:layout_weight="1"
-                                android:text="Post &amp; Share Opinions"
-                                android:textColor="#0F172A"
-                                android:textSize="12.5sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:background="@drawable/bg_badge_accent_pill"
-                                android:backgroundTint="#E0F2FE"
-                                android:paddingHorizontal="7dp"
-                                android:paddingVertical="2dp"
-                                android:text="Open Voice"
-                                android:textColor="#0284C7"
-                                android:textSize="10.5sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-
-                        <!-- Feature 2: Create Polls -->
+                        <!-- Headline: CampusFeed (Centered) -->
                         <LinearLayout
-                            android:layout_width="match_parent"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
-                            android:gravity="center_vertical"
+                            android:gravity="center"
                             android:orientation="horizontal">
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="📊"
-                                android:textSize="14sp" />
+                            <ImageView
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:src="@drawable/ic_notice"
+                                app:tint="#0284C7" />
 
                             <TextView
-                                android:layout_width="0dp"
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="8dp"
-                                android:layout_weight="1"
-                                android:text="Create Campus Polls"
+                                android:text="CampusFeed"
                                 android:textColor="#0F172A"
-                                android:textSize="12.5sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:background="@drawable/bg_badge_accent_pill"
-                                android:backgroundTint="#E0F2FE"
-                                android:paddingHorizontal="7dp"
-                                android:paddingVertical="2dp"
-                                android:text="Live Voting"
-                                android:textColor="#0284C7"
-                                android:textSize="10.5sp"
+                                android:textSize="18.5sp"
                                 android:textStyle="bold" />
                         </LinearLayout>
 
-                        <!-- Feature 3: Share Interests -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="3dp"
+                            android:gravity="center"
+                            android:text="The all-in-one student community feed for GSTU"
+                            android:textColor="#475569"
+                            android:textSize="12.5sp" />
+
+                        <!-- Features List Preview (Clean Crisp White Surface) -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
+                            android:layout_marginTop="12dp"
+                            android:background="@drawable/bg_dialog_input_dark"
+                            android:backgroundTint="#FFFFFF"
+                            android:orientation="vertical"
+                            android:padding="12dp">
 
-                            <TextView
-                                android:layout_width="wrap_content"
+                            <!-- Feature 1: Share Opinions -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:text="🎯"
-                                android:textSize="14sp" />
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
 
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="8dp"
-                                android:layout_weight="1"
-                                android:text="Share Interests &amp; Hobbies"
-                                android:textColor="#0F172A"
-                                android:textSize="12.5sp"
-                                android:textStyle="bold" />
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="💬"
+                                    android:textSize="14sp" />
 
-                            <TextView
-                                android:layout_width="wrap_content"
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:layout_weight="1"
+                                    android:text="Post &amp; Share Opinions"
+                                    android:textColor="#0F172A"
+                                    android:textSize="12.5sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:background="@drawable/bg_badge_accent_pill"
+                                    android:backgroundTint="#E0F2FE"
+                                    android:paddingHorizontal="7dp"
+                                    android:paddingVertical="2dp"
+                                    android:text="Open Voice"
+                                    android:textColor="#0284C7"
+                                    android:textSize="10.5sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <!-- Feature 2: Create Polls -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:background="@drawable/bg_badge_accent_pill"
-                                android:backgroundTint="#E0F2FE"
-                                android:paddingHorizontal="7dp"
-                                android:paddingVertical="2dp"
-                                android:text="Connect"
-                                android:textColor="#0284C7"
-                                android:textSize="10.5sp"
-                                android:textStyle="bold" />
+                                android:layout_marginTop="8dp"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="📊"
+                                    android:textSize="14sp" />
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:layout_weight="1"
+                                    android:text="Create Campus Polls"
+                                    android:textColor="#0F172A"
+                                    android:textSize="12.5sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:background="@drawable/bg_badge_accent_pill"
+                                    android:backgroundTint="#E0F2FE"
+                                    android:paddingHorizontal="7dp"
+                                    android:paddingVertical="2dp"
+                                    android:text="Live Voting"
+                                    android:textColor="#0284C7"
+                                    android:textSize="10.5sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <!-- Feature 3: Share Interests -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="🎯"
+                                    android:textSize="14sp" />
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:layout_weight="1"
+                                    android:text="Share Interests &amp; Hobbies"
+                                    android:textColor="#0F172A"
+                                    android:textSize="12.5sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:background="@drawable/bg_badge_accent_pill"
+                                    android:backgroundTint="#E0F2FE"
+                                    android:paddingHorizontal="7dp"
+                                    android:paddingVertical="2dp"
+                                    android:text="Connect"
+                                    android:textColor="#0284C7"
+                                    android:textSize="10.5sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <!-- Feature 4: Call for Petitions -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="📜"
+                                    android:textSize="14sp" />
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:layout_weight="1"
+                                    android:text="Call for Petitions &amp; Initiatives"
+                                    android:textColor="#0F172A"
+                                    android:textSize="12.5sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:background="@drawable/bg_badge_accent_pill"
+                                    android:backgroundTint="#E0F2FE"
+                                    android:paddingHorizontal="7dp"
+                                    android:paddingVertical="2dp"
+                                    android:text="Student Rights"
+                                    android:textColor="#0284C7"
+                                    android:textSize="10.5sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
                         </LinearLayout>
 
-                        <!-- Feature 4: Call for Petitions -->
-                        <LinearLayout
+                        <!-- Option: View Full Features Button -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnViewFullFeatures"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
+                            android:layout_height="46dp"
+                            android:layout_marginTop="14dp"
+                            android:backgroundTint="#0284C7"
+                            android:text="View Full Features >"
+                            android:textAllCaps="false"
+                            android:textColor="#FFFFFF"
+                            android:textSize="13.5sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="12dp" />
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="📜"
-                                android:textSize="14sp" />
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="8dp"
-                                android:layout_weight="1"
-                                android:text="Call for Petitions &amp; Initiatives"
-                                android:textColor="#0F172A"
-                                android:textSize="12.5sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:background="@drawable/bg_badge_accent_pill"
-                                android:backgroundTint="#E0F2FE"
-                                android:paddingHorizontal="7dp"
-                                android:paddingVertical="2dp"
-                                android:text="Student Rights"
-                                android:textColor="#0284C7"
-                                android:textSize="10.5sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
                     </LinearLayout>
-
-                    <!-- Option: View Full Features Button -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnViewFullFeatures"
-                        android:layout_width="match_parent"
-                        android:layout_height="46dp"
-                        android:layout_marginTop="14dp"
-                        android:backgroundTint="#0284C7"
-                        android:text="View Full Features >"
-                        android:textAllCaps="false"
-                        android:textColor="#FFFFFF"
-                        android:textSize="13.5sp"
-                        android:textStyle="bold"
-                        app:cornerRadius="12dp" />
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>

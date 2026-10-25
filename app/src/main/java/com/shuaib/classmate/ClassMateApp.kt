@@ -255,7 +255,7 @@ class ClassMateApp : Application() {
                 ChatNotificationHelper.CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "ClassMate chat message notifications"
+                description = "GSTU Go chat message notifications"
                 enableLights(true)
                 enableVibration(true)
                 setShowBadge(true)
@@ -264,7 +264,7 @@ class ClassMateApp : Application() {
             // General Notifications Channel
             val generalChannel = NotificationChannel(
                 "classmate_notifications",
-                "ClassMate Notifications",
+                "GSTU Go Notifications",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Notifications for class schedules, notices, and polls"
@@ -273,16 +273,16 @@ class ClassMateApp : Application() {
             // Notices Channel
             val noticesChannel = NotificationChannel(
                 "classmate_notices",
-                "ClassMate Notices",
+                "GSTU Go Notices",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Notifications for ClassMate updates"
+                description = "Notifications for GSTU Go updates"
             }
 
             // Cancellations Channel
             val cancellationsChannel = NotificationChannel(
                 "classmate_cancellations",
-                "ClassMate Cancellations",
+                "GSTU Go Cancellations",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Notifications for cancelled classes"

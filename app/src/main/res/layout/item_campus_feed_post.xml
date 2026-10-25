@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Seamless Sequential Timeline Post (Twitter / FB style) -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="?android:attr/selectableItemBackground">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp">
+
+        <!-- Left Column: User Avatar -->
+        <FrameLayout
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_marginEnd="10dp">
+
+            <ImageView
+                android:id="@+id/ivAuthorAvatar"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:background="@drawable/bg_circle_avatar"
+                android:scaleType="centerCrop"
+                android:contentDescription="User Avatar"
+                tools:src="@drawable/ic_person" />
+
+            <TextView
+                android:id="@+id/tvAvatarFallback"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:gravity="center"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                tools:text="T" />
+        </FrameLayout>
+
+        <!-- Right Column: Header, Content, Drops, and Action Bar -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <!-- Header Row: Name, Role Badge, Handle, Dot, Time, Options -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvAuthorName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textColor="@color/cm_sky_text_primary"
+                    android:textSize="14.5sp"
+                    android:textStyle="bold"
+                    tools:text="Towkir Ahmed" />
+
+                <!-- Role / Batch Badge -->
+                <TextView
+                    android:id="@+id/tvAuthorRoleBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:paddingHorizontal="7dp"
+                    android:paddingVertical="1dp"
+                    android:background="@drawable/bg_campus_sky_role_badge"
+                    android:textColor="@color/cm_sky_primary"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:visibility="visible"
+                    tools:text="CR" />
+
+                <TextView
+                    android:id="@+id/tvAuthorHandle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textColor="@color/cm_sky_text_muted"
+                    android:textSize="12sp"
+                    android:visibility="gone"
+                    tools:text="@towkir_cse" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="4dp"
+                    android:text="·"
+                    android:textColor="@color/cm_sky_text_muted"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tvTimestamp"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textColor="@color/cm_sky_text_muted"
+                    android:textSize="12sp"
+                    tools:text="2h" />
+
+                <ImageView
+                    android:id="@+id/btnPostOptions"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:padding="4dp"
+                    android:src="@drawable/ic_more_vert"
+                    app:tint="@color/cm_sky_text_muted"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Post Options" />
+            </LinearLayout>
+
+            <!-- Post Body Text -->
+            <TextView
+                android:id="@+id/tvPostContent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:textColor="@color/cm_sky_text_primary"
+                android:textSize="14.5sp"
+                android:lineSpacingMultiplier="1.25"
+                android:autoLink="web|email"
+                android:textColorLink="@color/cm_sky_primary"
+                tools:text="Should the departmental lab hours be extended till 8:00 PM before final exams? Cast your vote below! #GSTU #CSE" />
+
+            <!-- Optional Image Attachment -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardPostImage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <ImageView
+                    android:id="@+id/ivPostImage"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:scaleType="centerCrop"
+                    android:contentDescription="Post Attachment" />
+            </androidx.cardview.widget.CardView>
+
+            <!-- Embedded Drop: 1. INTERACTIVE POLL -->
+            <LinearLayout
+                android:id="@+id/layoutPollDrop"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <!-- Container for dynamic poll option rows -->
+                <LinearLayout
+                    android:id="@+id/containerPollOptions"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
+                <TextView
+                    android:id="@+id/tvPollMeta"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:textColor="@color/cm_sky_text_muted"
+                    android:textSize="11.5sp"
+                    tools:text="148 votes · Open for 2 days" />
+            </LinearLayout>
+
+            <!-- Embedded Drop: 2. COMMUNITY STANDARD CAMPUS PETITION -->
+            <LinearLayout
+                android:id="@+id/layoutPetitionDrop"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:padding="12dp"
+                android:background="@drawable/bg_campus_sky_role_badge"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="OFFICIAL STUDENT PETITION"
+                        android:textColor="@color/cm_sky_primary"
+                        android:textSize="10.5sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.08" />
+
+                    <TextView
+                        android:id="@+id/tvPetitionSignaturesCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/cm_sky_primary"
+                        android:textSize="11.5sp"
+                        android:textStyle="bold"
+                        tools:text="342 of 500 (68%)" />
+                </LinearLayout>
+
+                <!-- Addressed To Authority -->
+                <TextView
+                    android:id="@+id/tvPetitionAddressedTo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textColor="@color/cm_sky_text_muted"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:visibility="gone"
+                    tools:visibility="visible"
+                    tools:text="Target: Vice-Chancellor &amp; Library Committee" />
+
+                <TextView
+                    android:id="@+id/tvPetitionTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:textColor="@color/cm_sky_text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    tools:text="Request to extend Library AC Operating Hours to 24/7 during Finals" />
+
+                <!-- Progress Bar -->
+                <ProgressBar
+                    android:id="@+id/pbPetitionGoal"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="6dp"
+                    android:layout_marginTop="8dp"
+                    android:max="100"
+                    android:progress="68"
+                    android:progressTint="@color/cm_sky_primary" />
+
+                <!-- Sign Action Button -->
+                <Button
+                    android:id="@+id/btnSignPetition"
+                    android:layout_width="wrap_content"
+                    android:layout_height="32dp"
+                    android:layout_marginTop="8dp"
+                    android:paddingHorizontal="14dp"
+                    android:background="@drawable/bg_campus_sky_fab"
+                    android:text="✍️ Sign Petition"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11.5sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Bottom Action Bar (Reply, Share, Love, Views) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <!-- Reply / Comments -->
+                <LinearLayout
+                    android:id="@+id/btnActionComment"
+                    android:layout_width="0dp"
+                    android:layout_height="34dp"
+                    android:layout_weight="1"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="?android:attr/selectableItemBackground">
+
+                    <ImageView
+                        android:id="@+id/ivCommentIcon"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_comment_outline"
+                        app:tint="@color/cm_sky_text_muted" />
+
+                    <TextView
+                        android:id="@+id/tvCommentCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:textColor="@color/cm_sky_text_muted"
+                        android:textSize="12.5sp"
+                        tools:text="14" />
+                </LinearLayout>
+
+                <!-- Share / Repost -->
+                <LinearLayout
+                    android:id="@+id/btnActionShare"
+                    android:layout_width="0dp"
+                    android:layout_height="34dp"
+                    android:layout_weight="1"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="?android:attr/selectableItemBackground">
+
+                    <ImageView
+                        android:id="@+id/ivShareIcon"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_instagram_share"
+                        app:tint="@color/cm_sky_text_muted" />
+
+                    <TextView
+                        android:id="@+id/tvShareCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:textColor="@color/cm_sky_text_muted"
+                        android:textSize="12.5sp"
+                        tools:text="8" />
+                </LinearLayout>
+
+                <!-- Love / Like React -->
+                <LinearLayout
+                    android:id="@+id/btnActionLove"
+                    android:layout_width="0dp"
+                    android:layout_height="34dp"
+                    android:layout_weight="1"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="?android:attr/selectableItemBackground">
+
+                    <ImageView
+                        android:id="@+id/ivLoveIcon"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_heart_outline"
+                        app:tint="@color/cm_sky_text_muted" />
+
+                    <TextView
+                        android:id="@+id/tvLoveCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:textColor="@color/cm_sky_text_muted"
+                        android:textSize="12.5sp"
+                        tools:text="42" />
+                </LinearLayout>
+
+                <!-- Views / Impressions -->
+                <LinearLayout
+                    android:id="@+id/btnActionViews"
+                    android:layout_width="0dp"
+                    android:layout_height="34dp"
+                    android:layout_weight="1"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <ImageView
+                        android:id="@+id/ivViewIcon"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_analytics_bars"
+                        app:tint="#1D9BF0" />
+
+                    <TextView
+                        android:id="@+id/tvViewCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:textColor="#1D9BF0"
+                        android:textSize="12.5sp"
+                        tools:text="1.2k" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- 1px Subtle Sequential Post Divider (Twitter/Threads style) -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#EFF3F4" />
+
+</LinearLayout>

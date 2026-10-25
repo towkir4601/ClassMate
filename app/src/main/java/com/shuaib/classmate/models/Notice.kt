@@ -65,7 +65,7 @@ data class Notice(
         get() = subject.ifBlank { "General" }
 
     val displayAuthor: String
-        get() = createdByName.ifBlank { postedBy.ifBlank { "ClassMate" } }
+        get() = createdByName.ifBlank { postedBy.ifBlank { "GSTU Go" } }
 
     val content: String
         get() = body
