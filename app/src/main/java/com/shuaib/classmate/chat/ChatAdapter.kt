@@ -202,12 +202,12 @@ class ChatAdapter(
             forwarded.isVisible = message.forwardedFrom != null
             forwardDivider?.isVisible = message.forwardedFrom != null
             forwarded.text = message.forwardedFrom?.let { itemView.context.getString(R.string.forwarded_from_format, it) } ?: ""
-            replyPreview.isVisible = message.replyToId != null
+            replyPreview.isVisible = !message.isDeleted && message.replyToId != null
             replySender.text = message.replyToSender.orEmpty()
             replyText.text = message.replyToText.orEmpty()
             val noticeForward = NoticeForwardManager.decode(message.text)
-            imageFrame.isVisible = message.imageUrl != null && noticeForward == null
-            message.imageUrl?.takeIf { noticeForward == null }?.let {
+            imageFrame.isVisible = !message.isDeleted && message.imageUrl != null && noticeForward == null
+            message.imageUrl?.takeIf { !message.isDeleted && noticeForward == null }?.let {
                 imageProgress.isVisible = true
                 Glide.with(itemView)
                     .load(it)
@@ -236,7 +236,7 @@ class ChatAdapter(
             }
 
             // Voice note binding
-            val hasAudio = !message.audioUrl.isNullOrBlank()
+            val hasAudio = !message.isDeleted && !message.audioUrl.isNullOrBlank()
             audioContainer?.isVisible = hasAudio
             if (hasAudio) {
                 val isCurrentlyPlaying = playingAudioUrl == message.audioUrl && activeMediaPlayer?.isPlaying == true
@@ -250,7 +250,7 @@ class ChatAdapter(
             }
 
             // Contact binding
-            val hasContact = !message.contactName.isNullOrBlank()
+            val hasContact = !message.isDeleted && !message.contactName.isNullOrBlank()
             contactContainer?.isVisible = hasContact
             if (hasContact) {
                 tvContactName?.text = message.contactName
@@ -269,7 +269,7 @@ class ChatAdapter(
             }
 
             // Poll binding
-            val hasPoll = !message.pollQuestion.isNullOrBlank()
+            val hasPoll = !message.isDeleted && !message.pollQuestion.isNullOrBlank()
             pollContainer?.isVisible = hasPoll
             if (hasPoll) {
                 tvPollQuestion?.text = message.pollQuestion
@@ -330,7 +330,16 @@ class ChatAdapter(
 
             val isCustomCard = hasAudio || hasContact || hasPoll
             if (message.isDeleted) {
+                if (!message.audioUrl.isNullOrBlank() && playingAudioUrl == message.audioUrl) {
+                    stopAudioPlayback()
+                }
+                audioContainer?.isVisible = false
+                imageFrame.isVisible = false
+                contactContainer?.isVisible = false
+                pollContainer?.isVisible = false
+                replyPreview.isVisible = false
                 noticeForwardContainer.isVisible = false
+                reactionsBar.isVisible = false
                 messageText.isVisible = true
                 messageText.setText(R.string.message_deleted)
                 messageText.setTextColor(ContextCompat.getColor(itemView.context, R.color.wa_text_secondary))

@@ -341,7 +341,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:text="Admins will review and approve your post to keep the board spam-free."
+            android:text="Your report goes live instantly and will automatically expire and be deleted after 15 days."
             android:textColor="@color/cm_text_secondary"
             android:textSize="11.5sp" />
     </LinearLayout>

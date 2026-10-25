@@ -272,7 +272,7 @@ class CampusFeedActivity : AppCompatActivity() {
         binding.layoutEmptyFeed.isVisible = false
 
         // Load immediate local cache so UI is instantaneous
-        val immediatePosts = repo.getLocalPosts(tab)
+        val immediatePosts = repo.getLocalPosts(tab, currentUserDepartment, currentUserBatch, currentUserId)
         if (immediatePosts.isNotEmpty()) {
             adapter.submitList(immediatePosts)
             binding.layoutEmptyFeed.isVisible = false
@@ -296,14 +296,14 @@ class CampusFeedActivity : AppCompatActivity() {
                     val remotePosts = fbSnap.documents.mapNotNull { doc ->
                         doc.toObject(CampusFeedPost::class.java)?.copy(id = doc.id)
                     }
-                    val merged = repo.mergeWithLocal(remotePosts, tab)
+                    val merged = repo.mergeWithLocal(remotePosts, tab, currentUserDepartment, currentUserBatch, currentUserId)
                     adapter.submitList(merged)
                     binding.layoutEmptyFeed.isVisible = merged.isEmpty()
                 }.addOnFailureListener {
                     // Local fallback
                     binding.pbFeedLoading.isVisible = false
                     binding.swipeRefreshFeed.isRefreshing = false
-                    val fallback = repo.getLocalPosts(tab)
+                    val fallback = repo.getLocalPosts(tab, currentUserDepartment, currentUserBatch, currentUserId)
                     adapter.submitList(fallback)
                     binding.layoutEmptyFeed.isVisible = fallback.isEmpty()
                 }
@@ -315,7 +315,7 @@ class CampusFeedActivity : AppCompatActivity() {
                     doc.toObject(CampusFeedPost::class.java)?.copy(id = doc.id)
                 }
 
-                val merged = repo.mergeWithLocal(remotePosts, tab)
+                val merged = repo.mergeWithLocal(remotePosts, tab, currentUserDepartment, currentUserBatch, currentUserId)
                 adapter.submitList(merged)
                 binding.layoutEmptyFeed.isVisible = merged.isEmpty()
 
@@ -553,7 +553,7 @@ class CampusFeedActivity : AppCompatActivity() {
                         Toast.makeText(this@CampusFeedActivity, "Post published to CampusFeed!", Toast.LENGTH_SHORT).show()
                         dialog.dismiss()
                         // Immediate reload of the feed to reveal the new post
-                        val updated = repo.getLocalPosts(selectedTab)
+                        val updated = repo.getLocalPosts(selectedTab, currentUserDepartment, currentUserBatch, currentUserId)
                         adapter.submitList(updated) {
                             binding.rvCampusFeed.scrollToPosition(0)
                         }

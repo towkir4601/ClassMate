@@ -213,6 +213,76 @@ class CampusFeedRepository {
         }
 
         /**
+         * Dynamic Campus Recommendation Algorithm:
+         * Calculates live score balancing:
+         * 1. Gravity time-decay (hours elapsed)
+         * 2. High-value engagement (petitions, comments, polls, shares, likes, views)
+         * 3. Personalized affinity boost (user's department and batch)
+         * 4. Official campus authority boost (superadmin, admin, teacher)
+         * 5. Moderation/report penalties and pinned post handling
+         */
+        fun calculateRecommendationScore(
+            post: CampusFeedPost,
+            userDepartment: String = "",
+            userBatch: String = "",
+            userId: String = "",
+            nowMillis: Long = System.currentTimeMillis()
+        ): Double {
+            if (post.isQuarantined) return -1000.0
+
+            val createdAtMillis = post.timestamp?.toDate()?.time ?: (nowMillis - 60_000L)
+            val hoursElapsed = max(0.0, (nowMillis - createdAtMillis) / (1000.0 * 60.0 * 60.0))
+
+            // 1. Raw Engagement Score with specialized campus weightings
+            val petitionScore = post.petitionSigners.size * 5.0
+            val commentScore = post.commentCount * 4.0
+            val shareScore = post.shareCount * 3.0
+            val pollScore = post.pollVotes.size * 2.5
+            val loveScore = post.loveCount * 1.5
+            val viewScore = post.viewCount * 0.04
+            val reportPenalty = post.reportCount * 20.0
+
+            val rawEngagement = (petitionScore + commentScore + shareScore + pollScore + loveScore + viewScore) - reportPenalty
+            val baseEngagement = max(1.0, 1.0 + rawEngagement)
+
+            // 2. Hacker News / Reddit Gravity Time Decay
+            // Fresh posts stay high; older posts gracefully decay over time
+            val gravityDecay = (hoursElapsed + 2.0).pow(1.35)
+            var score = baseEngagement / gravityDecay
+
+            // 3. Department Affinity Multiplier (Students care most about their own dept discussions)
+            if (userDepartment.isNotBlank() && post.authorDepartment.isNotBlank()) {
+                if (post.authorDepartment.equals(userDepartment, ignoreCase = true)) {
+                    score *= 1.35
+                }
+            }
+
+            // 4. Batch Affinity Multiplier (Classmates from the same batch)
+            if (userBatch.isNotBlank() && post.authorBatch.isNotBlank()) {
+                if (post.authorBatch.equals(userBatch, ignoreCase = true)) {
+                    score *= 1.20
+                }
+            }
+
+            // 5. Official Authority Multiplier (Super Admin, Admin, Faculty)
+            val role = post.authorRole.trim().lowercase()
+            when {
+                role == "superadmin" || role == "admin" || role == "university_admin" -> score *= 1.40
+                role == "teacher" -> score *= 1.30
+                role == "cr" || role == "club_admin" -> score *= 1.15
+            }
+
+            // 6. Type-specific interest boost (Active petitions and unexpired polls encourage student voice)
+            if (post.isPetition && post.petitionSignaturesCount < post.petitionTargetGoal) {
+                score *= 1.15
+            } else if (post.isPoll && !post.isPollExpired) {
+                score *= 1.10
+            }
+
+            return max(0.0, score)
+        }
+
+        /**
          * Twitter/X-inspired Algorithmic Engagement Scoring with Logarithmic Time Decay.
          */
         fun calculateHotScore(
@@ -228,16 +298,16 @@ class CampusFeedRepository {
         ): Double {
             val hoursElapsed = max(0.0, (nowMillis - createdAtMillis) / (1000.0 * 60.0 * 60.0))
 
-            val weightedEngagement = (loveCount * 1.0) +
+            val weightedEngagement = (loveCount * 1.5) +
                     (commentCount * 4.0) +
                     (shareCount * 3.0) +
                     (signaturesCount * 5.0) +
-                    (pollVotesCount * 2.0) +
-                    (viewCount * 0.05) -
-                    (reportCount * 25.0)
+                    (pollVotesCount * 2.5) +
+                    (viewCount * 0.04) -
+                    (reportCount * 20.0)
 
-            val denominator = (hoursElapsed + 2.0).pow(1.5)
-            val score = weightedEngagement / denominator
+            val denominator = (hoursElapsed + 2.0).pow(1.35)
+            val score = max(1.0, 1.0 + weightedEngagement) / denominator
             return max(0.0, score)
         }
     }
@@ -250,15 +320,12 @@ class CampusFeedRepository {
     fun createPost(post: CampusFeedPost): Task<Void> {
         val docRef = feedCollection.document()
         val now = Timestamp.now()
-        val initialScore = calculateHotScore(
-            loveCount = 0,
-            commentCount = 0,
-            shareCount = 0,
-            signaturesCount = post.petitionSigners.size,
-            pollVotesCount = post.pollVotes.size,
-            viewCount = 0,
-            reportCount = 0,
-            createdAtMillis = now.toDate().time
+        val initialScore = calculateRecommendationScore(
+            post = post,
+            userDepartment = post.authorDepartment,
+            userBatch = post.authorBatch,
+            userId = post.authorId,
+            nowMillis = now.toDate().time
         )
 
         val preparedPost = post.copy(
@@ -296,8 +363,8 @@ class CampusFeedRepository {
     fun getForYouQuery(): Query {
         return feedCollection
             .whereEqualTo("isQuarantined", false)
-            .orderBy("hotScore", Query.Direction.DESCENDING)
-            .limit(30)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .limit(50)
     }
 
     /**
@@ -307,7 +374,7 @@ class CampusFeedRepository {
         return feedCollection
             .whereEqualTo("isQuarantined", false)
             .orderBy("timestamp", Query.Direction.DESCENDING)
-            .limit(30)
+            .limit(50)
     }
 
     /**
@@ -316,38 +383,62 @@ class CampusFeedRepository {
     fun getSimpleFeedQuery(): Query {
         return feedCollection
             .orderBy("timestamp", Query.Direction.DESCENDING)
-            .limit(30)
+            .limit(50)
     }
 
     /**
      * Retrieves local cached posts for a specific tab (0: For You, 1: Latest).
      */
-    fun getLocalPosts(tab: Int): List<CampusFeedPost> {
+    fun getLocalPosts(
+        tab: Int,
+        userDepartment: String = "",
+        userBatch: String = "",
+        userId: String = ""
+    ): List<CampusFeedPost> {
         val all = synchronized(localPosts) {
             (localPosts + sampleDrops).distinctBy { it.id }
         }
-        return sortPosts(all, tab)
+        return sortPosts(all, tab, userDepartment, userBatch, userId)
     }
 
     /**
      * Merges remote Firestore posts with locally published posts.
      */
-    fun mergeWithLocal(remotePosts: List<CampusFeedPost>, tab: Int): List<CampusFeedPost> {
+    fun mergeWithLocal(
+        remotePosts: List<CampusFeedPost>,
+        tab: Int,
+        userDepartment: String = "",
+        userBatch: String = "",
+        userId: String = ""
+    ): List<CampusFeedPost> {
         val combined = synchronized(localPosts) {
             val localOnly = localPosts.filter { local -> remotePosts.none { it.id == local.id } }
             (localOnly + remotePosts + sampleDrops).distinctBy { it.id }
         }
-        return sortPosts(combined, tab)
+        return sortPosts(combined, tab, userDepartment, userBatch, userId)
     }
 
-    private fun sortPosts(posts: List<CampusFeedPost>, tab: Int): List<CampusFeedPost> {
+    fun sortPosts(
+        posts: List<CampusFeedPost>,
+        tab: Int,
+        userDepartment: String = "",
+        userBatch: String = "",
+        userId: String = ""
+    ): List<CampusFeedPost> {
         val active = posts.filter { !it.isQuarantined }
         return if (tab == TAB_FOR_YOU) {
-            // For You: Algorithmic hotScore descending
-            active.sortedByDescending { it.hotScore }
+            // For You: Pinned posts first, then dynamically ranked by recommendation score descending
+            active.sortedWith(
+                compareByDescending<CampusFeedPost> { it.isPinned }
+                    .thenByDescending { calculateRecommendationScore(it, userDepartment, userBatch, userId) }
+                    .thenByDescending { it.timestamp?.toDate()?.time ?: 0L }
+            )
         } else {
-            // Latest: Chronological newest first
-            active.sortedByDescending { it.timestamp?.toDate()?.time ?: 0L }
+            // Latest: Chronological newest first, pinned posts prioritized
+            active.sortedWith(
+                compareByDescending<CampusFeedPost> { it.isPinned }
+                    .thenByDescending { it.timestamp?.toDate()?.time ?: 0L }
+            )
         }
     }
 

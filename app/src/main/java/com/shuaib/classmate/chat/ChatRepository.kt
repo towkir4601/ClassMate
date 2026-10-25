@@ -642,12 +642,18 @@ object ChatRepository {
     }
 
     fun deleteMessage(messageId: String, roomId: String, isAdmin: Boolean) {
+        val updates = mutableMapOf<String, Any?>(
+            "isDeleted" to true,
+            "text" to "",
+            "imageUrl" to null,
+            "audioUrl" to null,
+            "contactName" to null,
+            "contactPhone" to null,
+            "pollQuestion" to null,
+            "pollOptions" to null
+        )
         firestore.collection("chat_rooms").document(roomId).collection("messages").document(messageId)
-            .update(
-                "isDeleted", true,
-                "text", "",
-                "imageUrl", ""
-            ).addOnSuccessListener {
+            .update(updates).addOnSuccessListener {
                 firestore.collection("chat_rooms").document(roomId).collection("messages")
                     .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
                     .limit(1)

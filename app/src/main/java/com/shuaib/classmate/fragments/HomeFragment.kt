@@ -365,7 +365,11 @@ class HomeFragment : Fragment() {
 
         binding.btnCampusFeedShowMore.setOnClickListener {
             val ctx = context ?: return@setOnClickListener
-            startActivity(Intent(ctx, CampusFeedActivity::class.java))
+            if (isAdminUser) {
+                startActivity(Intent(ctx, CampusFeedActivity::class.java))
+            } else {
+                startActivity(Intent(ctx, CampusFeedFeaturesActivity::class.java))
+            }
         }
     }
 
@@ -1700,6 +1704,9 @@ class HomeFragment : Fragment() {
     private fun setupHomeCampusFeed(uid: String, name: String) {
         val ctx = context ?: return
         val feedRepo = CampusFeedRepository()
+        val prefs = AppPreferences(ctx)
+        val userDept = prefs.getUserDepartment()
+        val userBatch = prefs.getUserBatch()
 
         if (homeCampusFeedAdapter == null) {
             homeCampusFeedAdapter = CampusFeedAdapter(
@@ -1715,7 +1722,11 @@ class HomeFragment : Fragment() {
                     feedRepo.signPetition(post.id, uid)
                 },
                 onCommentClick = { _ ->
-                    startActivity(Intent(ctx, CampusFeedActivity::class.java))
+                    if (isAdminUser) {
+                        startActivity(Intent(ctx, CampusFeedActivity::class.java))
+                    } else {
+                        startActivity(Intent(ctx, CampusFeedFeaturesActivity::class.java))
+                    }
                 },
                 onShareClick = { post ->
                     feedRepo.recordShare(post.id)
@@ -1738,27 +1749,29 @@ class HomeFragment : Fragment() {
         }
 
         homeFeedListener?.remove()
-        homeFeedListener = feedRepo.getForYouQuery().limit(5)
+        homeFeedListener = feedRepo.getForYouQuery().limit(10)
             .addSnapshotListener { snapshot, error ->
                 if (_binding == null) return@addSnapshotListener
                 if (error != null) {
                     android.util.Log.w("HomeFragment", "CampusFeed hot query error: ${error.message}, falling back to simple query")
-                    feedRepo.getSimpleFeedQuery().limit(5).get().addOnSuccessListener { fbSnap ->
+                    feedRepo.getSimpleFeedQuery().limit(10).get().addOnSuccessListener { fbSnap ->
                         if (_binding == null) return@addOnSuccessListener
                         val fallbackPosts = fbSnap.documents.mapNotNull { doc ->
                             doc.toObject(CampusFeedPost::class.java)?.copy(id = doc.id)
-                        }.filter { !it.isQuarantined }.take(2)
-                        homeCampusFeedAdapter?.submitList(fallbackPosts)
-                        binding.layoutHomeFeedEmpty.isVisible = fallbackPosts.isEmpty()
+                        }
+                        val sorted = feedRepo.sortPosts(fallbackPosts, CampusFeedRepository.TAB_FOR_YOU, userDept, userBatch, uid)
+                        homeCampusFeedAdapter?.submitList(sorted.take(3))
+                        binding.layoutHomeFeedEmpty.isVisible = sorted.isEmpty()
                     }
                     return@addSnapshotListener
                 }
                 if (snapshot != null) {
                     val posts = snapshot.documents.mapNotNull { doc ->
                         doc.toObject(CampusFeedPost::class.java)?.copy(id = doc.id)
-                    }.filter { !it.isQuarantined }.take(2)
-                    homeCampusFeedAdapter?.submitList(posts)
-                    binding.layoutHomeFeedEmpty.isVisible = posts.isEmpty()
+                    }
+                    val sorted = feedRepo.sortPosts(posts, CampusFeedRepository.TAB_FOR_YOU, userDept, userBatch, uid)
+                    homeCampusFeedAdapter?.submitList(sorted.take(3))
+                    binding.layoutHomeFeedEmpty.isVisible = sorted.isEmpty()
                 }
             }
     }

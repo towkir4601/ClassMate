@@ -1506,23 +1506,68 @@ service cloud.firestore {
 
     // ── CampusFeed & Community Square ─────────────────────────────────────────
     match /campus_feed/{postId} {
-      allow read, write: if true;
+      // 1. Read: Any logged-in user can read feed posts
+      allow read: if isLoggedIn();
 
-      match /{subcollection=**} {
-        allow read, write: if true;
+      // 2. Create: Restricted during Closed Beta to privileged roles (Admin, Teacher, Club Admin, CR)
+      allow create: if isLoggedIn() &&
+        (isAdmin() || getRole() in ['teacher', 'club_admin', 'cr']) &&
+        request.resource.data.authorId == request.auth.uid;
+
+      // 3. Update:
+      //    - Post author or admin can update post content (authorId immutable)
+      //    - Any logged-in user can interact (reactions/loves, poll votes, petition signatures, views, shares, reports, and commentCount)
+      allow update: if isLoggedIn() && (
+        ((isAdmin() || resource.data.authorId == request.auth.uid) &&
+         request.resource.data.authorId == resource.data.authorId) ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'loveCount', 'loveReactors',
+          'pollVotes',
+          'petitionSigners',
+          'viewCount', 'viewers', 'shareCount',
+          'reportCount', 'reporters', 'isQuarantined',
+          'commentCount', 'hotScore'
+        ])
+      );
+
+      // 4. Delete: Post author or Admin
+      allow delete: if isAdmin() || (isLoggedIn() && resource.data.authorId == request.auth.uid);
+
+      // Subcollection: comments
+      match /comments/{commentId} {
+        // Read: Any logged-in user
+        allow read: if isLoggedIn();
+
+        // Create: Any logged-in user with authorId matching their auth UID
+        allow create: if isLoggedIn() && request.resource.data.authorId == request.auth.uid;
+
+        // Update: Comment author or Admin
+        allow update: if isAdmin() || (isLoggedIn() && resource.data.authorId == request.auth.uid);
+
+        // Delete: Comment author or Admin
+        allow delete: if isAdmin() || (isLoggedIn() && resource.data.authorId == request.auth.uid);
       }
     }
 
     match /campus_feed_waitlist/{uid} {
-      allow read, write: if true;
+      // Owner only: Read and write restricted to the authenticated user owning the document
+      allow read, write: if isLoggedIn() && request.auth.uid == uid;
     }
 
     match /campus_feed_suggestions/{id} {
-      allow read, write: if true;
+      // Create: Logged-in user submitting idea with their own UID
+      allow create: if isLoggedIn() && request.resource.data.uid == request.auth.uid;
+
+      // Read, Update, Delete: Admin only
+      allow read, update, delete: if isAdmin();
     }
 
     match /campus_feed_bookmarks/{id} {
-      allow read, write: if true;
+      // Owner only: Read, write, or delete own bookmarks
+      allow read, write: if isLoggedIn() && (
+        (resource == null && request.resource.data.userId == request.auth.uid) ||
+        (resource != null && resource.data.userId == request.auth.uid)
+      );
     }
 
     // ── Lost & Found ──────────────────────────────────────────────────────────

@@ -84,7 +84,7 @@ class LostFoundRepository {
         getApprovedItems(onResult)
     }
 
-    /** Public view: Returns only admin-approved, unresolved, non-expired items */
+    /** Public view: Returns all unresolved, non-expired items (auto-approved, expires in 15 days) */
     fun getApprovedItems(onResult: (List<LostFoundItem>) -> Unit) {
         val nowMs = System.currentTimeMillis()
         val fifteenDaysMs = 15L * 24 * 60 * 60 * 1000L
@@ -92,7 +92,6 @@ class LostFoundRepository {
 
         collection
             .whereEqualTo("isResolved", false)
-            .whereEqualTo("approved", true)
             .orderBy("timestamp", Query.Direction.DESCENDING)
             .get()
             .addOnSuccessListener { snapshot ->
@@ -116,8 +115,8 @@ class LostFoundRepository {
                         batch.commit()
                     }
                 }
-                // Local items: show only approved ones (or ones just created by admin)
-                val localActive = localItems.filter { it.approved && !it.isResolved && !isDeletedLocally(it.id) }
+                // Local items: show all active non-resolved ones immediately
+                val localActive = localItems.filter { !it.isResolved && !isDeletedLocally(it.id) }
                 val availableSamples = sampleItems.filter { !isDeletedLocally(it.id) }
                 val merged = (localActive + activeList + availableSamples)
                     .filter { !isDeletedLocally(it.id) && !it.isResolved }
@@ -125,7 +124,7 @@ class LostFoundRepository {
                 onResult(merged)
             }
             .addOnFailureListener {
-                val localActive = localItems.filter { it.approved && !it.isResolved && !isDeletedLocally(it.id) }
+                val localActive = localItems.filter { !it.isResolved && !isDeletedLocally(it.id) }
                 val availableSamples = sampleItems.filter { !isDeletedLocally(it.id) }
                 val merged = (localActive + availableSamples)
                     .filter { !isDeletedLocally(it.id) && !it.isResolved }
@@ -134,7 +133,7 @@ class LostFoundRepository {
             }
     }
 
-    /** Admin moderation view: Returns only PENDING (not yet approved) items */
+    /** Legacy / Admin moderation view: Returns any pending items if any */
     fun getPendingItems(onResult: (List<LostFoundItem>) -> Unit) {
         collection
             .whereEqualTo("isResolved", false)
@@ -164,12 +163,13 @@ class LostFoundRepository {
             id = docRef.id,
             timestamp = Timestamp.now(),
             isResolved = false,
-            approved = false,
-            pendingApproval = true,
+            approved = true,
+            pendingApproval = false,
             shareToken = shareToken
         )
-        // Store in local cache; do NOT show in public feed until approved
+        // Store in local cache; visible immediately in public feed
         localItems.removeAll { it.id == toSave.id }
+        localItems.add(0, toSave)
 
         docRef.set(toSave)
             .addOnSuccessListener { onSuccess(docRef.id) }

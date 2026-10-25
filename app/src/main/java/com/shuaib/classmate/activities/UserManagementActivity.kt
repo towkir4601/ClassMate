@@ -252,11 +252,37 @@ class UserManagementActivity : AppCompatActivity() {
         val roleValues: Array<String>
 
         if (isSuperadmin) {
-            roles = arrayOf("Student", "Admin", "Super Admin")
-            roleValues = arrayOf("student", "admin", "superadmin")
+            roles = arrayOf(
+                "Super Admin",
+                "Department Admin",
+                "Teacher / Faculty",
+                "Club Admin",
+                "Class Representative (CR)",
+                "Student"
+            )
+            roleValues = arrayOf(
+                "superadmin",
+                "admin",
+                "teacher",
+                "club_admin",
+                "cr",
+                "student"
+            )
         } else {
-            roles = arrayOf("Student", "Admin")
-            roleValues = arrayOf("student", "admin")
+            roles = arrayOf(
+                "Department Admin",
+                "Teacher / Faculty",
+                "Club Admin",
+                "Class Representative (CR)",
+                "Student"
+            )
+            roleValues = arrayOf(
+                "admin",
+                "teacher",
+                "club_admin",
+                "cr",
+                "student"
+            )
         }
 
         val currentRoleIndex = roleValues.indexOf(targetUser.role.lowercase()).let { if (it == -1) 0 else it }
@@ -275,19 +301,12 @@ class UserManagementActivity : AppCompatActivity() {
     private fun updateUserRole(targetUser: User, newRole: String) {
         binding.progressBar.visibility = View.VISIBLE
 
-        val newPermissions = when (newRole) {
-            "superadmin" -> User.DEFAULT_PERMISSIONS.mapValues { true }.toMutableMap()
-            "admin" -> User.DEFAULT_PERMISSIONS.mapValues { 
-                it.key != "canManageAdmins" && 
-                it.key != "canUploadSeatPlan" && 
-                it.key != "canManageAcademicCalendar"
-            }.toMutableMap()
-            else -> User.DEFAULT_PERMISSIONS.mapValues { false }.toMutableMap()
-        }
+        val newPermissions = User.getRoleDefaultPermissions(newRole)
 
         val updates = mapOf(
             "role" to newRole,
-            "permissions" to newPermissions
+            "permissions" to newPermissions,
+            "approved" to true
         )
 
         firestore.collection("users").document(targetUser.uid)
@@ -295,7 +314,6 @@ class UserManagementActivity : AppCompatActivity() {
             .addOnSuccessListener {
                 binding.progressBar.visibility = View.GONE
                 Toast.makeText(this, "Role updated to ${newRole.uppercase()} and permissions updated", Toast.LENGTH_SHORT).show()
-
             }
             .addOnFailureListener { e ->
                 android.util.Log.e("UserManagementActivity", "Failed to update role", e)
