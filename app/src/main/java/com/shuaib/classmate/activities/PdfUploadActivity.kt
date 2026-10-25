@@ -106,6 +106,7 @@ class PdfUploadActivity : AppCompatActivity() {
         currentUserBatch = prefs.getUserBatch()
         currentUserDepartment = prefs.getUserDepartment()
         currentUserDepartmentId = prefs.getUserDepartmentId()
+        currentUserName = prefs.getUserName().ifBlank { auth.currentUser?.displayName.orEmpty().ifBlank { "User" } }
 
         binding.toggleTarget.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (isChecked) {
@@ -278,8 +279,8 @@ class PdfUploadActivity : AppCompatActivity() {
             "sizeBytes" to (info?.sizeBytes ?: 0L),
             "provider" to provider,
             "downloadUrl" to telegramUrl,
-            "driveUrl" to telegramUrl,
-            "telegramUrl" to telegramUrl,
+            "driveUrl" to (if (provider == "github_releases") "" else telegramUrl),
+            "telegramUrl" to (if (provider == "telegram") telegramUrl else ""),
             "fileId" to fileId,
             "githubAssetId" to 0L,
             "githubAssetName" to "",
@@ -450,6 +451,9 @@ class PdfUploadActivity : AppCompatActivity() {
             "isBatchPrivate" to isTargetingBatchOnly
         )
         db.collection("notices").add(noticeData)
+            .addOnFailureListener { err ->
+                Log.e(TAG, "Resource notice creation warning: ${err.message}")
+            }
         NotificationSender.sendResourceAlert(
             title = title,
             subject = subject,

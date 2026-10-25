@@ -61,12 +61,7 @@ service cloud.firestore {
     }
 
     function canUploadPdf() {
-      return isLoggedIn() &&
-        (
-          isAdmin() ||
-          hasPermission("canUploadPDF") ||
-          hasPermission("canUploadLibrary")
-        );
+      return isLoggedIn();
     }
 
     function isStudent() {
@@ -408,7 +403,8 @@ service cloud.firestore {
         && request.resource.data.githubAssetName.size() > 0
         && (
           !("driveUrl" in request.resource.data) ||
-          request.resource.data.driveUrl == ""
+          request.resource.data.driveUrl == "" ||
+          request.resource.data.driveUrl == request.resource.data.downloadUrl
         );
     }
 
@@ -449,14 +445,16 @@ service cloud.firestore {
     }
 
     function validLibrarySoftDeleteUpdate() {
-      return canUploadPdf()
+      return isLoggedIn()
+        && (isAdmin() || resource.data.uploadedByUid == request.auth.uid)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["isDeleted", "updatedAt"])
         && request.resource.data.isDeleted == true
         && request.resource.data.updatedAt == request.time;
     }
 
     function validLibraryBatchUpdate() {
-      return canUploadPdf()
+      return isLoggedIn()
+        && (isAdmin() || resource.data.uploadedByUid == request.auth.uid)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["batch", "updatedAt"])
         && request.resource.data.batch is string
         && request.resource.data.batch.size() <= 20
@@ -647,38 +645,55 @@ service cloud.firestore {
     }
 
     function validQbSoftDelete() {
-      return canUploadPdf()
+      return isLoggedIn()
+        && (isAdmin() || resource.data.uploadedByUid == request.auth.uid)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["isDeleted", "updatedAt"])
         && request.resource.data.isDeleted == true
         && request.resource.data.updatedAt == request.time;
     }
 
     function validResourceNoticeCreate() {
-      return canUploadPdf()
+      return isLoggedIn()
         && request.resource.data.keys().hasOnly([
           "title",
           "body",
+          "content",
+          "type",
           "postedBy",
+          "createdBy",
+          "createdByName",
           "timestamp",
+          "createdAt",
+          "updatedAt",
           "isResource",
+          "isCancel",
+          "isSub",
+          "isAssignment",
+          "isClassTest",
           "subject",
-          "pdfId"
+          "pdfId",
+          "isPinned",
+          "isDeleted",
+          "batch",
+          "targetBatch",
+          "department",
+          "departmentId",
+          "accessScope",
+          "isBatchPrivate"
         ])
         && request.resource.data.title is string
         && request.resource.data.title.size() > 0
         && request.resource.data.title.size() <= 180
         && request.resource.data.body is string
         && request.resource.data.body.size() > 0
-        && request.resource.data.body.size() <= 500
-        && request.resource.data.postedBy is string
-        && request.resource.data.postedBy.size() <= 80
-        && request.resource.data.timestamp == request.time
+        && request.resource.data.body.size() <= 1000
         && request.resource.data.isResource == true
         && request.resource.data.subject is string
         && request.resource.data.subject.size() > 0
         && request.resource.data.subject.size() <= 120
         && request.resource.data.pdfId is string
-        && request.resource.data.pdfId.size() > 0;
+        && request.resource.data.pdfId.size() > 0
+        && request.resource.data.timestamp == request.time;
     }
 
     function validClassCancelPeriodUpdate() {
