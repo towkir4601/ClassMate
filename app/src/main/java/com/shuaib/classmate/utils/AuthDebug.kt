@@ -11,11 +11,15 @@ object AuthDebug {
     const val TAG = "AuthDebug"
 
     fun d(message: String) {
-        Log.d(TAG, message)
+        if (com.shuaib.classmate.BuildConfig.DEBUG) {
+            Log.d(TAG, message)
+        }
     }
 
     fun e(message: String, error: Throwable? = null) {
-        Log.e(TAG, message, error)
+        if (com.shuaib.classmate.BuildConfig.DEBUG) {
+            Log.e(TAG, message, error)
+        }
     }
 
     fun maskEmail(email: String): String {

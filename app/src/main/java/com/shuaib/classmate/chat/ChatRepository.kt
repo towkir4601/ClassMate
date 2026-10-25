@@ -315,6 +315,212 @@ object ChatRepository {
         )
     }
 
+    fun sendVoiceNote(roomId: String, audioUrl: String, durationSec: Int) {
+        val msgId = UUID.randomUUID().toString()
+        val timestamp = System.currentTimeMillis()
+
+        val optimisticMsg = ChatMessage(
+            id = msgId,
+            roomId = roomId,
+            senderId = userId,
+            senderName = userName,
+            senderAvatarUrl = avatarUrl,
+            text = "Voice message",
+            audioUrl = audioUrl,
+            audioDurationSec = durationSec,
+            timestamp = timestamp,
+            isDeleted = false
+        )
+        val existingMsgs = _historyMessages.value[roomId] ?: emptyList()
+        val updatedMsgs = (existingMsgs + optimisticMsg).distinctBy { it.id }.sortedBy { it.timestamp }
+        val newMap = _historyMessages.value.toMutableMap()
+        newMap[roomId] = updatedMsgs
+        _historyMessages.value = newMap
+
+        val msg = mapOf(
+            "id" to msgId,
+            "roomId" to roomId,
+            "senderId" to userId,
+            "senderName" to userName,
+            "senderAvatarUrl" to avatarUrl,
+            "text" to "Voice message",
+            "audioUrl" to audioUrl,
+            "audioDurationSec" to durationSec,
+            "timestamp" to timestamp,
+            "isDeleted" to false
+        )
+        firestore.collection("chat_rooms").document(roomId).collection("messages").document(msgId).set(msg)
+            .addOnFailureListener { e ->
+                Log.e("ChatRepo", "Failed to write voice msg $msgId: ${e.message}", e)
+            }
+
+        val roomUpdate = mapOf(
+            "id" to roomId,
+            "type" to if (roomId.startsWith("group_")) "group" else "direct",
+            "lastMessage" to "🎤 Voice message (${durationSec}s)",
+            "lastTimestamp" to timestamp,
+            "lastSenderId" to userId
+        )
+        firestore.collection("chat_rooms").document(roomId).set(roomUpdate, SetOptions.merge())
+
+        ChatUnreadManager.markRoomSeen(roomId)
+        val targetUserId = if (roomId.startsWith("dm_")) roomId.removePrefix("dm_").split("_").firstOrNull { it != userId } else null
+        com.shuaib.classmate.utils.NotificationSender.sendChatMessageAlert(
+            roomId = roomId,
+            senderId = userId,
+            senderName = userName,
+            messageText = "🎤 Voice message",
+            targetUserId = targetUserId
+        )
+    }
+
+    fun sendContact(roomId: String, contactName: String, contactPhone: String, contactRole: String = "") {
+        val msgId = UUID.randomUUID().toString()
+        val timestamp = System.currentTimeMillis()
+
+        val optimisticMsg = ChatMessage(
+            id = msgId,
+            roomId = roomId,
+            senderId = userId,
+            senderName = userName,
+            senderAvatarUrl = avatarUrl,
+            text = "Contact: $contactName",
+            contactName = contactName,
+            contactPhone = contactPhone,
+            contactRole = contactRole,
+            timestamp = timestamp,
+            isDeleted = false
+        )
+        val existingMsgs = _historyMessages.value[roomId] ?: emptyList()
+        val updatedMsgs = (existingMsgs + optimisticMsg).distinctBy { it.id }.sortedBy { it.timestamp }
+        val newMap = _historyMessages.value.toMutableMap()
+        newMap[roomId] = updatedMsgs
+        _historyMessages.value = newMap
+
+        val msg = mapOf(
+            "id" to msgId,
+            "roomId" to roomId,
+            "senderId" to userId,
+            "senderName" to userName,
+            "senderAvatarUrl" to avatarUrl,
+            "text" to "Contact: $contactName",
+            "contactName" to contactName,
+            "contactPhone" to contactPhone,
+            "contactRole" to contactRole,
+            "timestamp" to timestamp,
+            "isDeleted" to false
+        )
+        firestore.collection("chat_rooms").document(roomId).collection("messages").document(msgId).set(msg)
+            .addOnFailureListener { e ->
+                Log.e("ChatRepo", "Failed to write contact msg $msgId: ${e.message}", e)
+            }
+
+        val roomUpdate = mapOf(
+            "id" to roomId,
+            "type" to if (roomId.startsWith("group_")) "group" else "direct",
+            "lastMessage" to "👤 Contact: $contactName",
+            "lastTimestamp" to timestamp,
+            "lastSenderId" to userId
+        )
+        firestore.collection("chat_rooms").document(roomId).set(roomUpdate, SetOptions.merge())
+
+        ChatUnreadManager.markRoomSeen(roomId)
+        val targetUserId = if (roomId.startsWith("dm_")) roomId.removePrefix("dm_").split("_").firstOrNull { it != userId } else null
+        com.shuaib.classmate.utils.NotificationSender.sendChatMessageAlert(
+            roomId = roomId,
+            senderId = userId,
+            senderName = userName,
+            messageText = "👤 Contact: $contactName",
+            targetUserId = targetUserId
+        )
+    }
+
+    fun sendPoll(roomId: String, question: String, options: List<String>) {
+        val msgId = UUID.randomUUID().toString()
+        val timestamp = System.currentTimeMillis()
+
+        val optimisticMsg = ChatMessage(
+            id = msgId,
+            roomId = roomId,
+            senderId = userId,
+            senderName = userName,
+            senderAvatarUrl = avatarUrl,
+            text = "Poll: $question",
+            pollQuestion = question,
+            pollOptions = options,
+            pollVotes = emptyMap(),
+            timestamp = timestamp,
+            isDeleted = false
+        )
+        val existingMsgs = _historyMessages.value[roomId] ?: emptyList()
+        val updatedMsgs = (existingMsgs + optimisticMsg).distinctBy { it.id }.sortedBy { it.timestamp }
+        val newMap = _historyMessages.value.toMutableMap()
+        newMap[roomId] = updatedMsgs
+        _historyMessages.value = newMap
+
+        val msg = mapOf(
+            "id" to msgId,
+            "roomId" to roomId,
+            "senderId" to userId,
+            "senderName" to userName,
+            "senderAvatarUrl" to avatarUrl,
+            "text" to "Poll: $question",
+            "pollQuestion" to question,
+            "pollOptions" to options,
+            "pollVotes" to emptyMap<String, List<String>>(),
+            "timestamp" to timestamp,
+            "isDeleted" to false
+        )
+        firestore.collection("chat_rooms").document(roomId).collection("messages").document(msgId).set(msg)
+            .addOnFailureListener { e ->
+                Log.e("ChatRepo", "Failed to write poll msg $msgId: ${e.message}", e)
+            }
+
+        val roomUpdate = mapOf(
+            "id" to roomId,
+            "type" to if (roomId.startsWith("group_")) "group" else "direct",
+            "lastMessage" to "📊 Poll: $question",
+            "lastTimestamp" to timestamp,
+            "lastSenderId" to userId
+        )
+        firestore.collection("chat_rooms").document(roomId).set(roomUpdate, SetOptions.merge())
+
+        ChatUnreadManager.markRoomSeen(roomId)
+        val targetUserId = if (roomId.startsWith("dm_")) roomId.removePrefix("dm_").split("_").firstOrNull { it != userId } else null
+        com.shuaib.classmate.utils.NotificationSender.sendChatMessageAlert(
+            roomId = roomId,
+            senderId = userId,
+            senderName = userName,
+            messageText = "📊 Poll: $question",
+            targetUserId = targetUserId
+        )
+    }
+
+    fun votePoll(roomId: String, messageId: String, optionIndex: Int) {
+        if (userId.isBlank() || roomId.isBlank() || messageId.isBlank()) return
+        val docRef = firestore.collection("chat_rooms").document(roomId).collection("messages").document(messageId)
+        firestore.runTransaction { tx ->
+            val snapshot = tx.get(docRef)
+            val currentVotes = (snapshot.get("pollVotes") as? Map<*, *>)?.mapNotNull { (k, v) ->
+                val opt = k as? String ?: return@mapNotNull null
+                val list = (v as? List<*>)?.mapNotNull { it as? String }?.toMutableList() ?: mutableListOf()
+                opt to list
+            }?.toMap()?.toMutableMap() ?: mutableMapOf()
+
+            currentVotes.forEach { (_, voters) ->
+                voters.remove(userId)
+            }
+            val optKey = optionIndex.toString()
+            val list = currentVotes[optKey] ?: mutableListOf()
+            list.add(userId)
+            currentVotes[optKey] = list
+
+            tx.update(docRef, "pollVotes", currentVotes)
+        }.addOnFailureListener { e ->
+            Log.e("ChatRepo", "Failed to record vote: ${e.message}", e)
+        }
+    }
+
     fun enterRoom(roomId: String) {
         currentRoomId = roomId
         ChatUnreadManager.markRoomSeen(roomId)
@@ -578,7 +784,19 @@ object ChatRepository {
             seenBy = (map["seenBy"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
             isPinned = false,
             senderRole = map["senderRole"] as? String ?: "",
-            isSenderVerified = map["isSenderVerified"] as? Boolean ?: false
+            isSenderVerified = map["isSenderVerified"] as? Boolean ?: false,
+            audioUrl = (map["audioUrl"] as? String)?.takeIf { it.isNotBlank() },
+            audioDurationSec = (map["audioDurationSec"] as? Number)?.toInt() ?: 0,
+            contactName = (map["contactName"] as? String)?.takeIf { it.isNotBlank() },
+            contactPhone = (map["contactPhone"] as? String)?.takeIf { it.isNotBlank() },
+            contactRole = map["contactRole"] as? String,
+            pollQuestion = (map["pollQuestion"] as? String)?.takeIf { it.isNotBlank() },
+            pollOptions = (map["pollOptions"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+            pollVotes = (map["pollVotes"] as? Map<*, *>)?.mapNotNull { (k, v) ->
+                val optIndex = k as? String ?: return@mapNotNull null
+                val voters = (v as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
+                optIndex to voters
+            }?.toMap() ?: emptyMap()
         )
     }
 

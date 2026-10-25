@@ -52,13 +52,20 @@ class ChatAdapter(
     private val onReactClick: (ChatMessage, String) -> Unit,
     private val onEditClick: (ChatMessage) -> Unit,
     private val onForwardClick: (ChatMessage) -> Unit,
-    private val onPinClick: (ChatMessage, Boolean) -> Unit
+    private val onPinClick: (ChatMessage, Boolean) -> Unit,
+    private val onVotePoll: ((ChatMessage, Int) -> Unit)? = null
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     var currentList: List<ChatMessage> = emptyList()
         private set
 
     private var rows: List<Row> = emptyList()
+
+    private var activeMediaPlayer: android.media.MediaPlayer? = null
+    private var playingAudioUrl: String? = null
+    private var activePlayingHolder: MessageViewHolder? = null
+    private val audioHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var audioProgressRunnable: Runnable? = null
 
     fun submitList(messages: List<ChatMessage>, commitCallback: (() -> Unit)? = null) {
         val oldRows = rows
@@ -147,6 +154,21 @@ class ChatAdapter(
         private val reactionsBar: FlexboxLayout = itemView.findViewById(R.id.reactionsBar)
         private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
+        val audioContainer: View? = itemView.findViewById(R.id.audioContainer)
+        val btnAudioPlayPause: android.widget.ImageButton? = itemView.findViewById(R.id.btnAudioPlayPause)
+        val audioSeekBar: android.widget.SeekBar? = itemView.findViewById(R.id.audioSeekBar)
+        val tvAudioDuration: TextView? = itemView.findViewById(R.id.tvAudioDuration)
+
+        val contactContainer: View? = itemView.findViewById(R.id.contactContainer)
+        val tvContactName: TextView? = itemView.findViewById(R.id.tvContactName)
+        val tvContactPhone: TextView? = itemView.findViewById(R.id.tvContactPhone)
+        val btnContactAction: TextView? = itemView.findViewById(R.id.btnContactAction)
+
+        val pollContainer: View? = itemView.findViewById(R.id.pollContainer)
+        val tvPollQuestion: TextView? = itemView.findViewById(R.id.tvPollQuestion)
+        val pollOptionsLayout: LinearLayout? = itemView.findViewById(R.id.pollOptionsLayout)
+        val tvPollTotalVotes: TextView? = itemView.findViewById(R.id.tvPollTotalVotes)
+
         fun bind(message: ChatMessage, previous: ChatMessage?) {
             val isSent = message.senderId == currentUserId
             val firstInGroup = previous == null ||
@@ -213,6 +235,100 @@ class ChatAdapter(
                 messageImage.setOnClickListener(null)
             }
 
+            // Voice note binding
+            val hasAudio = !message.audioUrl.isNullOrBlank()
+            audioContainer?.isVisible = hasAudio
+            if (hasAudio) {
+                val isCurrentlyPlaying = playingAudioUrl == message.audioUrl && activeMediaPlayer?.isPlaying == true
+                btnAudioPlayPause?.setImageResource(if (isCurrentlyPlaying) R.drawable.ic_pause else R.drawable.ic_play_arrow)
+                tvAudioDuration?.text = formatDuration(message.audioDurationSec)
+                btnAudioPlayPause?.setOnClickListener {
+                    toggleAudioPlayback(this, message)
+                }
+            } else {
+                btnAudioPlayPause?.setOnClickListener(null)
+            }
+
+            // Contact binding
+            val hasContact = !message.contactName.isNullOrBlank()
+            contactContainer?.isVisible = hasContact
+            if (hasContact) {
+                tvContactName?.text = message.contactName
+                tvContactPhone?.text = message.contactPhone ?: message.contactRole ?: "Classmate"
+                btnContactAction?.setOnClickListener {
+                    val phone = message.contactPhone.orEmpty()
+                    if (phone.isNotBlank()) {
+                        runCatching {
+                            val intent = Intent(Intent.ACTION_DIAL, android.net.Uri.parse("tel:$phone"))
+                            itemView.context.startActivity(intent)
+                        }
+                    }
+                }
+            } else {
+                btnContactAction?.setOnClickListener(null)
+            }
+
+            // Poll binding
+            val hasPoll = !message.pollQuestion.isNullOrBlank()
+            pollContainer?.isVisible = hasPoll
+            if (hasPoll) {
+                tvPollQuestion?.text = message.pollQuestion
+                pollOptionsLayout?.removeAllViews()
+                val totalVotes = message.pollVotes.values.sumOf { it.size }
+                tvPollTotalVotes?.text = if (totalVotes == 1) "1 vote" else "$totalVotes votes"
+
+                message.pollOptions.forEachIndexed { index, optionText ->
+                    val optKey = index.toString()
+                    val voters = message.pollVotes[optKey] ?: emptyList()
+                    val optVotes = voters.size
+                    val pct = if (totalVotes > 0) (optVotes * 100 / totalVotes) else 0
+                    val isVoted = currentUserId in voters
+
+                    val optionRow = LinearLayout(itemView.context).apply {
+                        orientation = LinearLayout.VERTICAL
+                        setBackgroundResource(if (isVoted) R.drawable.bg_poll_option_selected else R.drawable.bg_poll_option)
+                        val pad = dp(8)
+                        setPadding(pad, pad, pad, pad)
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                        ).apply {
+                            setMargins(0, 0, 0, dp(6))
+                        }
+                    }
+
+                    val titleRow = LinearLayout(itemView.context).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                    }
+
+                    val tvOptText = TextView(itemView.context).apply {
+                        text = optionText
+                        textSize = 13f
+                        setTextColor(ContextCompat.getColor(itemView.context, R.color.wa_text_primary))
+                        setTypeface(null, if (isVoted) Typeface.BOLD else Typeface.NORMAL)
+                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    }
+
+                    val tvOptPct = TextView(itemView.context).apply {
+                        text = if (totalVotes > 0) "$optVotes ($pct%)" else "0"
+                        textSize = 11f
+                        setTextColor(ContextCompat.getColor(itemView.context, R.color.wa_text_secondary))
+                    }
+
+                    titleRow.addView(tvOptText)
+                    titleRow.addView(tvOptPct)
+                    optionRow.addView(titleRow)
+
+                    optionRow.setOnClickListener {
+                        onVotePoll?.invoke(message, index)
+                    }
+
+                    pollOptionsLayout?.addView(optionRow)
+                }
+            }
+
+            val isCustomCard = hasAudio || hasContact || hasPoll
             if (message.isDeleted) {
                 noticeForwardContainer.isVisible = false
                 messageText.isVisible = true
@@ -222,9 +338,12 @@ class ChatAdapter(
             } else if (noticeForward != null) {
                 messageText.isVisible = false
                 bindNoticeForward(noticeForward)
+            } else if (isCustomCard && (message.text.isBlank() || message.text == "Voice message" || message.text.startsWith("Contact:") || message.text.startsWith("Poll:"))) {
+                messageText.isVisible = false
+                noticeForwardContainer.isVisible = false
             } else {
                 noticeForwardContainer.isVisible = false
-                messageText.isVisible = true
+                messageText.isVisible = message.text.isNotBlank()
                 messageText.text = message.text
                 messageText.setTextColor(ContextCompat.getColor(itemView.context, R.color.wa_text_primary))
                 messageText.setTypeface(null, Typeface.NORMAL)
@@ -437,6 +556,98 @@ class ChatAdapter(
         private fun dp(value: Int): Int {
             return (value * itemView.resources.displayMetrics.density).toInt()
         }
+    }
+
+    private fun formatDuration(seconds: Int): String {
+        val m = seconds / 60
+        val s = seconds % 60
+        return String.format(Locale.US, "%d:%02d", m, s)
+    }
+
+    private fun toggleAudioPlayback(holder: MessageViewHolder, message: ChatMessage) {
+        val audioUrl = message.audioUrl ?: return
+        if (playingAudioUrl == audioUrl && activeMediaPlayer != null) {
+            if (activeMediaPlayer?.isPlaying == true) {
+                activeMediaPlayer?.pause()
+                holder.btnAudioPlayPause?.setImageResource(R.drawable.ic_play_arrow)
+                stopAudioProgress()
+            } else {
+                activeMediaPlayer?.start()
+                holder.btnAudioPlayPause?.setImageResource(R.drawable.ic_pause)
+                startAudioProgress(holder)
+            }
+            return
+        }
+
+        stopAudioPlayback()
+
+        try {
+            val mp = android.media.MediaPlayer().apply {
+                setDataSource(audioUrl)
+                prepareAsync()
+                setOnPreparedListener {
+                    start()
+                    playingAudioUrl = audioUrl
+                    activePlayingHolder = holder
+                    holder.btnAudioPlayPause?.setImageResource(R.drawable.ic_pause)
+                    startAudioProgress(holder)
+                }
+                setOnCompletionListener {
+                    stopAudioPlayback()
+                    holder.btnAudioPlayPause?.setImageResource(R.drawable.ic_play_arrow)
+                    holder.audioSeekBar?.progress = 0
+                    holder.tvAudioDuration?.text = formatDuration(message.audioDurationSec)
+                }
+                setOnErrorListener { _, _, _ ->
+                    stopAudioPlayback()
+                    holder.btnAudioPlayPause?.setImageResource(R.drawable.ic_play_arrow)
+                    true
+                }
+            }
+            activeMediaPlayer = mp
+        } catch (e: Exception) {
+            stopAudioPlayback()
+        }
+    }
+
+    private fun startAudioProgress(holder: MessageViewHolder) {
+        stopAudioProgress()
+        audioProgressRunnable = object : Runnable {
+            override fun run() {
+                val mp = activeMediaPlayer ?: return
+                if (mp.isPlaying) {
+                    val currentPos = mp.currentPosition
+                    val totalDuration = mp.duration.coerceAtLeast(1)
+                    val progress = (currentPos * 100 / totalDuration).coerceIn(0, 100)
+                    holder.audioSeekBar?.progress = progress
+                    holder.tvAudioDuration?.text = formatDuration(currentPos / 1000)
+                    audioHandler.postDelayed(this, 250)
+                }
+            }
+        }
+        audioHandler.post(audioProgressRunnable!!)
+    }
+
+    private fun stopAudioProgress() {
+        audioProgressRunnable?.let { audioHandler.removeCallbacks(it) }
+        audioProgressRunnable = null
+    }
+
+    fun stopAudioPlayback() {
+        stopAudioProgress()
+        try {
+            activeMediaPlayer?.stop()
+            activeMediaPlayer?.release()
+        } catch (ignored: Exception) {}
+        activeMediaPlayer = null
+        playingAudioUrl = null
+        activePlayingHolder?.btnAudioPlayPause?.setImageResource(R.drawable.ic_play_arrow)
+        activePlayingHolder = null
+    }
+
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView)
+        stopAudioPlayback()
     }
 
     private fun isSameDay(first: Long, second: Long): Boolean {

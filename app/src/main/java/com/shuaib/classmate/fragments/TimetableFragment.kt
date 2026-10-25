@@ -1407,7 +1407,8 @@ class TimetableFragment : Fragment() {
                             name = cursor.getString(nameIndex).ifBlank { name }
                         }
                     }
-                    Pair(bytes, name)
+                    val safeName = java.io.File(name).name.replace(Regex("[^a-zA-Z0-9._-]"), "_").ifBlank { "routine.xlsx" }
+                    Pair(bytes, safeName)
                 }
 
                 val requestBody = bytes.toRequestBody(

@@ -172,6 +172,22 @@ class ChatViewModel : ViewModel() {
         repository.sendImage(roomId, imageUrl, caption)
     }
 
+    fun sendVoiceNote(roomId: String, audioUrl: String, durationSec: Int) {
+        repository.sendVoiceNote(roomId, audioUrl, durationSec)
+    }
+
+    fun sendContact(roomId: String, contactName: String, contactPhone: String, contactRole: String = "") {
+        repository.sendContact(roomId, contactName, contactPhone, contactRole)
+    }
+
+    fun sendPoll(roomId: String, question: String, options: List<String>) {
+        repository.sendPoll(roomId, question, options)
+    }
+
+    fun votePoll(roomId: String, messageId: String, optionIndex: Int) {
+        repository.votePoll(roomId, messageId, optionIndex)
+    }
+
     fun loadPinnedMessages() {
         currentRoomId?.let { repository.getPinned(it) }
     }

@@ -147,6 +147,12 @@ object TelegramUploader {
         }.start()
     }
 
+    private fun sanitizeFileName(name: String): String {
+        val baseName = java.io.File(name).name
+        val clean = baseName.replace(Regex("[^a-zA-Z0-9._-]"), "_")
+        return clean.ifBlank { "document_${System.currentTimeMillis()}" }
+    }
+
     private fun getFileName(context: Context, uri: Uri): String? {
         var name: String? = null
         try {
@@ -159,6 +165,6 @@ object TelegramUploader {
         } catch (e: Exception) {
             Log.e(TAG, "Error getting filename", e)
         }
-        return name
+        return name?.let { sanitizeFileName(it) }
     }
 }

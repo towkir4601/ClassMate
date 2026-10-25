@@ -1,9 +1,14 @@
 package com.shuaib.classmate.chat
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
+import android.view.MotionEvent
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import android.text.Editable
@@ -34,12 +39,17 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.shuaib.classmate.R
+import com.shuaib.classmate.chat.audio.VoiceRecorderHelper
 import com.shuaib.classmate.chat.model.ChatMessage
 import com.shuaib.classmate.databinding.FragmentGroupChatBinding
 import com.shuaib.classmate.utils.CloudinaryUploader
+import com.shuaib.classmate.utils.ImageCompressor
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 
 class GroupChatFragment : Fragment() {
     private val viewModel: ChatViewModel by viewModels()
@@ -57,6 +67,18 @@ class GroupChatFragment : Fragment() {
     private var latestPinned: ChatMessage? = null
     private var activeSearchQuery: String = ""
     private var emptySearchToastShownFor: String? = null
+
+    private var voiceRecorderHelper: VoiceRecorderHelper? = null
+
+    private val recordAudioPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            Toast.makeText(requireContext(), "Microphone permission granted. Hold mic button to record.", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(requireContext(), "Microphone permission is required to send voice notes", Toast.LENGTH_LONG).show()
+        }
+    }
 
     private val imagePicker = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
         if (uris.isNotEmpty()) {
@@ -92,7 +114,8 @@ class GroupChatFragment : Fragment() {
             onReactClick = { message, emoji -> viewModel.reactMessage(message.id, emoji) },
             onEditClick = { startEdit(it) },
             onForwardClick = { message -> chooseForwardTarget(message) },
-            onPinClick = { message, pin -> viewModel.pinMessage(message.id, pin) }
+            onPinClick = { message, pin -> viewModel.pinMessage(message.id, pin) },
+            onVotePoll = { message, optIdx -> viewModel.votePoll(com.shuaib.classmate.chat.ChatRepository.groupRoomId, message.id, optIdx) }
         )
         
         binding.rvMessages.apply {
@@ -119,6 +142,7 @@ class GroupChatFragment : Fragment() {
         }
         binding.btnSend.setOnClickListener { sendCurrentMessage() }
         binding.btnAttach.setOnClickListener { showWhatsAppAttachmentSheet() }
+        setupMicButton()
         binding.btnCamera.setOnClickListener { imagePicker.launch("image/*") }
         binding.btnEmoji.setOnClickListener { showEmojiInputPicker() }
         binding.btnSayHello.setOnClickListener {
@@ -458,25 +482,31 @@ class GroupChatFragment : Fragment() {
         val total = uris.size
         uris.forEachIndexed { index, uri ->
             val caption = if (index == 0) firstCaption else ""
-            CloudinaryUploader.uploadImage(
-                requireContext(),
-                uri,
-                "classmate/chat",
-                onSuccess = { url, _ ->
-                    viewModel.sendImage(com.shuaib.classmate.chat.ChatRepository.groupRoomId, url, caption)
-                    completed++
-                    if (completed == total && _binding != null) {
-                        binding.imageUploadOverlay.visibility = View.GONE
-                    }
-                },
-                onFailure = {
-                    view?.let { root -> Snackbar.make(root, "Failed to send an image", Snackbar.LENGTH_LONG).show() }
-                    completed++
-                    if (completed == total && _binding != null) {
-                        binding.imageUploadOverlay.visibility = View.GONE
-                    }
+            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                val compressed = ImageCompressor.compressImage(requireContext(), uri, targetSizeKb = 100L).getOrNull()
+                val finalUri = compressed?.uri ?: uri
+                withContext(Dispatchers.Main) {
+                    CloudinaryUploader.uploadImage(
+                        requireContext(),
+                        finalUri,
+                        "classmate/chat",
+                        onSuccess = { url, _ ->
+                            viewModel.sendImage(com.shuaib.classmate.chat.ChatRepository.groupRoomId, url, caption)
+                            completed++
+                            if (completed == total && _binding != null) {
+                                binding.imageUploadOverlay.visibility = View.GONE
+                            }
+                        },
+                        onFailure = {
+                            view?.let { root -> Snackbar.make(root, "Failed to send an image", Snackbar.LENGTH_LONG).show() }
+                            completed++
+                            if (completed == total && _binding != null) {
+                                binding.imageUploadOverlay.visibility = View.GONE
+                            }
+                        }
+                    )
                 }
-            )
+            }
         }
     }
 
@@ -557,30 +587,105 @@ class GroupChatFragment : Fragment() {
         }
         sheetView.findViewById<View>(R.id.btnAttachAudio)?.setOnClickListener {
             dialog.dismiss()
-            Toast.makeText(requireContext(), "Hold mic button to record voice note", Toast.LENGTH_SHORT).show()
+            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            } else {
+                Toast.makeText(requireContext(), "Hold the mic button at the bottom right to record a voice note", Toast.LENGTH_SHORT).show()
+            }
         }
         sheetView.findViewById<View>(R.id.btnAttachPoll)?.setOnClickListener {
             dialog.dismiss()
-            Toast.makeText(requireContext(), "Polls can be created in Community tab", Toast.LENGTH_SHORT).show()
+            ChatAttachmentDialogs.showCreatePoll(requireContext()) { question, options ->
+                viewModel.sendPoll(com.shuaib.classmate.chat.ChatRepository.groupRoomId, question, options)
+            }
         }
         sheetView.findViewById<View>(R.id.btnAttachContact)?.setOnClickListener {
             dialog.dismiss()
-            runCatching {
-                findNavController().navigate(R.id.fragment_dm_list)
-            }.onFailure {
-                runCatching {
-                    findNavController().navigate(R.id.nav_friends)
+            val userList = viewModel.users.value
+            if (userList.isNotEmpty()) {
+                ChatAttachmentDialogs.showContactPicker(requireContext(), userList) { selectedUser ->
+                    viewModel.sendContact(com.shuaib.classmate.chat.ChatRepository.groupRoomId, selectedUser.name, selectedUser.email, selectedUser.role)
                 }
+            } else {
+                Toast.makeText(requireContext(), "No contacts available", Toast.LENGTH_SHORT).show()
             }
         }
 
         dialog.show()
     }
 
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupMicButton() {
+        voiceRecorderHelper = VoiceRecorderHelper(requireContext())
+        binding.btnMic.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                        recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        return@setOnTouchListener false
+                    }
+                    val started = voiceRecorderHelper?.startRecording() == true
+                    if (started) {
+                        binding.tvTypingIndicator.text = "🔴 Recording voice note... Release to send"
+                        binding.tvTypingIndicator.visibility = View.VISIBLE
+                        binding.btnMic.animate().scaleX(1.3f).scaleY(1.3f).setDuration(150).start()
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP -> {
+                    binding.btnMic.animate().scaleX(1.0f).scaleY(1.0f).setDuration(150).start()
+                    binding.tvTypingIndicator.visibility = View.GONE
+                    val result = voiceRecorderHelper?.stopRecording()
+                    if (result != null && result.durationSec >= 1) {
+                        uploadVoiceNote(result.file, result.durationSec)
+                    } else if (result != null) {
+                        Toast.makeText(requireContext(), "Hold longer to record", Toast.LENGTH_SHORT).show()
+                        result.file.delete()
+                    }
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    binding.btnMic.animate().scaleX(1.0f).scaleY(1.0f).setDuration(150).start()
+                    binding.tvTypingIndicator.visibility = View.GONE
+                    voiceRecorderHelper?.cancelRecording()
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    private fun uploadVoiceNote(file: File, durationSec: Int) {
+        binding.imageUploadOverlay.visibility = View.VISIBLE
+        val uri = Uri.fromFile(file)
+        CloudinaryUploader.uploadAudio(
+            requireContext(),
+            uri,
+            "classmate/audio",
+            onSuccess = { secureUrl, _ ->
+                if (_binding != null) {
+                    binding.imageUploadOverlay.visibility = View.GONE
+                }
+                viewModel.sendVoiceNote(com.shuaib.classmate.chat.ChatRepository.groupRoomId, secureUrl, durationSec)
+                file.delete()
+            },
+            onFailure = {
+                if (_binding != null) {
+                    binding.imageUploadOverlay.visibility = View.GONE
+                    view?.let { root -> Snackbar.make(root, "Failed to send voice note", Snackbar.LENGTH_LONG).show() }
+                }
+                file.delete()
+            }
+        )
+    }
+
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     override fun onDestroyView() {
         super.onDestroyView()
+        voiceRecorderHelper?.cancelRecording()
+        voiceRecorderHelper = null
+        adapter?.stopAudioPlayback()
         typingHideJob?.cancel()
         refreshTimeoutJob?.cancel()
         typingHideJob = null

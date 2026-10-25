@@ -130,14 +130,25 @@ class CvMakerActivity : AppCompatActivity() {
     }
 
     private fun generateAcademicResumePdf() {
-        val name = binding.etCvName.text.toString().trim().ifBlank { "Alif Khan" }
-        val email = binding.etCvEmail.text.toString().trim().ifBlank { "alif.cse@gstu.edu.bd" }
-        val skills = binding.etCvSkills.text.toString().trim().ifBlank {
+        val rawName = binding.etCvName.text.toString().trim().ifBlank { "Alif Khan" }
+        val rawEmail = binding.etCvEmail.text.toString().trim().ifBlank { "alif.cse@gstu.edu.bd" }
+        val rawSkills = binding.etCvSkills.text.toString().trim().ifBlank {
             "Flutter, Dart, Node.js, Go, Docker, PostgreSQL, Git"
         }
-        val projects = binding.etCvProjects.text.toString().trim().ifBlank {
+        val rawProjects = binding.etCvProjects.text.toString().trim().ifBlank {
             "GSTU Go: Campus SuperApp; Microservices E-Commerce"
         }
+
+        fun esc(text: String): String = android.text.TextUtils.htmlEncode(text)
+
+        val name = esc(rawName)
+        val email = esc(rawEmail)
+        val skills = esc(rawSkills)
+        val projects = esc(rawProjects)
+        val safeDegree = esc(currentDegree)
+        val safeUniversity = esc(currentUniversity)
+        val safeCgpa = esc(currentCgpa)
+        val safeGraduation = esc(currentGraduation)
 
         val htmlContent = """
             <!DOCTYPE html>
@@ -221,16 +232,16 @@ class CvMakerActivity : AppCompatActivity() {
                 <div class="header">
                     <h1 class="name">$name</h1>
                     <div class="contact">
-                        <strong>Email:</strong> $email &nbsp;|&nbsp; <strong>Institution:</strong> $currentUniversity
+                        <strong>Email:</strong> $email &nbsp;|&nbsp; <strong>Institution:</strong> $safeUniversity
                     </div>
                 </div>
 
                 <div class="section">
                     <div class="section-title">Education</div>
                     <div>
-                        <div class="item-title">$currentDegree</div>
-                        <div class="item-subtitle">$currentUniversity</div>
-                        <div class="item-badges">CGPA: $currentCgpa &nbsp;|&nbsp; Expected Graduation: $currentGraduation</div>
+                        <div class="item-title">$safeDegree</div>
+                        <div class="item-subtitle">$safeUniversity</div>
+                        <div class="item-badges">CGPA: $safeCgpa &nbsp;|&nbsp; Expected Graduation: $safeGraduation</div>
                     </div>
                 </div>
 
@@ -267,7 +278,13 @@ class CvMakerActivity : AppCompatActivity() {
             </html>
         """.trimIndent()
 
-        val webView = WebView(this)
+        val webView = WebView(this).apply {
+            settings.apply {
+                javaScriptEnabled = false
+                allowFileAccess = false
+                allowContentAccess = false
+            }
+        }
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 val printManager = getSystemService(Context.PRINT_SERVICE) as? PrintManager

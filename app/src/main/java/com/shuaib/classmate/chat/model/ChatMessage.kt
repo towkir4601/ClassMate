@@ -19,5 +19,13 @@ data class ChatMessage(
     val isPinned: Boolean = false,
     val imageUrl: String? = null,
     val senderRole: String = "",
-    val isSenderVerified: Boolean = false
+    val isSenderVerified: Boolean = false,
+    val audioUrl: String? = null,
+    val audioDurationSec: Int = 0,
+    val contactName: String? = null,
+    val contactPhone: String? = null,
+    val contactRole: String? = null,
+    val pollQuestion: String? = null,
+    val pollOptions: List<String> = emptyList(),
+    val pollVotes: Map<String, List<String>> = emptyMap()
 )

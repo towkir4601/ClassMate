@@ -350,10 +350,30 @@ class CoverPageActivity : AppCompatActivity() {
         val m3 = binding.etMember3.text.toString().trim()
         val m4 = binding.etMember4.text.toString().trim()
 
+        fun esc(text: String): String = android.text.TextUtils.htmlEncode(text)
+
+        val safeCode = esc(code)
+        val safeTitle = esc(title)
+        val safeTopic = esc(topic)
+        val safeSName = esc(sName)
+        val safeSId = esc(sId)
+        val safeSYear = esc(sYear)
+        val safeSSem = esc(sSem)
+        val safeSSession = esc(sSession)
+        val safeSDept = esc(sDept)
+        val safeTName = esc(tName)
+        val safeTDesig = esc(tDesig)
+        val safeTDept = esc(tDept)
+        val safeSubmissionDate = esc(submissionDate)
+        val safeM2 = esc(m2)
+        val safeM3 = esc(m3)
+        val safeM4 = esc(m4)
+        val safeHeaderType = esc(headerType)
+
         val courseFormatted = when {
-            code.isNotBlank() && title.isNotBlank() -> "$code - $title"
-            code.isNotBlank() -> code
-            title.isNotBlank() -> title
+            code.isNotBlank() && title.isNotBlank() -> "$safeCode - $safeTitle"
+            code.isNotBlank() -> safeCode
+            title.isNotBlank() -> safeTitle
             else -> "—"
         }
 
@@ -367,22 +387,22 @@ class CoverPageActivity : AppCompatActivity() {
         val submittedByHtml = if (isGroup) {
             """
                 <div class="col-title">Submitted By (Group)</div>
-                <div class="info-line">1. <strong>$sName</strong> (ID: $sId)</div>
-                ${if (m2.isNotBlank()) "<div class=\"info-line\">2. <strong>$m2</strong></div>" else ""}
-                ${if (m3.isNotBlank()) "<div class=\"info-line\">3. <strong>$m3</strong></div>" else ""}
-                ${if (m4.isNotBlank()) "<div class=\"info-line\">4. <strong>$m4</strong></div>" else ""}
-                <div class="info-line" style="margin-top: 8px;"><strong>Session:</strong> $sSession</div>
-                <div class="info-line"><strong>Dept.:</strong> $sDept</div>
+                <div class="info-line">1. <strong>$safeSName</strong> (ID: $safeSId)</div>
+                ${if (m2.isNotBlank()) "<div class=\"info-line\">2. <strong>$safeM2</strong></div>" else ""}
+                ${if (m3.isNotBlank()) "<div class=\"info-line\">3. <strong>$safeM3</strong></div>" else ""}
+                ${if (m4.isNotBlank()) "<div class=\"info-line\">4. <strong>$safeM4</strong></div>" else ""}
+                <div class="info-line" style="margin-top: 8px;"><strong>Session:</strong> $safeSSession</div>
+                <div class="info-line"><strong>Dept.:</strong> $safeSDept</div>
             """.trimIndent()
         } else {
             """
                 <div class="col-title">Submitted By</div>
-                <div class="info-line"><strong>Name:</strong> $sName</div>
-                <div class="info-line"><strong>ID:</strong> $sId</div>
-                <div class="info-line"><strong>Year:</strong> $sYear</div>
-                <div class="info-line"><strong>Semester:</strong> $sSem</div>
-                <div class="info-line"><strong>Session:</strong> $sSession</div>
-                <div class="info-line"><strong>Dept.:</strong> $sDept</div>
+                <div class="info-line"><strong>Name:</strong> $safeSName</div>
+                <div class="info-line"><strong>ID:</strong> $safeSId</div>
+                <div class="info-line"><strong>Year:</strong> $safeSYear</div>
+                <div class="info-line"><strong>Semester:</strong> $safeSSem</div>
+                <div class="info-line"><strong>Session:</strong> $safeSSession</div>
+                <div class="info-line"><strong>Dept.:</strong> $safeSDept</div>
             """.trimIndent()
         }
 
@@ -513,10 +533,10 @@ class CoverPageActivity : AppCompatActivity() {
                         <div class="univ-header">GOPALGANJ SCIENCE &amp; TECHNOLOGY UNIVERSITY</div>
                         <div class="univ-location">GOPALGANJ-8100</div>
 
-                        <div class="topic-header">$headerType</div>
+                        <div class="topic-header">$safeHeaderType</div>
                         <div class="divider"></div>
 
-                        ${if (topic.isNotBlank()) "<div class=\"topic-text\">$topic</div>" else ""}
+                        ${if (topic.isNotBlank()) "<div class=\"topic-text\">$safeTopic</div>" else ""}
 
                         <div class="course-line"><strong>Course:</strong> $courseFormatted</div>
 
@@ -527,9 +547,9 @@ class CoverPageActivity : AppCompatActivity() {
                             <div class="col-divider"></div>
                             <div class="col-right">
                                 <div class="col-title">Submitted To</div>
-                                <div class="info-line"><strong>Name:</strong> $tName</div>
-                                <div class="info-line"><strong>Designation:</strong> $tDesig</div>
-                                <div class="info-line"><strong>Dept.:</strong> $tDept</div>
+                                <div class="info-line"><strong>Name:</strong> $safeTName</div>
+                                <div class="info-line"><strong>Designation:</strong> $safeTDesig</div>
+                                <div class="info-line"><strong>Dept.:</strong> $safeTDept</div>
                                 <div class="info-line"><strong>University:</strong> GSTU,</div>
                                 <div class="info-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Gopalganj-8100</div>
                             </div>
@@ -537,14 +557,20 @@ class CoverPageActivity : AppCompatActivity() {
                     </div>
 
                     <div class="submission-date">
-                        <strong>Submission Date:</strong> $submissionDate
+                        <strong>Submission Date:</strong> $safeSubmissionDate
                     </div>
                 </div>
             </body>
             </html>
         """.trimIndent()
 
-        val webView = WebView(this)
+        val webView = WebView(this).apply {
+            settings.apply {
+                javaScriptEnabled = false
+                allowFileAccess = false
+                allowContentAccess = false
+            }
+        }
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 val printManager = getSystemService(Context.PRINT_SERVICE) as? PrintManager

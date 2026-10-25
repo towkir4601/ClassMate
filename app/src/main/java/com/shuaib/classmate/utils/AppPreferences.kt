@@ -2,6 +2,7 @@
 package com.shuaib.classmate.utils
 
 import android.content.Context
+import com.shuaib.classmate.BuildConfig
 
 class AppPreferences(context: Context) {
 
@@ -42,10 +43,13 @@ class AppPreferences(context: Context) {
         return com.shuaib.classmate.models.User.slugifyDepartment(dept)
     }
 
-    fun getTestRoleOverride(): String? =
-        prefs.getString("test_role_override", null)?.takeIf { it.isNotBlank() }
+    fun getTestRoleOverride(): String? {
+        if (!BuildConfig.DEBUG) return null
+        return prefs.getString("test_role_override", null)?.takeIf { it.isNotBlank() }
+    }
 
     fun setTestRoleOverride(role: String?) {
+        if (!BuildConfig.DEBUG) return
         val editor = prefs.edit()
         if (role.isNullOrBlank()) {
             editor.remove("test_role_override")
