@@ -4,5 +4,7 @@
     android:height="1dp"
     android:viewportWidth="1"
     android:viewportHeight="1">
-    <!-- Transparent 1x1 vector ensuring zero static splash icon flash on cold start -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,0h1v1h-1z" />
 </vector>
