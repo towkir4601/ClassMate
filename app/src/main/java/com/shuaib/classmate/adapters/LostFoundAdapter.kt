@@ -248,9 +248,12 @@ class LostFoundAdapter(
 
     private fun showThreeDotMenu(anchor: View, context: Context, item: LostFoundItem) {
         val popup = PopupMenu(context, anchor)
-        // Item Given if found post, Item Found if lost post
-        val statusActionTitle = if (item.isFound) "Item Given" else "Item Found"
-        popup.menu.add(0, 1, 0, statusActionTitle)
+        val isCreatorOrAdmin = (item.reporterId.isNotBlank() && item.reporterId == currentUserId) || isAdmin
+        if (isCreatorOrAdmin && !item.isResolved) {
+            // Item Given if found post, Item Found if lost post
+            val statusActionTitle = if (item.isFound) "Item Given" else "Item Found"
+            popup.menu.add(0, 1, 0, statusActionTitle)
+        }
         popup.menu.add(0, 2, 1, "Report Post")
 
         popup.setOnMenuItemClickListener { menuItem ->

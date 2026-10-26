@@ -517,25 +517,32 @@ class LostFoundActivity : AppCompatActivity() {
             .setTitle(actionTitle)
             .setMessage(confirmMessage)
             .setPositiveButton("Confirm") { _, _ ->
-                repo.markItemResolved(item.id, status) {
-                    val notifType = if (isGiven) "item_given" else "item_found"
-                    val notifTitle = if (isGiven) "🎁 Item Given / Handed Over" else "🔍 Lost Item Recovered"
-                    val notifMessage = "$currentUserName marked \"${item.title}\" as ${if (isGiven) "Given to owner" else "Found / Recovered"}."
+                repo.markItemResolved(
+                    itemId = item.id,
+                    status = status,
+                    onSuccess = {
+                        val notifType = if (isGiven) "item_given" else "item_found"
+                        val notifTitle = if (isGiven) "🎁 Item Given / Handed Over" else "🔍 Lost Item Recovered"
+                        val notifMessage = "$currentUserName marked \"${item.title}\" as ${if (isGiven) "Given to owner" else "Found / Recovered"}."
 
-                    notificationRepo.sendNotificationToAdmins(
-                        type = notifType,
-                        title = notifTitle,
-                        message = notifMessage,
-                        postId = item.id,
-                        postType = "lost_found",
-                        actorId = currentUserId,
-                        actorName = currentUserName
-                    )
+                        notificationRepo.sendNotificationToAdmins(
+                            type = notifType,
+                            title = notifTitle,
+                            message = notifMessage,
+                            postId = item.id,
+                            postType = "lost_found",
+                            actorId = currentUserId,
+                            actorName = currentUserName
+                        )
 
-                    Toast.makeText(this, "Marked as $actionTitle! Admins notified.", Toast.LENGTH_LONG).show()
-                    allItems = allItems.map { if (it.id == item.id) it.copy(isResolved = true, resolvedStatus = status) else it }
-                    applyFilters()
-                }
+                        Toast.makeText(this, "Marked as $actionTitle! Admins notified.", Toast.LENGTH_LONG).show()
+                        allItems = allItems.map { if (it.id == item.id) it.copy(isResolved = true, resolvedStatus = status) else it }
+                        applyFilters()
+                    },
+                    onFailure = { err ->
+                        Toast.makeText(this, "Failed to update status: ${err.message}", Toast.LENGTH_LONG).show()
+                    }
+                )
             }
             .setNegativeButton("Cancel", null)
             .show()

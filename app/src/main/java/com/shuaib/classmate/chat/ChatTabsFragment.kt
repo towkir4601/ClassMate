@@ -80,9 +80,12 @@ class ChatTabsFragment : Fragment() {
         binding.viewPager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 if (!isTeacher && position == 1) {
-                    ChatRepository.enterRoom(ChatRepository.groupRoomId)
-                    ChatUnreadManager.markRoomSeen(ChatRepository.groupRoomId)
+                    val roomId = ChatRepository.currentGroupRoomId
+                    ChatRepository.enterRoom(roomId)
+                    ChatUnreadManager.markRoomSeen(roomId)
                     binding.tabLayout.getTabAt(1)?.removeBadge()
+                    val fragment = childFragmentManager.findFragmentByTag("f1") as? GroupChatFragment
+                    fragment?.refreshRoom()
                 }
             }
         })
@@ -94,7 +97,7 @@ class ChatTabsFragment : Fragment() {
                 if (!isTeacher) {
                     val isGroupTabActive = binding.viewPager.currentItem == 1
                     if (isGroupTabActive) {
-                        ChatUnreadManager.markRoomSeen(ChatRepository.groupRoomId)
+                        ChatUnreadManager.markRoomSeen(ChatRepository.currentGroupRoomId)
                     }
                     val groupUnread = if (isGroupTabActive) 0 else {
                         rooms.filter { it.type == "group" }

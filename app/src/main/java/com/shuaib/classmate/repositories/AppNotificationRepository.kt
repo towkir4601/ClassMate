@@ -129,7 +129,7 @@ class AppNotificationRepository {
                     doc.toObject(AppNotification::class.java)?.copy(id = doc.id)
                 }
 
-                val merged = (localNotifications + remote)
+                val merged = (remote + localNotifications)
                     .distinctBy { it.id }
                     .filter { n ->
                         if (isAdmin) {
@@ -148,24 +148,51 @@ class AppNotificationRepository {
      * Mark a single notification as read by this user.
      */
     fun markAsRead(notificationId: String, userId: String) {
-        collection.document(notificationId).update(
-            "isRead", true,
-            "readBy", FieldValue.arrayUnion(userId)
-        )
+        synchronized(localNotifications) {
+            val idx = localNotifications.indexOfFirst { it.id == notificationId }
+            if (idx >= 0) {
+                val item = localNotifications[idx]
+                val newReadBy = if (userId.isNotBlank() && !item.readBy.contains(userId)) item.readBy + userId else item.readBy
+                localNotifications[idx] = item.copy(isRead = true, readBy = newReadBy)
+            }
+        }
+        val updates = mutableMapOf<String, Any>("isRead" to true)
+        if (userId.isNotBlank()) {
+            updates["readBy"] = FieldValue.arrayUnion(userId)
+        }
+        collection.document(notificationId).update(updates)
+            .addOnFailureListener { e ->
+                android.util.Log.e("AppNotifRepo", "Failed to mark as read: ${e.message}", e)
+            }
     }
 
     /**
      * Mark all given notifications as read.
      */
     fun markAllAsRead(notifications: List<AppNotification>, userId: String) {
+        val notifIds = notifications.map { it.id }.toSet()
+        synchronized(localNotifications) {
+            for (i in localNotifications.indices) {
+                if (localNotifications[i].id in notifIds) {
+                    val item = localNotifications[i]
+                    val newReadBy = if (userId.isNotBlank() && !item.readBy.contains(userId)) item.readBy + userId else item.readBy
+                    localNotifications[i] = item.copy(isRead = true, readBy = newReadBy)
+                }
+            }
+        }
+        if (notifications.isEmpty()) return
         val batch = firestore.batch()
         for (n in notifications) {
             val docRef = collection.document(n.id)
-            batch.update(docRef, "isRead", true)
+            val updates = mutableMapOf<String, Any>("isRead" to true)
             if (userId.isNotBlank()) {
-                batch.update(docRef, "readBy", FieldValue.arrayUnion(userId))
+                updates["readBy"] = FieldValue.arrayUnion(userId)
             }
+            batch.update(docRef, updates)
         }
         batch.commit()
+            .addOnFailureListener { e ->
+                android.util.Log.e("AppNotifRepo", "Failed to mark all as read: ${e.message}", e)
+            }
     }
 }

@@ -322,6 +322,7 @@ service cloud.firestore {
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "image/png",
         "image/jpeg",
+        "image/jpg",
         "image/webp",
         "application/zip",
         "application/octet-stream"
@@ -1255,12 +1256,8 @@ service cloud.firestore {
         (roomId.matches("^group_.*") && (
           isSuperAdmin() ||
           isAdmin() ||
-          // a) It is group_main (with existing teacher/all fallback rules)
-          (roomId == "group_main" && (
-            getRole() == "teacher" ||
-            userBatchMatchesRoom(roomId) ||
-            (userExists() && (!("batch" in getUser()) || getUser().batch == "" || getUser().batch == null || getUser().batch == "main"))
-          )) ||
+          // a) It is group_main (accessible to all logged-in students/teachers)
+          (roomId == "group_main") ||
           // b) Batch-matched rooms (legacy group_batch_${batch} or department-slugged group_.*_batch_${batch})
           userBatchMatchesRoom(roomId) ||
           // c) Caller is an assigned teacher/admin for that department
@@ -1315,11 +1312,14 @@ service cloud.firestore {
       allow create: if isLoggedIn()
         && request.resource.data.reporterId == request.auth.uid;
 
-      // 3. Post creator or admins/superadmins can update the item (e.g. mark as resolved)
+      // 3. Post creator or admins/superadmins can update the item (e.g. mark as resolved), or any user for social interactions
       allow update: if isLoggedIn() && (
         resource.data.reporterId == request.auth.uid ||
         isAdmin() ||
-        isSuperAdmin()
+        isSuperAdmin() ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'viewsCount', 'viewers', 'loveCount', 'loveReactors', 'sharesCount', 'reportedCount', 'reportedBy'
+        ])
       );
 
       // 4. Post creator, admins/superadmins, unassigned items, resolved items, or any logged-in user for expired items (> 15 days) can delete
@@ -1585,10 +1585,6 @@ service cloud.firestore {
       );
     }
 
-    // ── Lost & Found ──────────────────────────────────────────────────────────
-    match /lost_and_found/{itemId} {
-      allow read, write: if true;
-    }
 
     match /{document=**} {
       allow read, write: if false;

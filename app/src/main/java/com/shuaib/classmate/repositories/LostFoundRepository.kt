@@ -64,7 +64,7 @@ class LostFoundRepository {
 
                 val localActive = localItems.filter { !it.isResolved && !isDeletedLocally(it.id) }
                 val availableSamples = sampleItems.filter { !isDeletedLocally(it.id) }
-                val merged = (localActive + activeList + availableSamples)
+                val merged = (activeList + localActive + availableSamples)
                     .filter { !isDeletedLocally(it.id) && !it.isResolved }
                     .distinctBy { it.id }
                 onResult(merged.take(limit.toInt()))
@@ -118,7 +118,7 @@ class LostFoundRepository {
                 // Local items: show all active non-resolved ones immediately
                 val localActive = localItems.filter { !it.isResolved && !isDeletedLocally(it.id) }
                 val availableSamples = sampleItems.filter { !isDeletedLocally(it.id) }
-                val merged = (localActive + activeList + availableSamples)
+                val merged = (activeList + localActive + availableSamples)
                     .filter { !isDeletedLocally(it.id) && !it.isResolved }
                     .distinctBy { it.id }
                 onResult(merged)
@@ -173,7 +173,7 @@ class LostFoundRepository {
 
         docRef.set(toSave)
             .addOnSuccessListener { onSuccess(docRef.id) }
-            .addOnFailureListener { onSuccess(docRef.id) }
+            .addOnFailureListener { onFailure(it) }
     }
 
     fun markResolved(
@@ -182,9 +182,15 @@ class LostFoundRepository {
         onFailure: (Exception) -> Unit
     ) {
         markDeletedLocally(itemId)
+        synchronized(localItems) {
+            val idx = localItems.indexOfFirst { it.id == itemId }
+            if (idx >= 0) {
+                localItems[idx] = localItems[idx].copy(isResolved = true)
+            }
+        }
         collection.document(itemId).update("isResolved", true)
             .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { onSuccess() }
+            .addOnFailureListener { onFailure(it) }
     }
 
     fun deleteItem(
@@ -195,10 +201,7 @@ class LostFoundRepository {
         markDeletedLocally(itemId)
         collection.document(itemId).delete()
             .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener {
-                collection.document(itemId).update("isResolved", true)
-                onSuccess()
-            }
+            .addOnFailureListener { onFailure(it) }
     }
 
     /** Record a post view (from guest or logged in user) */
@@ -248,14 +251,29 @@ class LostFoundRepository {
     }
 
     /** Mark item resolved with specific status: "item_given" or "item_found" */
-    fun markItemResolved(itemId: String, status: String, onSuccess: () -> Unit = {}) {
+    fun markItemResolved(
+        itemId: String,
+        status: String,
+        onSuccess: () -> Unit = {},
+        onFailure: (Exception) -> Unit = {}
+    ) {
+        markDeletedLocally(itemId)
+        synchronized(localItems) {
+            val idx = localItems.indexOfFirst { it.id == itemId }
+            if (idx >= 0) {
+                localItems[idx] = localItems[idx].copy(isResolved = true, resolvedStatus = status)
+            }
+        }
         val updates = mapOf(
             "isResolved" to true,
             "resolvedStatus" to status
         )
         collection.document(itemId).update(updates)
             .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { onSuccess() }
+            .addOnFailureListener { e ->
+                android.util.Log.e("LostFoundRepo", "Failed to update resolved status: ${e.message}", e)
+                onFailure(e)
+            }
     }
 
     /** Report post for spam/inappropriate content */

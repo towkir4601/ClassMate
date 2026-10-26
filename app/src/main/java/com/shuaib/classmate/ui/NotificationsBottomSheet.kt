@@ -66,7 +66,10 @@ class NotificationsBottomSheet : BottomSheetDialogFragment() {
 
         binding.btnMarkAllRead.setOnClickListener {
             notificationRepo.markAllAsRead(allNotifications, currentUserId)
-            allNotifications = allNotifications.map { it.copy(isRead = true) }
+            allNotifications = allNotifications.map {
+                val newReadBy = if (currentUserId.isNotBlank() && !it.readBy.contains(currentUserId)) it.readBy + currentUserId else it.readBy
+                it.copy(isRead = true, readBy = newReadBy)
+            }
             applyFilter()
         }
 

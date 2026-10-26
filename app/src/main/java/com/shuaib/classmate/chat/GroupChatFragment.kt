@@ -56,6 +56,8 @@ class GroupChatFragment : Fragment() {
     private var _binding: FragmentGroupChatBinding? = null
     private val binding get() = _binding!!
 
+    private val groupRoomId: String get() = ChatRepository.currentGroupRoomId
+
     private var adapter: ChatAdapter? = null
     private var isAdmin = false
 
@@ -69,6 +71,15 @@ class GroupChatFragment : Fragment() {
     private var emptySearchToastShownFor: String? = null
 
     private var voiceRecorderHelper: VoiceRecorderHelper? = null
+
+    fun refreshRoom() {
+        val targetRoom = groupRoomId
+        if (targetRoom.isNotBlank() && _binding != null) {
+            binding.ivToolbarAvatar.background = AvatarUtils.circle(targetRoom)
+            viewModel.openRoom(targetRoom)
+            ChatRepository.enterRoom(targetRoom)
+        }
+    }
 
     private val recordAudioPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -103,7 +114,7 @@ class GroupChatFragment : Fragment() {
 
 
         binding.ivToolbarAvatar.setImageDrawable(null)
-        binding.ivToolbarAvatar.background = AvatarUtils.circle(com.shuaib.classmate.chat.ChatRepository.groupRoomId)
+        binding.ivToolbarAvatar.background = AvatarUtils.circle(groupRoomId)
 
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
         adapter = ChatAdapter(
@@ -115,7 +126,7 @@ class GroupChatFragment : Fragment() {
             onEditClick = { startEdit(it) },
             onForwardClick = { message -> chooseForwardTarget(message) },
             onPinClick = { message, pin -> viewModel.pinMessage(message.id, pin) },
-            onVotePoll = { message, optIdx -> viewModel.votePoll(com.shuaib.classmate.chat.ChatRepository.groupRoomId, message.id, optIdx) }
+            onVotePoll = { message, optIdx -> viewModel.votePoll(groupRoomId, message.id, optIdx) }
         )
         
         binding.rvMessages.apply {
@@ -180,7 +191,7 @@ class GroupChatFragment : Fragment() {
         
         binding.btnUnpin.setOnClickListener { latestPinned?.let { viewModel.pinMessage(it.id, false) } }
         
-        binding.etMessage.addTextChangedListener(typingWatcher(com.shuaib.classmate.chat.ChatRepository.groupRoomId))
+        binding.etMessage.addTextChangedListener(typingWatcher(groupRoomId))
         binding.etMessage.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEND) {
                 sendCurrentMessage()
@@ -210,8 +221,8 @@ class GroupChatFragment : Fragment() {
             if (cachedDept.isNotBlank()) {
                 com.shuaib.classmate.chat.ChatRepository.userDepartment = cachedDept
             }
-            viewModel.openRoom(com.shuaib.classmate.chat.ChatRepository.groupRoomId)
-            ChatRepository.enterRoom(com.shuaib.classmate.chat.ChatRepository.groupRoomId)
+            viewModel.openRoom(groupRoomId)
+            ChatRepository.enterRoom(groupRoomId)
         }
         
         // Fetch fresh batch & department asynchronously
@@ -240,23 +251,23 @@ class GroupChatFragment : Fragment() {
                     prefs.setUserDepartment(dept)
                     com.shuaib.classmate.chat.ChatRepository.userDepartment = dept
                 }
-                viewModel.openRoom(com.shuaib.classmate.chat.ChatRepository.groupRoomId)
-                ChatRepository.enterRoom(com.shuaib.classmate.chat.ChatRepository.groupRoomId)
+                viewModel.openRoom(groupRoomId)
+                ChatRepository.enterRoom(groupRoomId)
             }
         }
     }
 
     override fun onResume() {
         super.onResume()
-        if (com.shuaib.classmate.chat.ChatRepository.userBatch.isNotBlank()) {
-            ChatRepository.enterRoom(com.shuaib.classmate.chat.ChatRepository.groupRoomId)
+        if (groupRoomId.isNotBlank()) {
+            refreshRoom()
         }
     }
 
     override fun onPause() {
         super.onPause()
-        if (com.shuaib.classmate.chat.ChatRepository.userBatch.isNotBlank()) {
-            ChatRepository.leaveRoom(com.shuaib.classmate.chat.ChatRepository.groupRoomId)
+        if (groupRoomId.isNotBlank()) {
+            ChatRepository.leaveRoom(groupRoomId)
         }
     }
 
@@ -276,7 +287,7 @@ class GroupChatFragment : Fragment() {
                 }
                 launch {
                     viewModel.historyLoaded.collect { roomId ->
-                        if (roomId == com.shuaib.classmate.chat.ChatRepository.groupRoomId) {
+                        if (roomId == groupRoomId) {
                             refreshTimeoutJob?.cancel()
                             binding.swipeRefresh.isRefreshing = false
                         }
@@ -284,7 +295,7 @@ class GroupChatFragment : Fragment() {
                 }
                 launch {
                     viewModel.rooms.collect { rooms ->
-                        val count = rooms.firstOrNull { it.id == com.shuaib.classmate.chat.ChatRepository.groupRoomId }?.memberCount ?: 24
+                        val count = rooms.firstOrNull { it.id == groupRoomId }?.memberCount ?: 24
                         binding.tvOnlineStatus.text = "$count members"
                     }
                 }
@@ -302,7 +313,7 @@ class GroupChatFragment : Fragment() {
                 }
                 launch {
                     viewModel.typingEvent.collect { event ->
-                        if (event.roomId == com.shuaib.classmate.chat.ChatRepository.groupRoomId && event.userId != FirebaseAuth.getInstance().currentUser?.uid) {
+                        if (event.roomId == groupRoomId && event.userId != FirebaseAuth.getInstance().currentUser?.uid) {
                             showTyping("${event.userName} is typing...")
                         }
                     }
@@ -491,7 +502,7 @@ class GroupChatFragment : Fragment() {
                         finalUri,
                         "classmate/chat",
                         onSuccess = { url, _ ->
-                            viewModel.sendImage(com.shuaib.classmate.chat.ChatRepository.groupRoomId, url, caption)
+                            viewModel.sendImage(groupRoomId, url, caption)
                             completed++
                             if (completed == total && _binding != null) {
                                 binding.imageUploadOverlay.visibility = View.GONE
@@ -596,7 +607,7 @@ class GroupChatFragment : Fragment() {
         sheetView.findViewById<View>(R.id.btnAttachPoll)?.setOnClickListener {
             dialog.dismiss()
             ChatAttachmentDialogs.showCreatePoll(requireContext()) { question, options ->
-                viewModel.sendPoll(com.shuaib.classmate.chat.ChatRepository.groupRoomId, question, options)
+                viewModel.sendPoll(groupRoomId, question, options)
             }
         }
         sheetView.findViewById<View>(R.id.btnAttachContact)?.setOnClickListener {
@@ -604,7 +615,7 @@ class GroupChatFragment : Fragment() {
             val userList = viewModel.users.value
             if (userList.isNotEmpty()) {
                 ChatAttachmentDialogs.showContactPicker(requireContext(), userList) { selectedUser ->
-                    viewModel.sendContact(com.shuaib.classmate.chat.ChatRepository.groupRoomId, selectedUser.name, selectedUser.email, selectedUser.role)
+                    viewModel.sendContact(groupRoomId, selectedUser.name, selectedUser.email, selectedUser.role)
                 }
             } else {
                 Toast.makeText(requireContext(), "No contacts available", Toast.LENGTH_SHORT).show()
@@ -666,7 +677,7 @@ class GroupChatFragment : Fragment() {
                 if (_binding != null) {
                     binding.imageUploadOverlay.visibility = View.GONE
                 }
-                viewModel.sendVoiceNote(com.shuaib.classmate.chat.ChatRepository.groupRoomId, secureUrl, durationSec)
+                viewModel.sendVoiceNote(groupRoomId, secureUrl, durationSec)
                 file.delete()
             },
             onFailure = {

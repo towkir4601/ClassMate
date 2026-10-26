@@ -39,7 +39,10 @@ class DmRoomsFragment : Fragment() {
         adapter = ChatListAdapter { item ->
             if (item is ChatListItem.Room) {
                 if (item.room.type == "group") {
-                    (parentFragment as? ChatTabsFragment)?.switchToTab(1)
+                    ChatRepository.activeGroupRoomId = item.room.id
+                    val parent = (parentFragment as? ChatTabsFragment)
+                    parent?.switchToTab(1)
+                    (parent?.childFragmentManager?.findFragmentByTag("f1") as? GroupChatFragment)?.refreshRoom()
                 } else {
                     (requireActivity() as MainActivity).openChildDestination(R.id.nav_chat,
                         R.id.fragment_dm_chat,

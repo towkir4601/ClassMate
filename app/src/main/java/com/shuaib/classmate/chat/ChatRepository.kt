@@ -89,6 +89,8 @@ object ChatRepository {
 
     var userBatch: String = ""
     var userDepartment: String = ""
+    var activeGroupRoomId: String? = null
+
     val groupRoomId: String
         get() {
             val deptSlug = com.shuaib.classmate.models.User.slugifyDepartment(userDepartment)
@@ -99,6 +101,22 @@ object ChatRepository {
                 deptSlug.isNotBlank() -> "group_${deptSlug}_main"
                 else -> "group_main"
             }
+        }
+
+    val currentGroupRoomId: String
+        get() {
+            activeGroupRoomId?.let { return it }
+            val computed = groupRoomId
+            val groupRooms = _rooms.value.filter { it.type == "group" }
+            val computedRoom = groupRooms.firstOrNull { it.id == computed }
+            if (computedRoom != null && computedRoom.lastMessage.isNotBlank()) {
+                return computed
+            }
+            val mainGroup = groupRooms.firstOrNull { it.id == "group_main" }
+            if (mainGroup != null && mainGroup.lastMessage.isNotBlank()) {
+                return "group_main"
+            }
+            return computed
         }
 
     fun init(context: Context, userId: String, userName: String?, avatarUrl: String?) {
@@ -604,7 +622,7 @@ object ChatRepository {
                     val isTeacher = currentUserRole == "teacher"
                     val userRooms = allRooms.filter { 
                         if (it.type == "group") {
-                            !isTeacher && (it.id == groupRoomId || it.id == "group_main")
+                            !isTeacher && (it.id == groupRoomId || it.id == "group_main" || (activeGroupRoomId != null && it.id == activeGroupRoomId))
                         } else {
                             it.member1Id == userId || it.member2Id == userId 
                         }
