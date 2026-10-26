@@ -25,6 +25,22 @@ class EditProfileActivity : AppCompatActivity() {
         
         loadUserProfile()
         
+        val openDeptPicker = {
+            com.shuaib.classmate.ui.DepartmentPickerBottomSheet.show(
+                supportFragmentManager,
+                "Select Department",
+                binding.etDepartment.text.toString().trim()
+            ) { chosen ->
+                binding.etDepartment.setText(chosen)
+            }
+        }
+        binding.etDepartment.isFocusable = false
+        binding.etDepartment.isFocusableInTouchMode = false
+        binding.etDepartment.isCursorVisible = false
+        binding.etDepartment.isClickable = true
+        binding.etDepartment.setOnClickListener { openDeptPicker() }
+        binding.tilDepartment.setEndIconOnClickListener { openDeptPicker() }
+
         binding.btnSave.setOnClickListener {
             saveUserProfile()
         }

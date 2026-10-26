@@ -522,7 +522,7 @@ class HomeFragment : Fragment() {
     private fun updateTopAlertPausePlayButton() {
         if (_binding == null) return
         if (isTopAlertManuallyPaused) {
-            binding.btnTopAlertPausePlay.setImageResource(R.drawable.ic_carousel_play)
+            binding.btnTopAlertPausePlay.setImageResource(R.drawable.ic_play_arrow)
             binding.btnTopAlertPausePlay.contentDescription = "Resume alert animation"
         } else {
             binding.btnTopAlertPausePlay.setImageResource(R.drawable.ic_carousel_pause)
@@ -598,7 +598,7 @@ class HomeFragment : Fragment() {
     private fun updateHeroPausePlayButton() {
         if (_binding == null) return
         if (isHeroManuallyPaused) {
-            binding.btnHeroPausePlay.setImageResource(R.drawable.ic_carousel_play)
+            binding.btnHeroPausePlay.setImageResource(R.drawable.ic_play_arrow)
             binding.btnHeroPausePlay.contentDescription = "Resume card animation"
         } else {
             binding.btnHeroPausePlay.setImageResource(R.drawable.ic_carousel_pause)

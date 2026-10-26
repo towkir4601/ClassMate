@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rootDeptItem"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="12dp">
+
+    <!-- Acronym Badge -->
+    <TextView
+        android:id="@+id/tvDeptAcronym"
+        android:layout_width="54dp"
+        android:layout_height="34dp"
+        android:background="@drawable/bg_dept_acronym_pill"
+        android:gravity="center"
+        android:textColor="@color/cm_primary"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        tools:text="CSE" />
+
+    <!-- Department Title & Faculty -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="14dp"
+        android:layout_marginEnd="8dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvDeptName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textColor="@color/cm_text_primary"
+            android:textSize="14.5sp"
+            android:textStyle="bold"
+            tools:text="Computer Science and Engineering" />
+
+        <TextView
+            android:id="@+id/tvDeptFaculty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:singleLine="true"
+            android:textColor="@color/cm_text_muted"
+            android:textSize="12sp"
+            tools:text="Faculty of Engineering" />
+    </LinearLayout>
+
+    <!-- Selected Checkmark -->
+    <ImageView
+        android:id="@+id/ivSelectedCheck"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:src="@drawable/ic_check"
+        android:visibility="gone"
+        app:tint="@color/cm_primary"
+        tools:visibility="visible" />
+
+</LinearLayout>

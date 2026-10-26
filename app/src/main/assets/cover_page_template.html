@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{document_heading}}</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 12mm 14mm;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        .page-frame {
+            border: 1.5px solid #000000;
+            padding: 30px 26px;
+            min-height: 960px;
+            box-sizing: border-box;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        /* Top University Header (Blue) */
+        .univ-header {
+            color: #2362A2;
+            font-size: 18.5px;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-align: center;
+            line-height: 1.35;
+            margin: 0 0 16px 0;
+            letter-spacing: 0.3px;
+        }
+
+        /* University Logo (Square green graphic) */
+        .univ-logo {
+            width: 108px;
+            height: 108px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto 16px auto;
+        }
+
+        /* Subheading: Lab Report or Assignment On */
+        .doc-heading {
+            color: #2362A2;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            margin: 0 0 4px 0;
+        }
+
+        .doc-topic {
+            color: #0F172A;
+            font-size: 15px;
+            font-weight: bold;
+            text-align: center;
+            margin: 4px auto 8px auto;
+            max-width: 90%;
+            line-height: 1.35;
+        }
+
+        /* Blue Horizontal Divider */
+        .blue-divider {
+            width: 58%;
+            height: 2px;
+            background-color: #2362A2;
+            margin: 12px auto 28px auto;
+        }
+
+        /* Course Information */
+        .course-section {
+            text-align: left;
+            font-size: 14.5px;
+            line-height: 1.65;
+            margin-bottom: 24px;
+        }
+
+        .course-row {
+            margin-bottom: 4px;
+        }
+
+        .course-label {
+            font-weight: bold;
+        }
+
+        .course-val {
+            font-weight: normal;
+        }
+
+        /* Two-Column Information Table */
+        .submission-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #000000;
+            margin-bottom: 32px;
+        }
+
+        .submission-table th {
+            border: 1px solid #000000;
+            padding: 7px 10px;
+            font-size: 14.5px;
+            font-weight: bold;
+            text-align: center;
+            width: 50%;
+        }
+
+        .submission-table td {
+            border: 1px solid #000000;
+            padding: 12px 14px;
+            vertical-align: top;
+            font-size: 14px;
+            line-height: 1.65;
+            width: 50%;
+        }
+
+        .item-row {
+            margin-bottom: 3px;
+        }
+
+        .item-label {
+            font-weight: bold;
+        }
+
+        .item-val {
+            font-weight: normal;
+        }
+
+        .inst-footer {
+            margin-top: 3px;
+        }
+
+        /* Submission Date */
+        .submission-date-section {
+            text-align: left;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 6px;
+        }
+
+        .date-val {
+            font-weight: normal;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-frame">
+        <!-- University Header -->
+        <div class="univ-header">
+            {{university}}<br>
+            {{university_location}}
+        </div>
+
+        <!-- University Logo -->
+        <img class="univ-logo" src="{{logo_src}}" alt="GSTU Official Logo" />
+
+        <!-- Subheading (Lab Report or Assignment On) -->
+        <div class="doc-heading">{{document_heading}}</div>
+        {{optional_topic_html}}
+
+        <!-- Blue Divider Line -->
+        <div class="blue-divider"></div>
+
+        <!-- Course Information -->
+        <div class="course-section">
+            <div class="course-row">
+                <span class="course-label">COURSE TITLE:</span>
+                <span class="course-val">{{course_title}}</span>
+            </div>
+            <div class="course-row">
+                <span class="course-label">COURSE CODE:</span>
+                <span class="course-val">{{course_code}}</span>
+            </div>
+        </div>
+
+        <!-- Two Column Table -->
+        <table class="submission-table">
+            <thead>
+                <tr>
+                    <th>Submitted By</th>
+                    <th>Submitted To</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        {{submitted_by_content}}
+                    </td>
+                    <td>
+                        {{submitted_to_content}}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Submission Date -->
+        <div class="submission-date-section">
+            Submission Date: <span class="date-val">{{submission_date}}</span>
+        </div>
+    </div>
+</body>
+</html>

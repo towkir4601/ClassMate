@@ -70,11 +70,15 @@
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilDepartment"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                android:hint="Department (e.g. CSE)"
+                android:hint="Department"
+                app:endIconMode="custom"
+                app:endIconDrawable="@drawable/ic_arrow_down"
+                app:endIconTint="@color/cm_text_muted"
                 app:boxBackgroundColor="@color/cm_surface"
                 app:boxCornerRadiusBottomEnd="16dp"
                 app:boxCornerRadiusBottomStart="16dp"

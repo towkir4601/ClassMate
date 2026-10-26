@@ -33,7 +33,7 @@ object FileVisuals {
 
             // Sheets (XLS/XLSX)
             extension in listOf("xls", "xlsx") || type.contains("xls") || mime.contains("sheet") || mime.contains("excel") ->
-                VisualType("XLS", R.drawable.ic_file_xls, R.drawable.bg_library_file_icon_green, Color.parseColor("#34D399"))
+                VisualType("XLS", R.drawable.ic_result, R.drawable.bg_library_file_icon_green, Color.parseColor("#34D399"))
 
             // Images
             extension in listOf("jpg", "jpeg", "png", "webp") || mime.startsWith("image/") ->

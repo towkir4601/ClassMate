@@ -460,6 +460,12 @@ class EventsClubsActivity : AppCompatActivity() {
         if (currentUserEmail.isNotBlank()) etEmail.setText(currentUserEmail)
         if (currentUserPhone.isNotBlank()) etPhone.setText(currentUserPhone)
 
+        com.shuaib.classmate.utils.GstuDepartments.attachPicker(
+            etDept,
+            supportFragmentManager,
+            "Select Department"
+        ) {}
+
         btnSubmit.setOnClickListener {
             val name = etFullName.text.toString().trim()
             val dept = etDept.text.toString().trim()
@@ -695,6 +701,12 @@ class EventsClubsActivity : AppCompatActivity() {
         if (currentUserStudentId.isNotBlank()) etStudentId.setText(currentUserStudentId)
         if (currentUserEmail.isNotBlank()) etEmail.setText(currentUserEmail)
         if (currentUserPhone.isNotBlank()) etPhone.setText(currentUserPhone)
+
+        com.shuaib.classmate.utils.GstuDepartments.attachPicker(
+            etDepartment,
+            supportFragmentManager,
+            "Select Department"
+        ) {}
 
         btnSubmit.setOnClickListener {
             val name = etFullName.text.toString().trim()

@@ -61,20 +61,67 @@
         app:layout_constraintStart_toStartOf="parent"
         app:menu="@menu/bottom_nav_menu" />
 
+    <!-- Floating Chat Button (WhatsApp / Signal style) with unread badge -->
+    <FrameLayout
+        android:id="@+id/layoutFabChat"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/bottom_nav"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabChat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="Friend and Chat feed"
+            android:src="@drawable/ic_signal_chat"
+            app:backgroundTint="@color/signal_blue"
+            app:elevation="6dp"
+            app:fabSize="normal"
+            app:hoveredFocusedTranslationZ="2dp"
+            app:maxImageSize="28dp"
+            app:pressedTranslationZ="4dp"
+            app:tint="@color/white" />
+
+        <TextView
+            android:id="@+id/tvChatBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="-3dp"
+            android:layout_marginEnd="-3dp"
+            android:background="@drawable/bg_chat_unread_badge"
+            android:elevation="8dp"
+            android:gravity="center"
+            android:minWidth="20dp"
+            android:minHeight="20dp"
+            android:paddingHorizontal="5dp"
+            android:textColor="@color/white"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+    </FrameLayout>
+
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabGlobalAdd"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="20dp"
-        android:layout_marginBottom="20dp"
+        android:layout_marginBottom="12dp"
         android:src="@drawable/ic_add"
         app:backgroundTint="@color/cm_primary"
         app:elevation="6dp"
+        app:fabSize="mini"
         app:hoveredFocusedTranslationZ="2dp"
         app:pressedTranslationZ="4dp"
         app:tint="@color/cm_on_primary"
         android:visibility="gone"
-        app:layout_constraintBottom_toTopOf="@id/bottom_nav"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintBottom_toTopOf="@id/layoutFabChat"
+        app:layout_constraintStart_toStartOf="@id/layoutFabChat"
+        app:layout_constraintEnd_toEndOf="@id/layoutFabChat" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

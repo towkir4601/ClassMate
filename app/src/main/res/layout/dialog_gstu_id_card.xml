@@ -1,0 +1,351 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_bottom_sheet_surface"
+    android:padding="20dp">
+
+    <!-- Drag Handle -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_sheet_drag_handle" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Official Member Identity Card"
+        android:textColor="@color/cm_text_primary"
+        android:textSize="17sp"
+        android:fontFamily="sans-serif-medium"
+        android:textStyle="bold"
+        android:layout_gravity="center_horizontal" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Verified digital campus identity for GSTU members"
+        android:textColor="@color/cm_text_secondary"
+        android:textSize="12sp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="16dp" />
+
+    <!-- THE GSTU ID CARD VIEW TO BE CAPTURED AS IMAGE -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardIdContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardCornerRadius="20dp"
+        app:cardElevation="6dp"
+        app:strokeWidth="1.2dp"
+        app:strokeColor="#1E3A8A"
+        app:cardBackgroundColor="#0F172A">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Card Header: GSTU Logo & Bilingual Title -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="#1E293B"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="10dp">
+
+                <ImageView
+                    android:id="@+id/ivCardLogo"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:src="@drawable/logo_gstu_crest"
+                    android:contentDescription="GSTU Logo" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="10dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="GOPALGANJ SCIENCE &amp; TECH UNIVERSITY"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11.5sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.03" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="গোপালগঞ্জ বিজ্ঞান ও প্রযুক্তি বিশ্ববিদ্যালয়"
+                        android:textColor="#94A3B8"
+                        android:textSize="9.5sp"
+                        android:layout_marginTop="1dp" />
+
+                    <TextView
+                        android:id="@+id/tvCardTypeBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:background="@drawable/bg_badge_accent_pill"
+                        android:backgroundTint="#059669"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="1.5dp"
+                        android:text="STUDENT IDENTITY CARD"
+                        android:textColor="#FFFFFF"
+                        android:textSize="8.5sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Decorative Gold/Cyan Divider -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="2.5dp"
+                android:background="@drawable/bg_premium_gradient" />
+
+            <!-- Card Main Content -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="14dp">
+
+                <!-- Left Column: Photo & Blood Group -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center_horizontal">
+
+                    <FrameLayout
+                        android:layout_width="76dp"
+                        android:layout_height="76dp">
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="@drawable/bg_profile_picture_border" />
+
+                        <de.hdodenhof.circleimageview.CircleImageView
+                            android:id="@+id/ivCardPhoto"
+                            android:layout_width="70dp"
+                            android:layout_height="70dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_default_avatar" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:id="@+id/tvCardBlood"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/bg_badge_accent_pill"
+                        android:backgroundTint="#EF4444"
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="2dp"
+                        android:text="🩸 B+"
+                        android:textColor="#FFFFFF"
+                        android:textSize="10sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvCardVerified"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="VERIFIED"
+                        android:textColor="#38BDF8"
+                        android:textSize="8sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.08" />
+                </LinearLayout>
+
+                <!-- Right Column: Student Details -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="14dp">
+
+                    <TextView
+                        android:id="@+id/tvCardName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="#FFFFFF"
+                        android:textSize="15.5sp"
+                        android:textStyle="bold"
+                        tools:text="Md. Towkir Ahmed" />
+
+                    <!-- ID / Teacher Code -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="3dp">
+                        <TextView
+                            android:id="@+id/tvCardIdLabel"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Student ID: "
+                            android:textColor="#94A3B8"
+                            android:textSize="11.5sp" />
+                        <TextView
+                            android:id="@+id/tvCardIdValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="#38BDF8"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            tools:text="21CSE045" />
+                    </LinearLayout>
+
+                    <!-- Department -->
+                    <TextView
+                        android:id="@+id/tvCardDept"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:textColor="#E2E8F0"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        tools:text="Computer Science &amp; Engineering" />
+
+                    <!-- Batch & Session -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="3dp">
+                        <TextView
+                            android:id="@+id/tvCardBatch"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="#94A3B8"
+                            android:textSize="10.5sp"
+                            tools:text="Batch: 12th" />
+                        <TextView
+                            android:id="@+id/tvCardSemester"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:textColor="#94A3B8"
+                            android:textSize="10.5sp"
+                            tools:text="• Sem: 3-2" />
+                    </LinearLayout>
+
+                    <!-- Institutional Email -->
+                    <TextView
+                        android:id="@+id/tvCardEmail"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:textColor="#94A3B8"
+                        android:textSize="10sp"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        tools:text="towkir.cse@gstu.ac.bd" />
+
+                    <!-- Phone / Contact -->
+                    <TextView
+                        android:id="@+id/tvCardPhone"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textColor="#94A3B8"
+                        android:textSize="10sp"
+                        tools:text="Tel: +880 1712-345678" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Card Bottom: Barcode Line & Verification Seal -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="#090D16"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="7dp">
+
+                <TextView
+                    android:id="@+id/tvCardBarcodeText"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="||| | ||||| || |||||| | ||||| ||| |||"
+                    android:textColor="#475569"
+                    android:textSize="11sp"
+                    android:letterSpacing="0.2"
+                    android:fontFamily="monospace" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="GSTU GO • DIGITAL ID"
+                    android:textColor="#10B981"
+                    android:textSize="8.5sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.08" />
+            </LinearLayout>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="18dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnShareImage"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:text="Share Card Image"
+            android:textColor="@color/cm_on_primary"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textAllCaps="false"
+            app:cornerRadius="14dp"
+            app:backgroundTint="@color/cm_primary"
+            app:icon="@drawable/ic_share"
+            app:iconGravity="textStart"
+            app:iconTint="@color/cm_on_primary" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnShareText"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:text="Share Card Text"
+            android:textColor="@color/cm_primary"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textAllCaps="false"
+            app:cornerRadius="14dp"
+            app:strokeColor="@color/cm_primary"
+            app:strokeWidth="1.2dp"
+            app:icon="@drawable/ic_edit"
+            app:iconGravity="textStart"
+            app:iconTint="@color/cm_primary" />
+    </LinearLayout>
+
+</LinearLayout>

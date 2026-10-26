@@ -83,10 +83,32 @@
                 android:orientation="vertical">
 
                 <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilDepartment"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Department"
+                    app:endIconMode="custom"
+                    app:endIconDrawable="@drawable/ic_arrow_down"
+                    app:endIconTint="@color/cm_text_muted"
+                    android:textColorHint="@color/cm_text_muted"
+                    app:boxStrokeColor="@color/cm_primary"
+                    app:hintTextColor="@color/cm_primary">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etDepartment"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="text"
+                        android:textColor="@color/cm_text_primary" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/tilPhone"
                     style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
                     android:hint="Phone Number"
                     android:textColorHint="@color/cm_text_muted"
                     app:boxStrokeColor="@color/cm_primary"

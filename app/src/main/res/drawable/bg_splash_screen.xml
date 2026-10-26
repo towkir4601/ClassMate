@@ -12,5 +12,5 @@
         android:width="140dp"
         android:height="140dp"
         android:gravity="center"
-        android:drawable="@drawable/ic_splash_logo" />
+        android:drawable="@drawable/logo_gstu_go" />
 </layer-list>

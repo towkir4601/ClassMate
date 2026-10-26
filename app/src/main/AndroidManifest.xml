@@ -101,6 +101,10 @@
             android:exported="false" />
 
         <activity
+            android:name=".activities.ViewProfileActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".activities.AdminPanelActivity"
             android:exported="false" />
 
@@ -125,6 +129,12 @@
             android:exported="false" />
         <activity
             android:name=".activities.CoverPageActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activities.CoverPageGeneratorActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activities.CoverPageHomeActivity"
             android:exported="false" />
         <activity
             android:name=".activities.CvMakerActivity"

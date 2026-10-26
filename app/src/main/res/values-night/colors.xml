@@ -154,4 +154,8 @@
     <color name="wa_attach_audio">#E06A3B</color>
     <color name="wa_attach_poll">#009688</color>
     <color name="wa_attach_contact">#007BFC</color>
+
+    <!-- Signal Chat Colors -->
+    <color name="signal_blue">#3B82F6</color>
+    <color name="signal_blue_dark">#2563EB</color>
 </resources>

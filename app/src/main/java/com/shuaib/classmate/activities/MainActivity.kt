@@ -180,6 +180,19 @@ class MainActivity : AppCompatActivity() {
         applyRootInsets()
         applyBottomNavInsets()
 
+        binding.fabChat.setOnClickListener {
+            HapticHelper.lightPop(it)
+            val parentTabId = if (binding.mainViewPager.isVisible) {
+                mainTabs.getOrNull(binding.mainViewPager.currentItem) ?: R.id.nav_home
+            } else {
+                childParentTabId ?: R.id.nav_home
+            }
+            val bundle = Bundle().apply {
+                putInt("initialTab", if (ChatRepository.isTeacher()) 0 else 2)
+            }
+            openChildDestination(parentTabId, R.id.nav_chat, bundle)
+        }
+
         binding.fabGlobalAdd.setOnClickListener {
             val currentTabId = if (binding.mainViewPager.isVisible) {
                 mainTabs.getOrNull(binding.mainViewPager.currentItem)
@@ -446,25 +459,31 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateFabVisibility(destinationId: Int) {
+        val showChatFab = destinationId in CHAT_FAB_TABS
+        binding.layoutFabChat.isVisible = showChatFab
         binding.fabGlobalAdd.isVisible = isAdmin && (destinationId == R.id.nav_academics || destinationId == R.id.nav_timetable)
     }
 
     private fun updateBottomChromeVisibility(destinationId: Int) {
-        bottomChromeAllowed = destinationId in MAIN_TAB_DESTINATIONS && destinationId != R.id.nav_community && destinationId != R.id.nav_chat
+        bottomChromeAllowed = destinationId in MAIN_TAB_DESTINATIONS && destinationId != R.id.nav_chat
         bottomChromeHiddenByScroll = false
         clearBottomChromeScrollBehavior()
         binding.bottomNav.animate().cancel()
         binding.fabGlobalAdd.animate().cancel()
+        binding.layoutFabChat.animate().cancel()
         binding.bottomNav.translationY = 0f
         binding.fabGlobalAdd.translationY = 0f
+        binding.layoutFabChat.translationY = 0f
         binding.bottomNav.alpha = 1f
         binding.fabGlobalAdd.alpha = 1f
+        binding.layoutFabChat.alpha = 1f
         binding.bottomNav.isVisible = bottomChromeAllowed
         if (bottomChromeAllowed) {
             updateFabVisibility(destinationId)
             attachBottomChromeScrollBehavior(destinationId)
         } else {
             binding.fabGlobalAdd.isVisible = false
+            binding.layoutFabChat.isVisible = false
         }
     }
 
@@ -512,6 +531,9 @@ class MainActivity : AppCompatActivity() {
         }
         attachedRecyclerScrollListeners.clear()
         activeScrollRoot = null
+        binding.layoutFabChat.animate().cancel()
+        binding.layoutFabChat.translationY = 0f
+        binding.layoutFabChat.alpha = 1f
     }
 
     private fun attachScrollCallbacks(view: View) {
@@ -585,6 +607,15 @@ class MainActivity : AppCompatActivity() {
 
         if (binding.fabGlobalAdd.isVisible || hidden) {
             binding.fabGlobalAdd.animate()
+                .translationY(fabOffset)
+                .alpha(if (hidden) 0f else 1f)
+                .setDuration(BOTTOM_CHROME_ANIMATION_MS)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
+                .start()
+        }
+
+        if (binding.layoutFabChat.isVisible || hidden) {
+            binding.layoutFabChat.animate()
                 .translationY(fabOffset)
                 .alpha(if (hidden) 0f else 1f)
                 .setDuration(BOTTOM_CHROME_ANIMATION_MS)
@@ -861,8 +892,11 @@ class MainActivity : AppCompatActivity() {
                 if (unread > 0) {
                     badge.isVisible = true
                     badge.number = unread
+                    binding.tvChatBadge.isVisible = true
+                    binding.tvChatBadge.text = if (unread > 99) "99+" else unread.toString()
                 } else {
                     badge.isVisible = false
+                    binding.tvChatBadge.isVisible = false
                 }
             }
         }
@@ -931,6 +965,13 @@ class MainActivity : AppCompatActivity() {
             R.id.nav_campus,
             R.id.nav_community,
             R.id.nav_profile
+        )
+
+        private val CHAT_FAB_TABS = setOf(
+            R.id.nav_home,
+            R.id.nav_academics,
+            R.id.nav_campus,
+            R.id.nav_community
         )
 
         private val TAB_DESTINATION_MAP = mapOf(

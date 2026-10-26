@@ -40,6 +40,7 @@ import com.shuaib.classmate.activities.AiSettingsActivity
 import com.shuaib.classmate.activities.UserManagementActivity
 import com.shuaib.classmate.activities.MainActivity
 import com.shuaib.classmate.activities.PostNoticeActivity
+import com.shuaib.classmate.activities.ViewProfileActivity
 import com.shuaib.classmate.adapters.PdfAdapter
 
 import com.shuaib.classmate.adapters.SubjectAdapter
@@ -146,15 +147,42 @@ class ProfileFragment : Fragment() {
             showRoleSwitcherDialog()
         }
 
+        binding.btnHeaderEditProfile.setOnClickListener {
+            HapticHelper.lightPop(it)
+            startActivity(Intent(requireContext(), EditProfileActivity::class.java))
+            requireActivity().overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+        }
 
+        binding.btnHeaderShareCard.setOnClickListener {
+            HapticHelper.lightPop(it)
+            val activeUser = currentUser ?: auth.currentUser?.let { fbUser ->
+                User(
+                    uid = fbUser.uid,
+                    name = fbUser.displayName ?: "",
+                    fullName = fbUser.displayName ?: "",
+                    email = fbUser.email ?: "",
+                    photoUrl = fbUser.photoUrl?.toString() ?: ""
+                )
+            } ?: User(
+                uid = "guest_user",
+                name = "GSTU Member",
+                email = "member@gstu.ac.bd"
+            )
+            com.shuaib.classmate.ui.GstuIdCardBottomSheet.show(childFragmentManager, activeUser)
+        }
+
+        binding.layoutViewProfile.setOnClickListener {
+            HapticHelper.lightPop(it)
+            startActivity(Intent(requireContext(), ViewProfileActivity::class.java))
+            requireActivity().overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+        }
+
+        binding.layoutSecurityInfo.applyClickAnimation {
+            showSecurityInfoDialog()
+        }
 
         binding.cardTeacherDirectory.applyClickAnimation {
             val args = android.os.Bundle().apply { putBoolean("isTeacherMode", true) }
-            (activity as? MainActivity)?.openChildDestination(R.id.nav_profile, R.id.nav_friends, args)
-        }
-        
-        binding.cardSeeFriends.applyClickAnimation {
-            val args = android.os.Bundle().apply { putBoolean("isTeacherMode", false) }
             (activity as? MainActivity)?.openChildDestination(R.id.nav_profile, R.id.nav_friends, args)
         }
 
@@ -199,9 +227,6 @@ class ProfileFragment : Fragment() {
         }
 
 
-        binding.btnEditProfile.applyClickAnimation {
-            startActivity(Intent(requireContext(), EditProfileActivity::class.java))
-        }
 
         binding.btnLogout.applyClickAnimation {
             signOut()
@@ -440,6 +465,28 @@ class ProfileFragment : Fragment() {
             .show()
     }
 
+    private fun showSecurityInfoDialog() {
+        val message = """
+            🛡️ GSTU Go Security & Privacy Architecture:
+
+            • Data in Transit: 100% of network traffic between your device and Google Cloud / Firebase Firestore is secured using TLS 1.3 encryption.
+
+            • Data at Rest: All personal profiles, academic library files, and records are encrypted using 256-bit AES (AES-256).
+
+            • Role-Based Access Control: Granular Firestore rules enforce verified roles (Super Admin, Dept Admin, Teacher, Club Admin, CR, Student) to protect records from unauthorized modification.
+
+            • Direct Messaging Privacy: All messages are cloud-encrypted. The upcoming roadmap introduces device-to-device End-to-End Encryption (E2EE) with Android KeyStore backed private keys.
+
+            Your data is strictly protected and dedicated to GSTU academic & campus community empowerment.
+        """.trimIndent()
+
+        MaterialAlertDialogBuilder(requireContext(), R.style.Theme_ClassMate_Dialog)
+            .setTitle("Data Security & Privacy")
+            .setMessage(message)
+            .setPositiveButton("Understood", null)
+            .show()
+    }
+
     private fun setupAiSettings() {
         binding.cardAiSettings.isVisible = false
     }
@@ -638,6 +685,8 @@ class ProfileFragment : Fragment() {
                             name = document.getString("name") ?: "",
                             fullName = document.getString("fullName") ?: "",
                             studentId = document.getString("studentId") ?: "",
+                            batch = document.getString("batch") ?: "",
+                            teacherCode = document.getString("teacherCode") ?: "",
                             department = document.getString("department") ?: "",
                             email = document.getString("email") ?: "",
                             phone = document.getString("phone") ?: "",
@@ -693,7 +742,14 @@ class ProfileFragment : Fragment() {
         if (_binding == null || !isAdded) return
         val activeRole = user.activeRole.lowercase()
 
-        binding.tvProfileName.text = user.name
+        val resolvedName = user.name.ifBlank {
+            user.fullName.ifBlank {
+                auth.currentUser?.displayName?.ifBlank { null }
+                    ?: user.email.substringBefore("@").replace(".", " ").split(" ")
+                        .joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
+            }
+        }
+        binding.tvProfileName.text = resolvedName.ifBlank { "GSTU Member" }
         val isVerified = user.isBlueVerified
         binding.ivVerifiedBadge.visibility = if (isVerified) View.VISIBLE else View.GONE
         binding.ivVerifiedBadge.setOnClickListener {
@@ -735,6 +791,19 @@ class ProfileFragment : Fragment() {
             user.email
         }
 
+        // Update header metadata pills
+        val deptDisplay = if (user.department.isNotBlank()) user.department else "GSTU"
+        binding.tvHeaderDeptPill.text = deptDisplay
+        binding.tvHeaderDeptPill.isVisible = true
+
+        val batchDisplay = if (user.batch.isNotBlank()) "Batch ${user.batch}" else if (user.role.equals("teacher", true)) "Faculty" else ""
+        if (batchDisplay.isNotBlank()) {
+            binding.tvHeaderBatchPill.text = batchDisplay
+            binding.tvHeaderBatchPill.isVisible = true
+        } else {
+            binding.tvHeaderBatchPill.isVisible = false
+        }
+
         val isAdmin = user.isAdmin()
         binding.adminSection.isVisible = isAdmin
 
@@ -744,8 +813,6 @@ class ProfileFragment : Fragment() {
 
         binding.dividerFriendsToggle.isVisible = false
         binding.layoutFriendsToggle.isVisible = false
-
-        updateSeeFriendsVisibility(user)
     }
 
     private fun loadProfilePicture(email: String, customUrl: String?, imageView: ImageView) {
@@ -810,13 +877,7 @@ class ProfileFragment : Fragment() {
 
                 isFriendsPublic = document?.getBoolean("isPublic") ?: false
                 binding.switchFriendsPublic.isChecked = isFriendsPublic
-                currentUser?.let { updateSeeFriendsVisibility(it) }
             }
-    }
-
-    private fun updateSeeFriendsVisibility(user: User) {
-        binding.cardSeeFriends.isVisible = true
-        binding.dividerSeeFriends.isVisible = true
     }
 
     override fun onResume() {

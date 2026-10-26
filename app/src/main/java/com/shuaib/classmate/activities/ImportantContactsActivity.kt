@@ -281,6 +281,22 @@ class ImportantContactsActivity : AppCompatActivity() {
 
         dialogBinding.btnCancel.setOnClickListener { dialog.dismiss() }
 
+        val openDeptPicker = {
+            com.shuaib.classmate.ui.DepartmentPickerBottomSheet.show(
+                supportFragmentManager,
+                "Select Department",
+                dialogBinding.etDepartment.text?.toString()?.trim().orEmpty()
+            ) { chosen ->
+                dialogBinding.etDepartment.setText(chosen)
+            }
+        }
+        dialogBinding.etDepartment.isFocusable = false
+        dialogBinding.etDepartment.isFocusableInTouchMode = false
+        dialogBinding.etDepartment.isCursorVisible = false
+        dialogBinding.etDepartment.isClickable = true
+        dialogBinding.etDepartment.setOnClickListener { openDeptPicker() }
+        dialogBinding.tilDepartment.setEndIconOnClickListener { openDeptPicker() }
+
         dialogBinding.btnSaveContact.setOnClickListener {
             val name = dialogBinding.etContactName.text?.toString()?.trim().orEmpty()
             val designation = dialogBinding.etDesignation.text?.toString()?.trim().orEmpty()

@@ -152,7 +152,10 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:hint="Department (e.g. CSE)">
+                    android:hint="Department (e.g. CSE)"
+                    app:endIconMode="custom"
+                    app:endIconDrawable="@drawable/ic_arrow_down"
+                    app:endIconTint="#FFFFFF">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etDepartment"

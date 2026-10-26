@@ -88,6 +88,7 @@ class RegisterActivity : AppCompatActivity() {
         setupKeyboardActions()
         setupStudentIdFormatting()
         setupRoleToggle()
+        setupDepartmentPicker()
         showStep(0, focus = false)
 
         binding.btnRegister.applyClickAnimation { handlePrimaryAction() }
@@ -97,6 +98,24 @@ class RegisterActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupDepartmentPicker() {
+        val openPicker = {
+            com.shuaib.classmate.ui.DepartmentPickerBottomSheet.show(
+                supportFragmentManager,
+                "Select Department",
+                binding.etDepartment.text.toString().trim()
+            ) { chosen ->
+                binding.etDepartment.setText(chosen)
+                binding.tilDepartment.error = null
+            }
+        }
+        binding.etDepartment.isFocusable = false
+        binding.etDepartment.isFocusableInTouchMode = false
+        binding.etDepartment.isCursorVisible = false
+        binding.etDepartment.isClickable = true
+        binding.etDepartment.setOnClickListener { openPicker() }
+        binding.tilDepartment.setEndIconOnClickListener { openPicker() }
+    }
 
     private fun setupRoleToggle() {
         // Optional fields expand/collapse toggle

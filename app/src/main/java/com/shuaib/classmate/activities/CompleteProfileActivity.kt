@@ -50,6 +50,22 @@ class CompleteProfileActivity : AppCompatActivity() {
     }
 
     private fun setupUI() {
+        val openDeptPicker = {
+            com.shuaib.classmate.ui.DepartmentPickerBottomSheet.show(
+                supportFragmentManager,
+                "Select Department",
+                binding.etDepartment.text.toString().trim()
+            ) { chosen ->
+                binding.etDepartment.setText(chosen)
+            }
+        }
+        binding.etDepartment.isFocusable = false
+        binding.etDepartment.isFocusableInTouchMode = false
+        binding.etDepartment.isCursorVisible = false
+        binding.etDepartment.isClickable = true
+        binding.etDepartment.setOnClickListener { openDeptPicker() }
+        binding.tilDepartment.setEndIconOnClickListener { openDeptPicker() }
+
         // Step 2 Dropdown (now Step 1)
         val bloodGroups = arrayOf("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
         val adapterBlood = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, bloodGroups)
@@ -66,19 +82,36 @@ class CompleteProfileActivity : AppCompatActivity() {
                 .placeholder(R.drawable.ic_default_avatar)
                 .into(binding.ivProfile)
         }
+
+        // Load existing department if available
+        firestore.collection("users").document(user.uid).get().addOnSuccessListener { doc ->
+            val dept = doc.getString("department").orEmpty()
+            if (dept.isNotBlank()) {
+                binding.etDepartment.setText(dept)
+            }
+        }
     }
 
     private fun validateAndNextStep2() {
+        val department = binding.etDepartment.text.toString().trim()
         val phone = binding.etPhone.text.toString().trim()
         val blood = binding.spinnerBlood.text.toString().trim()
         val district = binding.etDistrict.text.toString().trim()
 
-        // Optional fields but we save whatever is there
-        saveDataToFirestore(mapOf(
+        if (department.isNotBlank()) {
+            com.shuaib.classmate.utils.AppPreferences(this).setUserDepartment(department)
+        }
+
+        val updates = mutableMapOf<String, Any>(
             "phone" to phone,
             "bloodGroup" to blood,
             "homeDistrict" to district
-        ))
+        )
+        if (department.isNotBlank()) {
+            updates["department"] = department
+        }
+
+        saveDataToFirestore(updates)
         nextStep()
     }
 

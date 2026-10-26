@@ -178,4 +178,8 @@
     <color name="cm_sky_text_primary">#0F172A</color>
     <color name="cm_sky_text_secondary">#334155</color>
     <color name="cm_sky_text_muted">#64748B</color>
+
+    <!-- Signal Chat Colors -->
+    <color name="signal_blue">#2C6BED</color>
+    <color name="signal_blue_dark">#1D4ED8</color>
 </resources>
