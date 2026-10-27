@@ -36,6 +36,8 @@ class PeriodAdapter(
     private val onPeriodLongClick: (Period) -> Unit = {}
 ) : RecyclerView.Adapter<PeriodAdapter.PeriodViewHolder>() {
 
+    var currentTeacher: com.shuaib.classmate.models.User? = null
+
     inner class PeriodViewHolder(val binding: ItemPeriodBinding) :
         RecyclerView.ViewHolder(binding.root)
 
@@ -164,7 +166,15 @@ class PeriodAdapter(
             b.cardRoot.clearAnimation()
             bindStatusColor(context, b, accent)
             b.cardRoot.setBackgroundResource(R.drawable.bg_card_primary)
-            if (isLabSession) {
+
+            val isMyClass = com.shuaib.classmate.utils.TeacherClassIdentifier.isTeacherClass(period, currentTeacher)
+            if (isMyClass) {
+                b.tvTypeBadge.text = "MY CLASS"
+                b.tvTypeBadge.setBackgroundResource(R.drawable.bg_badge_green)
+                b.tvTypeBadge.setTextColor(ContextCompat.getColor(context, R.color.cm_file_lab_text))
+                b.tvTeacher.text = "You (${period.teacher.ifBlank { "Instructor" }})"
+                b.tvTeacher.setTextColor(ContextCompat.getColor(context, R.color.cm_primary))
+            } else if (isLabSession) {
                 b.tvTypeBadge.text = "LAB"
                 b.tvTypeBadge.setBackgroundResource(R.drawable.bg_badge_green)
                 b.tvTypeBadge.setTextColor(ContextCompat.getColor(context, R.color.cm_file_lab_text))

@@ -1,12 +1,14 @@
 package com.shuaib.classmate.activities
 
 import android.app.DatePickerDialog
+import android.app.Dialog
 import android.app.TimePickerDialog
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import android.view.Window
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.ImageButton
@@ -33,6 +35,8 @@ import com.shuaib.classmate.models.ClubMembershipRequest
 import com.shuaib.classmate.models.EventRegistration
 import com.shuaib.classmate.repositories.EventsClubsRepository
 import com.shuaib.classmate.utils.AppPreferences
+import com.shuaib.classmate.utils.applyComposerBounceAnimation
+import com.shuaib.classmate.utils.applyFloatingPostAnimation
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -124,11 +128,13 @@ class EventsClubsActivity : AppCompatActivity() {
         binding.pillSubClubRequests.setOnClickListener { selectRequestsSubTab("club") }
         binding.pillSubEventRequests.setOnClickListener { selectRequestsSubTab("event") }
 
-        binding.btnAddNew.setOnClickListener {
-            if (currentTab == "events") {
-                showCreateEventDialog()
-            } else if (currentTab == "clubs") {
-                showCreateClubDialog()
+        binding.btnAddNew.setOnClickListener { view ->
+            view.applyComposerBounceAnimation {
+                if (currentTab == "events") {
+                    showCreateEventDialog()
+                } else if (currentTab == "clubs") {
+                    showCreateClubDialog()
+                }
             }
         }
 
@@ -465,13 +471,14 @@ class EventsClubsActivity : AppCompatActivity() {
             supportFragmentManager,
             "Select Department"
         ) {}
+        com.shuaib.classmate.utils.PhoneNumberUtils.attachPhonePrefixWatcher(etPhone)
 
         btnSubmit.setOnClickListener {
             val name = etFullName.text.toString().trim()
             val dept = etDept.text.toString().trim()
             val studentId = etStudentId.text.toString().trim()
             val email = etEmail.text.toString().trim()
-            val phone = etPhone.text.toString().trim()
+            val phone = com.shuaib.classmate.utils.PhoneNumberUtils.normalize(etPhone.text.toString().trim())
 
             if (name.isBlank()) {
                 etFullName.error = "Name is required"
@@ -707,13 +714,14 @@ class EventsClubsActivity : AppCompatActivity() {
             supportFragmentManager,
             "Select Department"
         ) {}
+        com.shuaib.classmate.utils.PhoneNumberUtils.attachPhonePrefixWatcher(etPhone)
 
         btnSubmit.setOnClickListener {
             val name = etFullName.text.toString().trim()
             val dept = etDepartment.text.toString().trim()
             val studentId = etStudentId.text.toString().trim()
             val email = etEmail.text.toString().trim()
-            val phone = etPhone.text.toString().trim()
+            val phone = com.shuaib.classmate.utils.PhoneNumberUtils.normalize(etPhone.text.toString().trim())
 
             if (name.isBlank()) {
                 etFullName.error = "Name is required"
@@ -832,11 +840,11 @@ class EventsClubsActivity : AppCompatActivity() {
             return
         }
 
-        val dialog = BottomSheetDialog(this)
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         val view = LayoutInflater.from(this).inflate(R.layout.dialog_create_campus_event, null)
         dialog.setContentView(view)
-        dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
-        dialog.behavior.skipCollapsed = true
+        dialog.applyFloatingPostAnimation(this, 0.94, 0.82)
 
         val spnrClub = view.findViewById<Spinner>(R.id.spnrClubSelector)
         val etTitle = view.findViewById<EditText>(R.id.etNewEventTitle)
@@ -965,11 +973,11 @@ class EventsClubsActivity : AppCompatActivity() {
             return
         }
 
-        val dialog = BottomSheetDialog(this)
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         val view = LayoutInflater.from(this).inflate(R.layout.dialog_create_campus_club, null)
         dialog.setContentView(view)
-        dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
-        dialog.behavior.skipCollapsed = true
+        dialog.applyFloatingPostAnimation(this, 0.94, 0.82)
 
         val etName = view.findViewById<EditText>(R.id.etNewClubName)
         val etSubtitle = view.findViewById<EditText>(R.id.etNewClubSubtitle)

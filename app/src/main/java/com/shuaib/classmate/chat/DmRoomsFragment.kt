@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.shuaib.classmate.R
 import com.shuaib.classmate.activities.MainActivity
 import com.shuaib.classmate.databinding.FragmentDmRoomsBinding
+import com.shuaib.classmate.utils.applyComposerBounceAnimation
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -59,8 +60,10 @@ class DmRoomsFragment : Fragment() {
         binding.rvRooms.layoutManager = LinearLayoutManager(requireContext())
         binding.rvRooms.adapter = adapter
 
-        binding.fabNewChat.setOnClickListener {
-            (requireActivity() as MainActivity).openChildDestination(R.id.nav_chat, R.id.fragment_dm_list)
+        binding.fabNewChat.setOnClickListener { view ->
+            view.applyComposerBounceAnimation {
+                (requireActivity() as MainActivity).openChildDestination(R.id.nav_chat, R.id.fragment_dm_list)
+            }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {

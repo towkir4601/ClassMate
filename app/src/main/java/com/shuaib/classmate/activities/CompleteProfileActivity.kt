@@ -65,6 +65,7 @@ class CompleteProfileActivity : AppCompatActivity() {
         binding.etDepartment.isClickable = true
         binding.etDepartment.setOnClickListener { openDeptPicker() }
         binding.tilDepartment.setEndIconOnClickListener { openDeptPicker() }
+        com.shuaib.classmate.utils.PhoneNumberUtils.attachPhonePrefixWatcher(binding.etPhone)
 
         // Step 2 Dropdown (now Step 1)
         val bloodGroups = arrayOf("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
@@ -94,7 +95,7 @@ class CompleteProfileActivity : AppCompatActivity() {
 
     private fun validateAndNextStep2() {
         val department = binding.etDepartment.text.toString().trim()
-        val phone = binding.etPhone.text.toString().trim()
+        val phone = com.shuaib.classmate.utils.PhoneNumberUtils.normalize(binding.etPhone.text.toString())
         val blood = binding.spinnerBlood.text.toString().trim()
         val district = binding.etDistrict.text.toString().trim()
 

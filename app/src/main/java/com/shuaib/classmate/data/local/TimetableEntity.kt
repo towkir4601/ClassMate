@@ -30,6 +30,9 @@ data class TimetableEntity(
     val isTemporary: Boolean = false,
     val temporaryDate: String = "",
     val batch: String = "",
+    val teacherUid: String = "",
+    val teacherEmail: String = "",
+    val teacherCode: String = "",
     val cachedAtMillis: Long = System.currentTimeMillis()
 ) {
     fun toPeriod(today: String): Period {
@@ -60,7 +63,10 @@ data class TimetableEntity(
             overrideEndTime = overrideEndTime,
             isTemporary = isTemporary,
             temporaryDate = temporaryDate,
-            batch = batch
+            batch = batch,
+            teacherUid = teacherUid,
+            teacherEmail = teacherEmail,
+            teacherCode = teacherCode
         )
     }
 
@@ -83,7 +89,10 @@ data class TimetableEntity(
             overrideEndTime = period.overrideEndTime,
             isTemporary = period.isTemporary,
             temporaryDate = period.temporaryDate,
-            batch = period.batch
+            batch = period.batch,
+            teacherUid = period.teacherUid,
+            teacherEmail = period.teacherEmail,
+            teacherCode = period.teacherCode
         )
 
         fun cacheKey(day: String, id: String): String = "${day.lowercase()}:$id"

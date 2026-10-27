@@ -1,20 +1,26 @@
 package com.shuaib.classmate.activities
 
+import android.app.Dialog
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
+import android.view.Window
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.bumptech.glide.Glide
 import com.google.android.material.button.MaterialButton
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -22,19 +28,14 @@ import com.shuaib.classmate.R
 import com.shuaib.classmate.adapters.LostFoundAdapter
 import com.shuaib.classmate.databinding.ActivityLostFoundBinding
 import com.shuaib.classmate.models.LostFoundItem
-import com.shuaib.classmate.utils.UserRoleHelper
-import com.shuaib.classmate.repositories.LostFoundRepository
 import com.shuaib.classmate.repositories.AppNotificationRepository
+import com.shuaib.classmate.repositories.LostFoundRepository
 import com.shuaib.classmate.utils.AppPreferences
-
-import android.net.Uri
-import android.widget.ImageView
-import android.widget.ProgressBar
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.lifecycle.lifecycleScope
-import com.bumptech.glide.Glide
 import com.shuaib.classmate.utils.CloudinaryUploader
 import com.shuaib.classmate.utils.ImageCompressor
+import com.shuaib.classmate.utils.UserRoleHelper
+import com.shuaib.classmate.utils.applyComposerBounceAnimation
+import com.shuaib.classmate.utils.applyFloatingPostAnimation
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -131,12 +132,16 @@ class LostFoundActivity : AppCompatActivity() {
     private fun setupUI() {
         binding.btnBack.setOnClickListener { finish() }
 
-        binding.btnReportItemHeader.setOnClickListener {
-            showReportDialog()
+        binding.btnReportItemHeader.setOnClickListener { view ->
+            view.applyComposerBounceAnimation {
+                showReportDialog()
+            }
         }
 
-        binding.btnFloatingReportItem.setOnClickListener {
-            showReportDialog()
+        binding.btnFloatingReportItem.setOnClickListener { view ->
+            view.applyComposerBounceAnimation {
+                showReportDialog()
+            }
         }
 
         adapter = LostFoundAdapter(
@@ -333,9 +338,11 @@ class LostFoundActivity : AppCompatActivity() {
     }
 
     private fun showReportDialog() {
-        val dialog = BottomSheetDialog(this)
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_report_lost_found, null)
         dialog.setContentView(dialogView)
+        dialog.applyFloatingPostAnimation(this, 0.94, 0.82)
 
         val btnClose = dialogView.findViewById<ImageButton>(R.id.btnCloseDialog)
         val tabFound = dialogView.findViewById<TextView>(R.id.tabFound)
@@ -434,11 +441,12 @@ class LostFoundActivity : AppCompatActivity() {
         }
 
         btnClose.setOnClickListener { dialog.dismiss() }
+        com.shuaib.classmate.utils.PhoneNumberUtils.attachPhonePrefixWatcher(etPhone)
 
         btnPublish.setOnClickListener {
             val title = etTitle.text?.toString()?.trim() ?: ""
             val location = etLocation.text?.toString()?.trim() ?: ""
-            val phone = etPhone.text?.toString()?.trim() ?: ""
+            val phone = com.shuaib.classmate.utils.PhoneNumberUtils.normalize(etPhone.text?.toString()?.trim() ?: "")
 
             if (title.isBlank()) {
                 etTitle.error = "Please enter item name or description"
@@ -499,8 +507,6 @@ class LostFoundActivity : AppCompatActivity() {
             }
         }
 
-        dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
-        dialog.behavior.skipCollapsed = true
         dialog.show()
     }
 

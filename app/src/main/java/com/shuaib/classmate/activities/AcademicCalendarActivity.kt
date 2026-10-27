@@ -1,10 +1,12 @@
 package com.shuaib.classmate.activities
 
 import android.app.DatePickerDialog
+import android.app.Dialog
 import android.app.TimePickerDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import android.view.Window
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.ImageButton
@@ -16,8 +18,6 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.auth.FirebaseAuth
@@ -37,6 +37,8 @@ import com.shuaib.classmate.repositories.AcademicCalendarRepository
 import com.shuaib.classmate.repositories.EventsClubsRepository
 import com.shuaib.classmate.utils.ClassReminderWorkCoordinator
 import com.shuaib.classmate.utils.NotificationSender
+import com.shuaib.classmate.utils.applyComposerBounceAnimation
+import com.shuaib.classmate.utils.applyFloatingPostAnimation
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.time.DayOfWeek
@@ -143,8 +145,10 @@ class AcademicCalendarActivity : AppCompatActivity() {
         }
 
         // FAB to add holiday or campus event
-        binding.fabAdd.setOnClickListener {
-            showAddChoiceDialog()
+        binding.fabAdd.setOnClickListener { view ->
+            view.applyComposerBounceAnimation {
+                showAddChoiceDialog()
+            }
         }
     }
 
@@ -405,7 +409,7 @@ class AcademicCalendarActivity : AppCompatActivity() {
             "📅 Add Class Off / University Holiday",
             "🎪 Add Campus Event / Program"
         )
-        MaterialAlertDialogBuilder(this)
+        val dialog = MaterialAlertDialogBuilder(this)
             .setTitle("Add to Calendar")
             .setItems(options) { _, which ->
                 when (which) {
@@ -414,7 +418,10 @@ class AcademicCalendarActivity : AppCompatActivity() {
                 }
             }
             .setNegativeButton("Cancel", null)
-            .show()
+            .create()
+
+        dialog.show()
+        dialog.applyFloatingPostAnimation(this, 0.90, 0.35, isWrapHeight = true)
     }
 
     // ==========================================
@@ -499,6 +506,7 @@ class AcademicCalendarActivity : AppCompatActivity() {
                     }
                 }
                 show()
+                applyFloatingPostAnimation(this@AcademicCalendarActivity, 0.94, 0.75, isWrapHeight = true)
             }
     }
 
@@ -616,11 +624,11 @@ class AcademicCalendarActivity : AppCompatActivity() {
     // ==========================================
 
     private fun showAddCampusEventDialog() {
-        val dialog = BottomSheetDialog(this)
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         val view = LayoutInflater.from(this).inflate(R.layout.dialog_create_campus_event, null)
         dialog.setContentView(view)
-        dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
-        dialog.behavior.skipCollapsed = true
+        dialog.applyFloatingPostAnimation(this, 0.94, 0.82)
 
         val etTitle = view.findViewById<EditText>(R.id.etNewEventTitle)
         val etCategory = view.findViewById<EditText>(R.id.etNewEventCategory)

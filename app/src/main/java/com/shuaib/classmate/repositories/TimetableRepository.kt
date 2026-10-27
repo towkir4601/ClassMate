@@ -147,7 +147,10 @@ class TimetableRepository private constructor(private val context: Context) {
                             temporaryDate = doc.getString("temporaryDate") ?: "",
                             batch = doc.getString("batch") ?: "",
                             department = doc.getString("department") ?: "",
-                            departmentId = doc.getString("departmentId") ?: ""
+                            departmentId = doc.getString("departmentId") ?: "",
+                            teacherUid = doc.getString("teacherUid") ?: "",
+                            teacherEmail = doc.getString("teacherEmail") ?: "",
+                            teacherCode = doc.getString("teacherCode") ?: ""
                         )
                     }
                     val entities = periods.map { TimetableEntity.fromPeriod(normalizedDay, it) }
@@ -187,7 +190,10 @@ class TimetableRepository private constructor(private val context: Context) {
                 temporaryDate = doc.getString("temporaryDate") ?: "",
                 batch = doc.getString("batch") ?: "",
                 department = doc.getString("department") ?: "",
-                departmentId = doc.getString("departmentId") ?: ""
+                departmentId = doc.getString("departmentId") ?: "",
+                teacherUid = doc.getString("teacherUid") ?: "",
+                teacherEmail = doc.getString("teacherEmail") ?: "",
+                teacherCode = doc.getString("teacherCode") ?: ""
             )
         }
         val entities = periods.map { TimetableEntity.fromPeriod(normalizedDay, it) }

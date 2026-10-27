@@ -18,6 +18,8 @@ import com.shuaib.classmate.databinding.ActivityBusScheduleManagementBinding
 import com.shuaib.classmate.databinding.DialogAddBusScheduleBinding
 import com.shuaib.classmate.models.BusSchedule
 import com.shuaib.classmate.utils.ThemeColors
+import com.shuaib.classmate.utils.applyComposerBounceAnimation
+import com.shuaib.classmate.utils.applyFloatingPostAnimation
 import java.util.Calendar
 
 class BusScheduleManagementActivity : AppCompatActivity() {
@@ -42,8 +44,10 @@ class BusScheduleManagementActivity : AppCompatActivity() {
             finish()
         }
 
-        binding.fabAddBus.setOnClickListener {
-            showBusDialog(null)
+        binding.fabAddBus.setOnClickListener { view ->
+            view.applyComposerBounceAnimation {
+                showBusDialog(null)
+            }
         }
 
         fetchBusSchedules()
@@ -163,7 +167,7 @@ class BusScheduleManagementActivity : AppCompatActivity() {
             showTimePicker { time -> dialogBinding.etTime.setText(time) }
         }
 
-        MaterialAlertDialogBuilder(this)
+        val dialog = MaterialAlertDialogBuilder(this)
             .setView(dialogBinding.root)
             .setPositiveButton(if (isEdit) "Update" else "Add") { _, _ ->
                 val time = dialogBinding.etTime.text.toString().trim()
@@ -194,7 +198,10 @@ class BusScheduleManagementActivity : AppCompatActivity() {
                 }
             }
             .setNegativeButton("Cancel", null)
-            .show()
+            .create()
+
+        dialog.show()
+        dialog.applyFloatingPostAnimation(this, 0.94, 0.70, isWrapHeight = true)
     }
 
     private fun showTimePicker(onTimeSelected: (String) -> Unit) {

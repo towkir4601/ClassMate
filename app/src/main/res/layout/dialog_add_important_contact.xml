@@ -3,23 +3,16 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="@drawable/bg_bottom_sheet">
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_dialog_rounded"
+    android:fillViewport="true"
+    android:scrollbars="none">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="24dp">
-
-        <!-- Top Drag Handle -->
-        <View
-            android:layout_width="40dp"
-            android:layout_height="4dp"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="16dp"
-            android:background="@drawable/bg_handle"
-            android:alpha="0.4" />
 
         <!-- Header -->
         <LinearLayout

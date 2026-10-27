@@ -37,5 +37,10 @@ data class Period(
 
     // Department Multi-tenant isolation
     val department: String = "",
-    val departmentId: String = ""
+    val departmentId: String = "",
+
+    // Direct Teacher Binding
+    val teacherUid: String = "",
+    val teacherEmail: String = "",
+    val teacherCode: String = ""
 )

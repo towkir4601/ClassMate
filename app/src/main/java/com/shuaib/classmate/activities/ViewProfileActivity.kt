@@ -19,6 +19,7 @@ import com.shuaib.classmate.models.CampusFeedPost
 import com.shuaib.classmate.models.User
 import com.shuaib.classmate.repository.CampusFeedBookmarkManager
 import com.shuaib.classmate.repository.CampusFeedRepository
+import com.shuaib.classmate.utils.GstuDepartments
 
 /**
  * Modern, rich Profile & Activity Viewer for GSTU Go.
@@ -217,16 +218,7 @@ class ViewProfileActivity : AppCompatActivity() {
         }
 
         // Stats Bar
-        val deptAcronym = when {
-            user.department.contains("Computer", true) -> "CSE"
-            user.department.contains("Electrical", true) -> "EEE"
-            user.department.contains("Civil", true) -> "CE"
-            user.department.contains("Pharmacy", true) -> "PHARM"
-            user.department.contains("Math", true) -> "MATH"
-            user.department.contains("Law", true) -> "LAW"
-            user.department.isNotBlank() -> user.department.split(" ").mapNotNull { it.firstOrNull()?.toString() }.joinToString("").take(4).uppercase()
-            else -> "GSTU"
-        }
+        val deptAcronym = resolveDepartmentAcronym(user.department)
         binding.tvStatDeptCode.text = deptAcronym
         binding.tvStatBatch.text = if (isTeacher) "Faculty" else if (user.batch.isNotBlank()) "${user.batch}th" else "N/A"
 
@@ -313,6 +305,56 @@ class ViewProfileActivity : AppCompatActivity() {
 
         binding.rowPermanentAddress.tvLabel.text = "Permanent Address"
         binding.rowPermanentAddress.tvValue.text = user.permanentAddress.ifBlank { "Not set" }
+    }
+
+    private fun resolveDepartmentAcronym(department: String): String {
+        val trimmed = department.trim()
+        if (trimmed.isEmpty()) return "GSTU"
+
+        // 1. Exact match with GstuDepartments (acronym, name, or alias)
+        val directMatch = GstuDepartments.ITEMS.firstOrNull { item ->
+            item.acronym.equals(trimmed, ignoreCase = true) ||
+            item.name.equals(trimmed, ignoreCase = true) ||
+            item.aliases.any { it.equals(trimmed, ignoreCase = true) }
+        }
+        if (directMatch != null) return directMatch.acronym
+
+        // 2. Token match (e.g. "Dept of CSE", "CSE Department")
+        val tokens = trimmed.split(Regex("[^A-Za-z0-9]+")).filter { it.isNotBlank() }
+        val tokenMatch = GstuDepartments.ITEMS.firstOrNull { item ->
+            tokens.any { token ->
+                item.acronym.equals(token, ignoreCase = true) ||
+                item.aliases.any { it.equals(token, ignoreCase = true) }
+            }
+        }
+        if (tokenMatch != null) return tokenMatch.acronym
+
+        // 3. Partial contains match (for full department names or distinct aliases)
+        val partialMatch = GstuDepartments.ITEMS.firstOrNull { item ->
+            trimmed.contains(item.name, ignoreCase = true) ||
+            item.name.contains(trimmed, ignoreCase = true) ||
+            item.aliases.any { alias ->
+                alias.length >= 4 && trimmed.contains(alias, ignoreCase = true)
+            }
+        }
+        if (partialMatch != null) return partialMatch.acronym
+
+        // 4. Already a short acronym or code (e.g. "SWE", "BBA", "IT")
+        if (trimmed.length <= 5 && !trimmed.contains(" ")) {
+            return trimmed.uppercase()
+        }
+
+        // 5. Multi-word initials fallback (e.g. "Software Engineering" -> "SE")
+        val words = trimmed.split(" ").filter {
+            it.isNotBlank() && !it.equals("and", true) && !it.equals("&", true) &&
+            !it.equals("of", true) && !it.equals("the", true) && !it.equals("in", true)
+        }
+        if (words.size > 1) {
+            val initials = words.mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("").take(4)
+            if (initials.isNotEmpty()) return initials
+        }
+
+        return trimmed.take(4).uppercase()
     }
 
     private fun loadUserPosts() {

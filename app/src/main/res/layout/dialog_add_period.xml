@@ -46,7 +46,7 @@
         app:boxStrokeColor="@color/cm_primary"
         app:hintTextColor="@color/cm_primary"
         android:layout_marginBottom="16dp">
-        <com.google.android.material.textfield.TextInputEditText
+        <com.google.android.material.textfield.MaterialAutoCompleteTextView
             android:id="@+id/etTeacher"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

@@ -34,6 +34,7 @@ import com.shuaib.classmate.adapters.PeriodAdapter
 import com.shuaib.classmate.databinding.FragmentTimetableBinding
 import com.shuaib.classmate.models.AcademicCalendarException
 import com.shuaib.classmate.models.Period
+import com.shuaib.classmate.models.User
 import com.shuaib.classmate.repositories.AcademicCalendarRepository
 import com.shuaib.classmate.utils.CountdownManager
 import com.shuaib.classmate.utils.NotificationRouter
@@ -41,6 +42,8 @@ import com.shuaib.classmate.utils.AnimUtils
 import com.shuaib.classmate.utils.ThemeColors
 import com.shuaib.classmate.utils.animateSpringScale
 import com.shuaib.classmate.utils.applyClickAnimation
+import com.shuaib.classmate.utils.applyFloatingPostAnimation
+import com.shuaib.classmate.utils.applyCardClickAnimation
 import com.shuaib.classmate.viewmodels.TimetableViewModel
 import com.shuaib.classmate.models.BusSchedule
 import com.shuaib.classmate.adapters.BusScheduleAdapter
@@ -81,6 +84,9 @@ class TimetableFragment : Fragment() {
     private var noticesRealtimeRegistration: ListenerRegistration? = null
     private var isAdmin = false
     private var isSuperAdmin = false  // superadmin-only: upload Excel
+    private var isTeacher = false
+    private var currentUserProfile: User? = null
+    private var pendingSwapJob: kotlinx.coroutines.Job? = null
     private var currentPeriods = emptyList<Period>()
     private var currentBatchFilter = "All"
     private var isSpinnerInitialized = false
@@ -643,19 +649,32 @@ class TimetableFragment : Fragment() {
                     isViewingToday = isToday,
                     isPastDay = isPastDay,
                     onPeriodClick = { period ->
-                        val bundle = bundleOf("subjectName" to period.subject)
-                        (activity as? MainActivity)?.openChildDestination(
-                            R.id.nav_pdf,
-                            R.id.fragment_subject_pdf_list,
-                            bundle
-                        )
+                        if (isTeacher && com.shuaib.classmate.utils.TeacherClassIdentifier.isTeacherClass(period, currentUserProfile)) {
+                            showTeacherClassOptionsDialog(period)
+                        } else if (isAdmin) {
+                            showAdminOptionsDialog(period)
+                        } else {
+                            val bundle = bundleOf("subjectName" to period.subject)
+                            (activity as? MainActivity)?.openChildDestination(
+                                R.id.nav_pdf,
+                                R.id.fragment_subject_pdf_list,
+                                bundle
+                            )
+                        }
                     },
                     onPeriodLongClick = { period ->
-                        if (isAdmin) showAdminOptionsDialog(period)
+                        if (isTeacher) {
+                            showTeacherClassOptionsDialog(period)
+                        } else if (isAdmin) {
+                            showAdminOptionsDialog(period)
+                        }
                     }
-                )
+                ).apply {
+                    currentTeacher = currentUserProfile
+                }
                 binding.rvPeriods.adapter = periodAdapter
             } else {
+                periodAdapter?.currentTeacher = currentUserProfile
                 periodAdapter?.setPausedByCalendarException(shouldPauseSelectedDay())
                 periodAdapter?.updateList(periods, isToday, isPastDay, isDaySwitch)
             }
@@ -1142,6 +1161,265 @@ class TimetableFragment : Fragment() {
     }
 
     // ─────────────────────────────────────────────────────────────
+    // Teacher Class Swap & Self Actions
+    // ─────────────────────────────────────────────────────────────
+
+    private fun observePendingSwapRequests(teacherUid: String) {
+        pendingSwapJob?.cancel()
+        val todayStr = com.shuaib.classmate.utils.DateHelper.today()
+        pendingSwapJob = viewLifecycleOwner.lifecycleScope.launch {
+            com.shuaib.classmate.repositories.RoutineSwapRepository.getInstance()
+                .observePendingRequestsForTeacher(teacherUid, todayStr)
+                .collect { requests ->
+                    if (_binding == null || !isAdded) return@collect
+                    val firstReq = requests.firstOrNull()
+                    if (firstReq != null) {
+                        binding.cardPendingSwapRequest.isVisible = true
+                        binding.tvSwapBannerTitle.text = "Class Swap Request from ${firstReq.requesterName}"
+                        binding.tvSwapBannerSubtitle.text = "${firstReq.requesterSubject} (${firstReq.requesterStartTime}) ⇄ Your ${firstReq.targetSubject} (${firstReq.targetStartTime})"
+                        binding.btnReviewSwap.setOnClickListener {
+                            showReviewSwapDialog(firstReq)
+                        }
+                        binding.cardPendingSwapRequest.setOnClickListener {
+                            showReviewSwapDialog(firstReq)
+                        }
+                    } else {
+                        binding.cardPendingSwapRequest.isVisible = false
+                    }
+                }
+        }
+    }
+
+    private fun showTeacherClassOptionsDialog(period: Period) {
+        val ctx = context ?: return
+        val dialog = android.app.Dialog(ctx)
+        val dialogBinding = com.shuaib.classmate.databinding.DialogTeacherClassActionsBinding.inflate(layoutInflater)
+        dialog.setContentView(dialogBinding.root)
+        dialog.applyFloatingPostAnimation(ctx, 0.94, 0.75)
+
+        dialogBinding.tvDialogSubject.text = period.subject
+        val timeLabel = "${period.startTime} - ${period.endTime}" + if (period.room.isNotBlank()) " · Room ${period.room}" else ""
+        dialogBinding.tvDialogDetails.text = timeLabel
+
+        // If class is not explicitly claimed with teacherUid, allow one-tap claim
+        val isExplicitlyClaimed = period.teacherUid.isNotBlank()
+        dialogBinding.btnClaimClass.isVisible = !isExplicitlyClaimed
+
+        dialogBinding.btnCloseDialog.setOnClickListener { dialog.dismiss() }
+
+        dialogBinding.btnSwapClass.applyCardClickAnimation {
+            dialog.dismiss()
+            showRequestSwapDialog(period)
+        }
+
+        dialogBinding.btnChangeTimeRoom.applyCardClickAnimation {
+            dialog.dismiss()
+            showOverrideDialog(period)
+        }
+
+        dialogBinding.btnCancelClass.applyCardClickAnimation {
+            dialog.dismiss()
+            showTeacherCancelDialog(period)
+        }
+
+        dialogBinding.btnClaimClass.applyCardClickAnimation {
+            val teacher = currentUserProfile ?: return@applyCardClickAnimation
+            com.shuaib.classmate.repositories.RoutineSwapRepository.getInstance()
+                .claimPeriodForTeacher(selectedDayFlow.value, period.id, teacher) { success, error ->
+                    if (success) {
+                        Toast.makeText(ctx, "Class successfully linked to your faculty profile!", Toast.LENGTH_SHORT).show()
+                        dialog.dismiss()
+                    } else {
+                        Toast.makeText(ctx, error ?: "Failed to claim class", Toast.LENGTH_SHORT).show()
+                    }
+                }
+        }
+
+        dialog.show()
+    }
+
+    private fun showRequestSwapDialog(myPeriod: Period) {
+        val ctx = context ?: return
+        val dialog = android.app.Dialog(ctx)
+        val dialogBinding = com.shuaib.classmate.databinding.DialogRequestClassSwapBinding.inflate(layoutInflater)
+        dialog.setContentView(dialogBinding.root)
+        dialog.applyFloatingPostAnimation(ctx, 0.94, 0.75)
+
+        dialogBinding.tvMyClassSubject.text = myPeriod.subject
+        val myTimeLabel = "${myPeriod.startTime} - ${myPeriod.endTime}" + if (myPeriod.room.isNotBlank()) " · Room ${myPeriod.room}" else ""
+        dialogBinding.tvMyClassTimeRoom.text = myTimeLabel
+
+        // Candidate classes from today (excluding my own class)
+        val candidatePeriods = currentPeriods.filter { it.id != myPeriod.id && !it.isCancelled }
+        if (candidatePeriods.isEmpty()) {
+            Toast.makeText(ctx, "No other active classes found today to swap with", Toast.LENGTH_SHORT).show()
+            dialog.dismiss()
+            return
+        }
+
+        var selectedTargetPeriod: Period? = null
+        val candidateLabels = candidatePeriods.map { p ->
+            val teacherName = p.teacher.ifBlank { "Teacher" }
+            "$teacherName · ${p.subject} (${p.startTime} - ${p.endTime})"
+        }
+
+        val adapter = android.widget.ArrayAdapter(ctx, android.R.layout.simple_dropdown_item_1line, candidateLabels)
+        dialogBinding.actvTargetClass.setAdapter(adapter)
+        dialogBinding.actvTargetClass.setOnItemClickListener { _, _, position, _ ->
+            selectedTargetPeriod = candidatePeriods.getOrNull(position)
+            dialogBinding.tilTargetClass.error = null
+        }
+
+        dialogBinding.btnCloseSwapDialog.setOnClickListener { dialog.dismiss() }
+        dialogBinding.btnCancelSwap.setOnClickListener { dialog.dismiss() }
+
+        dialogBinding.btnSubmitSwap.setOnClickListener {
+            val target = selectedTargetPeriod
+            if (target == null) {
+                dialogBinding.tilTargetClass.error = "Please select a class to swap with"
+                return@setOnClickListener
+            }
+
+            val note = dialogBinding.etSwapNote.text?.toString()?.trim().orEmpty()
+            val teacher = currentUserProfile
+            val requesterName = teacher?.name?.ifBlank { teacher.fullName } ?: "Teacher"
+            val targetTeacherUid = target.teacherUid
+
+            val request = com.shuaib.classmate.models.RoutineSwapRequest(
+                date = com.shuaib.classmate.utils.DateHelper.today(),
+                day = selectedDayFlow.value.lowercase(),
+                department = myPeriod.department,
+                batch = myPeriod.batch,
+                requesterUid = teacher?.uid.orEmpty(),
+                requesterName = requesterName,
+                requesterPeriodId = myPeriod.id,
+                requesterSubject = myPeriod.subject,
+                requesterStartTime = myPeriod.startTime,
+                requesterEndTime = myPeriod.endTime,
+                requesterRoom = myPeriod.room,
+                targetUid = targetTeacherUid,
+                targetTeacherName = target.teacher,
+                targetPeriodId = target.id,
+                targetSubject = target.subject,
+                targetStartTime = target.startTime,
+                targetEndTime = target.endTime,
+                targetRoom = target.room,
+                note = note
+            )
+
+            dialogBinding.btnSubmitSwap.isEnabled = false
+            com.shuaib.classmate.repositories.RoutineSwapRepository.getInstance()
+                .sendSwapRequest(request) { success, error ->
+                    if (_binding == null || !isAdded) return@sendSwapRequest
+                    dialogBinding.btnSubmitSwap.isEnabled = true
+                    if (success) {
+                        Toast.makeText(ctx, "Swap request sent to ${target.teacher}!", Toast.LENGTH_LONG).show()
+                        dialog.dismiss()
+                    } else {
+                        Toast.makeText(ctx, error ?: "Failed to send request", Toast.LENGTH_SHORT).show()
+                    }
+                }
+        }
+
+        dialog.show()
+    }
+
+    private fun showReviewSwapDialog(request: com.shuaib.classmate.models.RoutineSwapRequest) {
+        val ctx = context ?: return
+        val dialog = android.app.Dialog(ctx)
+        val dialogBinding = com.shuaib.classmate.databinding.DialogReviewSwapRequestBinding.inflate(layoutInflater)
+        dialog.setContentView(dialogBinding.root)
+        dialog.applyFloatingPostAnimation(ctx, 0.94, 0.75)
+
+        dialogBinding.tvRequesterTeacher.text = "${request.requesterName}'s Class"
+        dialogBinding.tvRequesterSubject.text = request.requesterSubject
+        dialogBinding.tvRequesterTimeRoom.text = "${request.requesterStartTime} - ${request.requesterEndTime} · Room ${request.requesterRoom}"
+
+        dialogBinding.tvTargetSubject.text = request.targetSubject
+        dialogBinding.tvTargetTimeRoom.text = "${request.targetStartTime} - ${request.targetEndTime} · Room ${request.targetRoom}"
+
+        if (request.note.isNotBlank()) {
+            dialogBinding.layoutNote.isVisible = true
+            dialogBinding.tvSwapNote.text = request.note
+        } else {
+            dialogBinding.layoutNote.isVisible = false
+        }
+
+        dialogBinding.btnCloseReviewDialog.setOnClickListener { dialog.dismiss() }
+
+        dialogBinding.btnAcceptSwap.setOnClickListener {
+            dialogBinding.btnAcceptSwap.isEnabled = false
+            dialogBinding.btnDeclineSwap.isEnabled = false
+            com.shuaib.classmate.repositories.RoutineSwapRepository.getInstance()
+                .acceptSwapRequest(request, ctx) { success, error ->
+                    if (_binding == null || !isAdded) return@acceptSwapRequest
+                    dialogBinding.btnAcceptSwap.isEnabled = true
+                    dialogBinding.btnDeclineSwap.isEnabled = true
+                    if (success) {
+                        Toast.makeText(ctx, "Swap accepted! Schedule updated for today.", Toast.LENGTH_LONG).show()
+                        dialog.dismiss()
+                    } else {
+                        Toast.makeText(ctx, error ?: "Failed to accept swap", Toast.LENGTH_SHORT).show()
+                    }
+                }
+        }
+
+        dialogBinding.btnDeclineSwap.setOnClickListener {
+            dialogBinding.btnAcceptSwap.isEnabled = false
+            dialogBinding.btnDeclineSwap.isEnabled = false
+            com.shuaib.classmate.repositories.RoutineSwapRepository.getInstance()
+                .rejectSwapRequest(request.id) { success, error ->
+                    if (_binding == null || !isAdded) return@rejectSwapRequest
+                    if (success) {
+                        Toast.makeText(ctx, "Swap request declined.", Toast.LENGTH_SHORT).show()
+                        dialog.dismiss()
+                    } else {
+                        Toast.makeText(ctx, error ?: "Failed to decline", Toast.LENGTH_SHORT).show()
+                    }
+                }
+        }
+
+        dialog.show()
+    }
+
+    private fun showTeacherCancelDialog(period: Period) {
+        val ctx = context ?: return
+        val targetDate = getDateForSelectedDay(selectedDayFlow.value)
+        val targetDateStr = targetDate.toString()
+        val day = selectedDayFlow.value
+        val appContext = context?.applicationContext ?: return
+
+        AlertDialog.Builder(ctx)
+            .setTitle("Cancel Class for Today?")
+            .setMessage("Are you sure you want to cancel '${period.subject}' for ${targetDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}?")
+            .setPositiveButton("Yes, Cancel") { _, _ ->
+                db.collection("timetable").document(day)
+                    .collection("periods").document(period.id)
+                    .update(
+                        "isCancelled", true,
+                        "cancelDate", targetDateStr
+                    ).addOnSuccessListener {
+                        Toast.makeText(ctx, "Class cancelled for today!", Toast.LENGTH_SHORT).show()
+                        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                            runCatching {
+                                com.shuaib.classmate.repositories.TimetableRepository.getInstance(appContext)
+                                    .syncDayFromFirestore(day, com.google.firebase.firestore.Source.SERVER)
+                                com.shuaib.classmate.utils.WidgetUpdater.refresh(appContext, syncTodayTimetable = false)
+                            }
+                        }
+                        com.shuaib.classmate.utils.NotificationSender.sendScheduleUpdateAlert(
+                            subject = period.subject,
+                            details = "Class cancelled for today (${targetDate.format(DateTimeFormatter.ofPattern("MMM dd", Locale.US))})",
+                            day = day,
+                            targetBatch = period.batch.ifBlank { "all" }
+                        )
+                    }
+            }
+            .setNegativeButton("No", null)
+            .show()
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // Admin
     // ─────────────────────────────────────────────────────────────
 
@@ -1250,6 +1528,17 @@ class TimetableFragment : Fragment() {
                     val ctx = context ?: return@addSnapshotListener
                     val role = com.shuaib.classmate.utils.UserRoleHelper.getEffectiveRole(ctx, docRole)
                     val permissions = com.shuaib.classmate.utils.UserRoleHelper.getEffectivePermissions(ctx, role, snapshot?.get("permissions"))
+
+                    isTeacher = (role == "teacher")
+                    currentUserProfile = snapshot?.toObject(User::class.java)?.copy(uid = uid)
+                    periodAdapter?.currentTeacher = currentUserProfile
+                    periodAdapter?.notifyDataSetChanged()
+
+                    if (isTeacher) {
+                        observePendingSwapRequests(uid)
+                    } else {
+                        binding.cardPendingSwapRequest.isVisible = false
+                    }
 
                     isAdmin = (role == "superadmin" || role == "admin" || permissions["canEditTimetable"] == true)
                     isSuperAdmin = (role == "superadmin")
@@ -1662,6 +1951,8 @@ class TimetableFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        pendingSwapJob?.cancel()
+        pendingSwapJob = null
         handler.removeCallbacks(showLoadingRunnable)
         exceptionRegistration?.remove()
         userRoleRegistration?.remove()

@@ -44,6 +44,8 @@ import com.shuaib.classmate.repository.CampusFeedRepository
 import com.shuaib.classmate.utils.AppPreferences
 import com.shuaib.classmate.utils.CloudinaryUploader
 import com.shuaib.classmate.utils.UserRoleHelper
+import com.shuaib.classmate.utils.applyComposerBounceAnimation
+import com.shuaib.classmate.utils.applyFloatingPostAnimation
 import kotlinx.coroutines.launch
 
 /**
@@ -250,19 +252,10 @@ class CampusFeedActivity : AppCompatActivity() {
             loadFeed(selectedTab)
         }
 
-        binding.fabNewDrop.setOnClickListener {
-            // macOS-style tactile spring scale bounce before launching the window
-            it.animate()
-                .scaleX(0.82f).scaleY(0.82f)
-                .setDuration(120)
-                .withEndAction {
-                    it.animate()
-                        .scaleX(1.0f).scaleY(1.0f)
-                        .setDuration(180)
-                        .start()
-                    showDropComposerDialog()
-                }
-                .start()
+        binding.fabNewDrop.setOnClickListener { view ->
+            view.applyComposerBounceAnimation {
+                showDropComposerDialog()
+            }
         }
     }
 
@@ -335,14 +328,7 @@ class CampusFeedActivity : AppCompatActivity() {
         dialog.setContentView(b.root)
 
         // Float with gap above and below (70% screen height), and smooth animation expanding from FAB region
-        dialog.window?.apply {
-            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-            val width = (resources.displayMetrics.widthPixels * 0.94).toInt()
-            val height = (resources.displayMetrics.heightPixels * 0.70).toInt()
-            setLayout(width, height)
-            setGravity(Gravity.CENTER)
-            attributes?.windowAnimations = R.style.FloatingPostDialogAnimation
-        }
+        dialog.applyFloatingPostAnimation(this, 0.94, 0.70)
 
         var selectedDropType = "thought"
         selectedImageUri = null

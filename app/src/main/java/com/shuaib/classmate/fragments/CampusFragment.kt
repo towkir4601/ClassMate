@@ -20,6 +20,8 @@ import com.shuaib.classmate.activities.ImportantContactsActivity
 import com.shuaib.classmate.activities.MainActivity
 import com.shuaib.classmate.databinding.FragmentCampusBinding
 import com.shuaib.classmate.models.BusSchedule
+import com.shuaib.classmate.utils.applyCardClickAnimation
+import com.shuaib.classmate.utils.launchActivityWithCardAnimation
 
 class CampusFragment : Fragment() {
 
@@ -62,11 +64,13 @@ class CampusFragment : Fragment() {
     private fun setupServicesGrid() {
         val mainActivity = activity as? MainActivity
 
-        binding.cardUniversityNotices.setOnClickListener {
-            context?.let { ctx -> com.shuaib.classmate.utils.NoticeReadTracker.markReadNow(ctx) }
-            mainActivity?.updateNoticeBadge(0)
-            binding.tvNoticeBadge.visibility = View.GONE
-            mainActivity?.openChildDestination(R.id.nav_campus, R.id.nav_notices)
+        binding.cardUniversityNotices.setOnClickListener { view ->
+            view.applyCardClickAnimation {
+                context?.let { ctx -> com.shuaib.classmate.utils.NoticeReadTracker.markReadNow(ctx) }
+                mainActivity?.updateNoticeBadge(0)
+                binding.tvNoticeBadge.visibility = View.GONE
+                mainActivity?.openChildDestination(R.id.nav_campus, R.id.nav_notices)
+            }
         }
 
         context?.let { ctx ->
@@ -82,18 +86,20 @@ class CampusFragment : Fragment() {
                 }
         }
 
-        binding.cardImportantContacts.setOnClickListener {
+        binding.cardImportantContacts.setOnClickListener { view ->
             val ctx = context ?: return@setOnClickListener
-            startActivity(Intent(ctx, ImportantContactsActivity::class.java))
+            view.launchActivityWithCardAnimation(Intent(ctx, ImportantContactsActivity::class.java))
         }
 
-        binding.cardCampusTransport.setOnClickListener {
-            // Smooth scroll down to shuttle section
+        binding.cardCampusTransport.setOnClickListener { view ->
+            view.applyCardClickAnimation {
+                binding.nestedScrollView.smoothScrollTo(0, binding.btnManageShuttles.top)
+            }
         }
 
-        binding.cardCalendarBreak.setOnClickListener {
+        binding.cardCalendarBreak.setOnClickListener { view ->
             val ctx = context ?: return@setOnClickListener
-            startActivity(Intent(ctx, AcademicCalendarActivity::class.java))
+            view.launchActivityWithCardAnimation(Intent(ctx, AcademicCalendarActivity::class.java))
         }
     }
 

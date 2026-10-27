@@ -22,11 +22,14 @@ import com.shuaib.classmate.adapters.PeriodAdapter
 import com.shuaib.classmate.databinding.ActivityTimetableManagementBinding
 import com.shuaib.classmate.databinding.DialogAddPeriodBinding
 import com.shuaib.classmate.models.Period
+import com.shuaib.classmate.models.User
 import com.shuaib.classmate.repositories.TimetableRepository
 import com.shuaib.classmate.utils.DateHelper
 import com.shuaib.classmate.utils.SubjectList
 import com.shuaib.classmate.utils.ThemeColors
 import com.shuaib.classmate.utils.WidgetUpdater
+import com.shuaib.classmate.utils.applyComposerBounceAnimation
+import com.shuaib.classmate.utils.applyFloatingPostAnimation
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -98,7 +101,11 @@ class TimetableManagementActivity : AppCompatActivity() {
                 .show()
         }
 
-        binding.fabAddPeriod.setOnClickListener { showPeriodDialog(null) }
+        binding.fabAddPeriod.setOnClickListener { view ->
+            view.applyComposerBounceAnimation {
+                showPeriodDialog(null)
+            }
+        }
     }
 
     private fun setupRecyclerView() {
@@ -321,7 +328,7 @@ class TimetableManagementActivity : AppCompatActivity() {
         if (period != null) {
             dialogBinding.layoutDaysSelection.visibility = View.GONE
             dialogBinding.dropdownSubject.setText("${period.subject}", false)
-            dialogBinding.etTeacher.setText(period.teacher)
+            dialogBinding.etTeacher.setText(period.teacher, false)
             dialogBinding.etRoom.setText(period.room)
             dialogBinding.etStartTime.setText(period.startTime)
             dialogBinding.etEndTime.setText(period.endTime)
@@ -374,6 +381,33 @@ class TimetableManagementActivity : AppCompatActivity() {
             val defaultSemester = intentSemester ?: prefSemester ?: "2-1"
             dialogBinding.etBatch.setText(defaultSemester, false)
         }
+
+        var selectedTeacherUid = period?.teacherUid.orEmpty()
+        var selectedTeacherEmail = period?.teacherEmail.orEmpty()
+        var selectedTeacherCode = period?.teacherCode.orEmpty()
+
+        firestore.collection("users").whereEqualTo("role", "teacher").get()
+            .addOnSuccessListener { snapshot ->
+                if (snapshot != null && !snapshot.isEmpty) {
+                    val teacherUsers = snapshot.documents.mapNotNull { it.toObject(User::class.java)?.copy(uid = it.id) }
+                    val teacherNames = teacherUsers.map { u ->
+                        val code = if (u.teacherCode.isNotBlank()) " (${u.teacherCode})" else ""
+                        "${u.name.ifBlank { u.fullName }}$code"
+                    }
+                    val teacherAdapter = android.widget.ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, teacherNames)
+                    dialogBinding.etTeacher.setAdapter(teacherAdapter)
+                    dialogBinding.etTeacher.setOnItemClickListener { _, _, position, _ ->
+                        val selectedUser = teacherUsers.getOrNull(position)
+                        if (selectedUser != null) {
+                            dialogBinding.etTeacher.setText(selectedUser.name.ifBlank { selectedUser.fullName }, false)
+                            selectedTeacherUid = selectedUser.uid
+                            selectedTeacherEmail = selectedUser.email
+                            selectedTeacherCode = selectedUser.teacherCode
+                        }
+                    }
+                }
+            }
+
         dialogBinding.etStartTime.setOnClickListener {
             showTimePicker { time -> dialogBinding.etStartTime.setText(time) }
         }
@@ -382,7 +416,7 @@ class TimetableManagementActivity : AppCompatActivity() {
             showTimePicker { time -> dialogBinding.etEndTime.setText(time) }
         }
 
-        MaterialAlertDialogBuilder(this)
+        val dialog = MaterialAlertDialogBuilder(this)
             .setTitle(if (isEdit) "Edit Period" else "Add New Period")
             .setView(dialogBinding.root)
             .setPositiveButton(if (isEdit) "Update" else "Add") { _, _ ->
@@ -410,7 +444,10 @@ class TimetableManagementActivity : AppCompatActivity() {
                         room = room,
                         batch = batch,
                         isTemporary = isTemp,
-                        temporaryDate = tempDate
+                        temporaryDate = tempDate,
+                        teacherUid = selectedTeacherUid,
+                        teacherEmail = selectedTeacherEmail,
+                        teacherCode = selectedTeacherCode
                     ) ?: Period(
                         id = "",
                         subject = selectedSubject,
@@ -420,7 +457,10 @@ class TimetableManagementActivity : AppCompatActivity() {
                         room = room,
                         batch = batch,
                         isTemporary = isTemp,
-                        temporaryDate = tempDate
+                        temporaryDate = tempDate,
+                        teacherUid = selectedTeacherUid,
+                        teacherEmail = selectedTeacherEmail,
+                        teacherCode = selectedTeacherCode
                     )
                     
                     val roomPart = if (room.isNotBlank()) "Room $room" else "Schedule updated"
@@ -462,7 +502,10 @@ class TimetableManagementActivity : AppCompatActivity() {
                 }
             }
             .setNegativeButton("Cancel", null)
-            .show()
+            .create()
+
+        dialog.show()
+        dialog.applyFloatingPostAnimation(this, 0.94, 0.75, isWrapHeight = true)
     }
 
     private fun showTimePicker(onTimeSelected: (String) -> Unit) {

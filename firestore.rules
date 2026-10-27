@@ -1,6 +1,43 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Models
+    // ===============================================================
+    //
+    // Collection: routine_swap_requests
+    // Document ID: auto-generated or client UUID
+    // Fields:
+    //   - id: string (optional, max 100)
+    //   - date: string (required, format: YYYY-MM-DD)
+    //   - day: string (required, weekday name e.g. "sunday", max 20)
+    //   - department: string (optional, max 100)
+    //   - batch: string (optional, max 50)
+    //   - requesterUid: string (required, immutable, must match auth.uid, max 128)
+    //   - requesterName: string (optional, max 100)
+    //   - requesterPeriodId: string (required, max 100)
+    //   - requesterSubject: string (optional, max 120)
+    //   - requesterStartTime: string (optional, max 30)
+    //   - requesterEndTime: string (optional, max 30)
+    //   - requesterRoom: string (optional, max 50)
+    //   - targetUid: string (optional, max 128)
+    //   - targetTeacherName: string (optional, max 100)
+    //   - targetPeriodId: string (required, max 100)
+    //   - targetSubject: string (optional, max 120)
+    //   - targetStartTime: string (optional, max 30)
+    //   - targetEndTime: string (optional, max 30)
+    //   - targetRoom: string (optional, max 50)
+    //   - note: string (optional, max 500)
+    //   - status: string (required, "pending" on create; transitions to "accepted", "rejected", or "cancelled")
+    //   - createdAt: timestamp (optional, server timestamp)
+    //   - resolvedAt: timestamp (optional, set on accept/reject/cancel)
+    //
+    // Collection: timetable/{day}/periods/{periodId}
+    // Fields:
+    //   - Core: id, subject, teacher, startTime, endTime, room, batch, department, departmentId
+    //   - Overrides: overrideDate, overrideStartTime, overrideEndTime, overrideRoom, isCancelled, cancelDate
+    //   - Faculty Binding: teacherUid, teacherEmail, teacherCode, teacher
+    // ===============================================================
 
     function isLoggedIn() {
       return request.auth != null;
@@ -703,10 +740,167 @@ service cloud.firestore {
           "isCancelled",
           "cancelDate"
         ])
-        && request.resource.data.isCancelled == true
+        && request.resource.data.isCancelled is bool
         && request.resource.data.cancelDate is string
-        && request.resource.data.cancelDate.matches("^[0-9]{4}-[0-9]{2}-[0-9]{2}$");
+        && (request.resource.data.cancelDate == "" ||
+            request.resource.data.cancelDate.matches("^[0-9]{4}-[0-9]{2}-[0-9]{2}$"));
     }
+
+    // ── Teacher Routine Swap Requests & Period Overrides ─────────────────────
+
+    function validRoutineSwapFields(data) {
+      return data.keys().hasOnly([
+        "id",
+        "date",
+        "day",
+        "department",
+        "batch",
+        "requesterUid",
+        "requesterName",
+        "requesterPeriodId",
+        "requesterSubject",
+        "requesterStartTime",
+        "requesterEndTime",
+        "requesterRoom",
+        "targetUid",
+        "targetTeacherName",
+        "targetPeriodId",
+        "targetSubject",
+        "targetStartTime",
+        "targetEndTime",
+        "targetRoom",
+        "note",
+        "status",
+        "createdAt",
+        "resolvedAt"
+      ])
+      && data.date is string && data.date.matches("^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
+      && data.day is string && data.day.size() > 0 && data.day.size() <= 20
+      && data.requesterUid is string && data.requesterUid.size() > 0 && data.requesterUid.size() <= 128
+      && data.requesterPeriodId is string && data.requesterPeriodId.size() > 0 && data.requesterPeriodId.size() <= 100
+      && data.targetPeriodId is string && data.targetPeriodId.size() > 0 && data.targetPeriodId.size() <= 100
+      && data.status in ["pending", "accepted", "rejected", "cancelled"]
+      && (!("id" in data) || (data.id is string && data.id.size() <= 100))
+      && (!("department" in data) || (data.department is string && data.department.size() <= 100))
+      && (!("batch" in data) || (data.batch is string && data.batch.size() <= 50))
+      && (!("requesterName" in data) || (data.requesterName is string && data.requesterName.size() <= 100))
+      && (!("requesterSubject" in data) || (data.requesterSubject is string && data.requesterSubject.size() <= 120))
+      && (!("requesterStartTime" in data) || (data.requesterStartTime is string && data.requesterStartTime.size() <= 30))
+      && (!("requesterEndTime" in data) || (data.requesterEndTime is string && data.requesterEndTime.size() <= 30))
+      && (!("requesterRoom" in data) || (data.requesterRoom is string && data.requesterRoom.size() <= 50))
+      && (!("targetUid" in data) || (data.targetUid is string && data.targetUid.size() <= 128))
+      && (!("targetTeacherName" in data) || (data.targetTeacherName is string && data.targetTeacherName.size() <= 100))
+      && (!("targetSubject" in data) || (data.targetSubject is string && data.targetSubject.size() <= 120))
+      && (!("targetStartTime" in data) || (data.targetStartTime is string && data.targetStartTime.size() <= 30))
+      && (!("targetEndTime" in data) || (data.targetEndTime is string && data.targetEndTime.size() <= 30))
+      && (!("targetRoom" in data) || (data.targetRoom is string && data.targetRoom.size() <= 50))
+      && (!("note" in data) || (data.note is string && data.note.size() <= 500))
+      && (!("createdAt" in data) || data.createdAt is timestamp)
+      && (!("resolvedAt" in data) || data.resolvedAt is timestamp);
+    }
+
+    function validRoutineSwapCreate() {
+      return isLoggedIn()
+        && (isTeacher() || isAdmin())
+        && validRoutineSwapFields(request.resource.data)
+        && request.resource.data.requesterUid == request.auth.uid
+        && request.resource.data.status == "pending"
+        && (!("createdAt" in request.resource.data) || request.resource.data.createdAt == request.time || request.resource.data.createdAt is timestamp);
+    }
+
+    function validRoutineSwapTargetUpdate() {
+      return isLoggedIn()
+        && "targetUid" in resource.data
+        && request.auth.uid == resource.data.targetUid
+        && "status" in resource.data
+        && resource.data.status == "pending"
+        && request.resource.data.status in ["accepted", "rejected"]
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "resolvedAt"])
+        && validRoutineSwapFields(request.resource.data)
+        && (!("resolvedAt" in request.resource.data) || request.resource.data.resolvedAt == request.time || request.resource.data.resolvedAt is timestamp);
+    }
+
+    function validRoutineSwapRequesterCancel() {
+      return isLoggedIn()
+        && "requesterUid" in resource.data
+        && request.auth.uid == resource.data.requesterUid
+        && "status" in resource.data
+        && resource.data.status == "pending"
+        && request.resource.data.status == "cancelled"
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "resolvedAt"])
+        && validRoutineSwapFields(request.resource.data)
+        && (!("resolvedAt" in request.resource.data) || request.resource.data.resolvedAt == request.time || request.resource.data.resolvedAt is timestamp);
+    }
+
+    function validRoutineSwapAdminUpdate() {
+      return canEditTimetable()
+        && validRoutineSwapFields(request.resource.data)
+        && (!("requesterUid" in request.resource.data) || request.resource.data.requesterUid == resource.data.requesterUid);
+    }
+
+    function validTeacherPeriodOverrideUpdate() {
+      return isLoggedIn()
+        && (
+          isTeacher() ||
+          canEditTimetable() ||
+          canSendClassCancel() ||
+          ("teacherUid" in resource.data && resource.data.teacherUid == request.auth.uid)
+        )
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "overrideDate",
+          "overrideStartTime",
+          "overrideEndTime",
+          "overrideRoom",
+          "isCancelled",
+          "cancelDate"
+        ])
+        && (!("overrideDate" in request.resource.data) ||
+            (request.resource.data.overrideDate is string &&
+             (request.resource.data.overrideDate == "" ||
+              request.resource.data.overrideDate.matches("^[0-9]{4}-[0-9]{2}-[0-9]{2}$"))))
+        && (!("overrideStartTime" in request.resource.data) ||
+            (request.resource.data.overrideStartTime is string &&
+             request.resource.data.overrideStartTime.size() <= 30))
+        && (!("overrideEndTime" in request.resource.data) ||
+            (request.resource.data.overrideEndTime is string &&
+             request.resource.data.overrideEndTime.size() <= 30))
+        && (!("overrideRoom" in request.resource.data) ||
+            (request.resource.data.overrideRoom is string &&
+             request.resource.data.overrideRoom.size() <= 50))
+        && (!("isCancelled" in request.resource.data) ||
+            request.resource.data.isCancelled is bool)
+        && (!("cancelDate" in request.resource.data) ||
+            (request.resource.data.cancelDate is string &&
+             (request.resource.data.cancelDate == "" ||
+              request.resource.data.cancelDate.matches("^[0-9]{4}-[0-9]{2}-[0-9]{2}$"))));
+    }
+
+    function validTeacherPeriodClaimUpdate() {
+      return isLoggedIn()
+        && (isTeacher() || canEditTimetable())
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "teacherUid",
+          "teacherEmail",
+          "teacherCode",
+          "teacher"
+        ])
+        && request.resource.data.teacherUid == request.auth.uid
+        && (!("teacher" in request.resource.data) ||
+            (request.resource.data.teacher is string &&
+             request.resource.data.teacher.size() > 0 &&
+             request.resource.data.teacher.size() <= 100))
+        && (!("teacherEmail" in request.resource.data) ||
+            (request.resource.data.teacherEmail is string &&
+             request.resource.data.teacherEmail.size() <= 120))
+        && (!("teacherCode" in request.resource.data) ||
+            (request.resource.data.teacherCode is string &&
+             request.resource.data.teacherCode.size() <= 50))
+        && (!("teacherUid" in resource.data) ||
+            resource.data.teacherUid == "" ||
+            resource.data.teacherUid == request.auth.uid ||
+            canEditTimetable());
+    }
+
 
     function validAcademicCalendarExceptionBase() {
       return request.resource.data.keys().hasOnly([
@@ -859,6 +1053,29 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    match /routine_swap_requests/{requestId} {
+      allow read: if isLoggedIn() && (
+        ("requesterUid" in resource.data && resource.data.requesterUid == request.auth.uid) ||
+        ("targetUid" in resource.data && resource.data.targetUid == request.auth.uid) ||
+        isTeacher() ||
+        canEditTimetable()
+      );
+
+      allow create: if validRoutineSwapCreate();
+
+      allow update: if validRoutineSwapAdminUpdate()
+        || validRoutineSwapTargetUpdate()
+        || validRoutineSwapRequesterCancel();
+
+      allow delete: if canEditTimetable() || (
+        isLoggedIn() &&
+        "requesterUid" in resource.data &&
+        resource.data.requesterUid == request.auth.uid &&
+        "status" in resource.data &&
+        resource.data.status == "pending"
+      );
+    }
+
     match /timetable/{day} {
       allow read: if isLoggedIn();
       allow write: if canEditTimetable();
@@ -867,7 +1084,10 @@ service cloud.firestore {
     match /timetable/{day}/periods/{periodId} {
       allow read: if isLoggedIn();
       allow create, delete: if canEditTimetable();
-      allow update: if canEditTimetable() || validClassCancelPeriodUpdate();
+      allow update: if canEditTimetable()
+        || validClassCancelPeriodUpdate()
+        || validTeacherPeriodOverrideUpdate()
+        || validTeacherPeriodClaimUpdate();
     }
 
     match /bus_schedules/{scheduleId} {

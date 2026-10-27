@@ -1,13 +1,14 @@
 package com.shuaib.classmate.activities
 
+import android.app.Dialog
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
+import android.view.Window
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
@@ -21,6 +22,8 @@ import com.shuaib.classmate.models.ImportantContact
 import com.shuaib.classmate.models.User
 import com.shuaib.classmate.utils.AppPreferences
 import com.shuaib.classmate.utils.HapticHelper
+import com.shuaib.classmate.utils.applyComposerBounceAnimation
+import com.shuaib.classmate.utils.applyFloatingPostAnimation
 
 class ImportantContactsActivity : AppCompatActivity() {
 
@@ -66,9 +69,11 @@ class ImportantContactsActivity : AppCompatActivity() {
             loadAllContacts()
         }
 
-        binding.fabAddContact.setOnClickListener {
-            HapticHelper.lightPop(it)
-            showAddContactBottomSheet()
+        binding.fabAddContact.setOnClickListener { view ->
+            HapticHelper.lightPop(view)
+            view.applyComposerBounceAnimation {
+                showAddContactBottomSheet()
+            }
         }
 
         binding.btnSeedContacts.setOnClickListener {
@@ -275,9 +280,11 @@ class ImportantContactsActivity : AppCompatActivity() {
     }
 
     private fun showAddContactBottomSheet() {
-        val dialog = BottomSheetDialog(this)
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         val dialogBinding = DialogAddImportantContactBinding.inflate(layoutInflater)
         dialog.setContentView(dialogBinding.root)
+        dialog.applyFloatingPostAnimation(this, 0.94, 0.82)
 
         dialogBinding.btnCancel.setOnClickListener { dialog.dismiss() }
 
@@ -296,12 +303,13 @@ class ImportantContactsActivity : AppCompatActivity() {
         dialogBinding.etDepartment.isClickable = true
         dialogBinding.etDepartment.setOnClickListener { openDeptPicker() }
         dialogBinding.tilDepartment.setEndIconOnClickListener { openDeptPicker() }
+        com.shuaib.classmate.utils.PhoneNumberUtils.attachPhonePrefixWatcher(dialogBinding.etPhone)
 
         dialogBinding.btnSaveContact.setOnClickListener {
             val name = dialogBinding.etContactName.text?.toString()?.trim().orEmpty()
             val designation = dialogBinding.etDesignation.text?.toString()?.trim().orEmpty()
             val department = dialogBinding.etDepartment.text?.toString()?.trim().orEmpty()
-            val phone = dialogBinding.etPhone.text?.toString()?.trim().orEmpty()
+            val phone = com.shuaib.classmate.utils.PhoneNumberUtils.normalize(dialogBinding.etPhone.text?.toString()?.trim().orEmpty())
             val email = dialogBinding.etEmail.text?.toString()?.trim().orEmpty()
 
             if (name.isBlank()) {
@@ -406,7 +414,7 @@ class ImportantContactsActivity : AppCompatActivity() {
                 name = "University Medical Center",
                 designation = "24/7 Campus Medical Center",
                 departmentOrOffice = "Campus Medical Center",
-                phone = "01317848951",
+                phone = "+8801317848951",
                 email = "medical@gstu.ac.bd",
                 category = ImportantContact.CATEGORY_MEDICAL,
                 isEmergency = true
@@ -416,7 +424,7 @@ class ImportantContactsActivity : AppCompatActivity() {
                 name = "University Ambulance",
                 designation = "24/7 Emergency Ambulance Service",
                 departmentOrOffice = "Campus Medical Center",
-                phone = "01734926998",
+                phone = "+8801734926998",
                 email = "ambulance@gstu.ac.bd",
                 category = ImportantContact.CATEGORY_MEDICAL,
                 isEmergency = true
@@ -446,7 +454,7 @@ class ImportantContactsActivity : AppCompatActivity() {
                 name = "Transport Office",
                 designation = "University Bus Schedule & Logistics",
                 departmentOrOffice = "Transport Pool",
-                phone = "+88-01720478937",
+                phone = "+8801720478937",
                 email = "transport@gstu.ac.bd",
                 category = ImportantContact.CATEGORY_ADMINISTRATION,
                 isEmergency = false

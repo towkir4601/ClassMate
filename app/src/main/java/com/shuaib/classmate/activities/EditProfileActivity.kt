@@ -40,6 +40,8 @@ class EditProfileActivity : AppCompatActivity() {
         binding.etDepartment.isClickable = true
         binding.etDepartment.setOnClickListener { openDeptPicker() }
         binding.tilDepartment.setEndIconOnClickListener { openDeptPicker() }
+        com.shuaib.classmate.utils.PhoneNumberUtils.attachPhonePrefixWatcher(binding.etPhone)
+        com.shuaib.classmate.utils.PhoneNumberUtils.attachPhonePrefixWatcher(binding.etWhatsApp)
 
         binding.btnSave.setOnClickListener {
             saveUserProfile()
@@ -101,8 +103,8 @@ class EditProfileActivity : AppCompatActivity() {
             "name" to binding.etName.text.toString().trim(),
             "studentId" to binding.etStudentId.text.toString().trim(),
             "department" to binding.etDepartment.text.toString().trim(),
-            "phone" to binding.etPhone.text.toString().trim(),
-            "whatsappNumber" to binding.etWhatsApp.text.toString().trim(),
+            "phone" to com.shuaib.classmate.utils.PhoneNumberUtils.normalize(binding.etPhone.text.toString()),
+            "whatsappNumber" to com.shuaib.classmate.utils.PhoneNumberUtils.normalize(binding.etWhatsApp.text.toString()),
             "semester" to newSemester,
             "teacherCode" to newTeacherCode,
             "fatherName" to binding.etFatherName.text.toString().trim(),

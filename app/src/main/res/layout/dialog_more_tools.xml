@@ -2,41 +2,74 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="@drawable/bg_bottom_sheet"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_dialog_rounded"
     android:orientation="vertical"
     android:padding="20dp">
 
-    <!-- Drag Handle -->
-    <View
-        android:layout_width="38dp"
-        android:layout_height="4dp"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="14dp"
-        android:background="@drawable/bg_handle" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="More Campus Tools"
-        android:textColor="@color/cm_text_primary"
-        android:textSize="18sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:text="Quick access to all university utilities"
-        android:textColor="@color/cm_text_muted"
-        android:textSize="12sp" />
-
-    <!-- Grid of Primary Tools -->
+    <!-- Header with Close Button -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:gravity="center_vertical"
         android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="More Campus Tools"
+                android:textColor="@color/cm_text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Quick access to all university utilities"
+                android:textColor="@color/cm_text_muted"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btnCloseMoreTools"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Close"
+            android:src="@drawable/ic_close"
+            app:tint="@color/cm_text_muted" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="12dp"
+        android:background="@color/cm_divider" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Grid of Primary Tools -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
 
         <!-- Library -->
         <LinearLayout
@@ -503,5 +536,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1" />
     </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
 
 </LinearLayout>

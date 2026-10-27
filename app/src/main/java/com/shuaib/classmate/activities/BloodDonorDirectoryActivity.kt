@@ -1,16 +1,17 @@
 package com.shuaib.classmate.activities
 
+import android.app.Dialog
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
+import android.view.Window
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -24,6 +25,8 @@ import com.shuaib.classmate.models.User
 import com.shuaib.classmate.repositories.AppNotificationRepository
 import com.shuaib.classmate.repositories.BloodRequestRepository
 import com.shuaib.classmate.utils.AppPreferences
+import com.shuaib.classmate.utils.applyComposerBounceAnimation
+import com.shuaib.classmate.utils.applyFloatingPostAnimation
 
 class BloodDonorDirectoryActivity : AppCompatActivity() {
 
@@ -187,8 +190,10 @@ class BloodDonorDirectoryActivity : AppCompatActivity() {
             showUpdateBloodGroupDialog()
         }
 
-        binding.btnRequestBlood.setOnClickListener {
-            showCreateBloodRequestDialog()
+        binding.btnRequestBlood.setOnClickListener { view ->
+            view.applyComposerBounceAnimation {
+                showCreateBloodRequestDialog()
+            }
         }
     }
 
@@ -273,9 +278,11 @@ class BloodDonorDirectoryActivity : AppCompatActivity() {
     }
 
     private fun showCreateBloodRequestDialog() {
-        val dialog = BottomSheetDialog(this)
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         val view = layoutInflater.inflate(R.layout.dialog_create_blood_request, null)
         dialog.setContentView(view)
+        dialog.applyFloatingPostAnimation(this, 0.94, 0.82)
 
         val etHospital = view.findViewById<android.widget.EditText>(R.id.etReqHospital)
         val etNote = view.findViewById<android.widget.EditText>(R.id.etReqNote)
@@ -292,11 +299,12 @@ class BloodDonorDirectoryActivity : AppCompatActivity() {
         if (userPhone.isNotBlank() && etPhone.text.isNullOrBlank()) {
             etPhone.setText(userPhone)
         }
+        com.shuaib.classmate.utils.PhoneNumberUtils.attachPhonePrefixWatcher(etPhone)
 
         btnSubmit.setOnClickListener {
             val hospital = etHospital.text.toString().trim()
             val note = etNote.text.toString().trim()
-            val phone = etPhone.text.toString().trim()
+            val phone = com.shuaib.classmate.utils.PhoneNumberUtils.normalize(etPhone.text.toString().trim())
             val bagsStr = etBags.text.toString().trim()
             val bags = bagsStr.toIntOrNull() ?: 1
 

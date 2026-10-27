@@ -1,5 +1,6 @@
 package com.shuaib.classmate.fragments
 
+import android.app.Dialog
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
@@ -9,7 +10,9 @@ import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.Window
 import android.view.animation.AnimationUtils
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -26,6 +29,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.shuaib.classmate.R
+import com.shuaib.classmate.utils.applyCardClickAnimation
+import com.shuaib.classmate.utils.applyFloatingPostAnimation
+import com.shuaib.classmate.utils.launchActivityWithCardAnimation
 import com.shuaib.classmate.activities.AcademicCalendarActivity
 import com.shuaib.classmate.activities.BloodDonorDirectoryActivity
 import com.shuaib.classmate.activities.CampusFeedActivity
@@ -296,42 +302,50 @@ class HomeFragment : Fragment() {
 
         // Quick Access Tiles (Matching Pic 3)
         // Row 1
-        binding.tileClubEvent.setOnClickListener {
+        binding.tileClubEvent.setOnClickListener { view ->
             val ctx = context ?: return@setOnClickListener
-            startActivity(Intent(ctx, EventsClubsActivity::class.java))
+            view.launchActivityWithCardAnimation(Intent(ctx, EventsClubsActivity::class.java))
         }
 
-        binding.tileTransport.setOnClickListener {
-            mainActivity?.showMainTab(R.id.nav_campus)
+        binding.tileTransport.setOnClickListener { view ->
+            view.applyCardClickAnimation {
+                mainActivity?.showMainTab(R.id.nav_campus)
+            }
         }
 
-        binding.tileLostFound.setOnClickListener {
+        binding.tileLostFound.setOnClickListener { view ->
             val ctx = context ?: return@setOnClickListener
-            startActivity(Intent(ctx, LostFoundActivity::class.java))
+            view.launchActivityWithCardAnimation(Intent(ctx, LostFoundActivity::class.java))
         }
 
-        binding.tileBloodBank.setOnClickListener {
+        binding.tileBloodBank.setOnClickListener { view ->
             val ctx = context ?: return@setOnClickListener
-            startActivity(Intent(ctx, BloodDonorDirectoryActivity::class.java))
+            view.launchActivityWithCardAnimation(Intent(ctx, BloodDonorDirectoryActivity::class.java))
         }
 
         // Row 2
-        binding.tileRoutine.setOnClickListener {
-            mainActivity?.showMainTab(R.id.nav_academics)
+        binding.tileRoutine.setOnClickListener { view ->
+            view.applyCardClickAnimation {
+                mainActivity?.showMainTab(R.id.nav_academics)
+            }
         }
 
-        binding.tileCoverPage.setOnClickListener {
+        binding.tileCoverPage.setOnClickListener { view ->
             val ctx = context ?: return@setOnClickListener
-            startActivity(Intent(ctx, CoverPageActivity::class.java))
+            view.launchActivityWithCardAnimation(Intent(ctx, CoverPageActivity::class.java))
         }
 
-        binding.tileNotice.setOnClickListener {
-            val mainActivity = activity as? MainActivity
-            mainActivity?.openChildDestination(R.id.nav_home, R.id.nav_notices)
+        binding.tileNotice.setOnClickListener { view ->
+            view.applyCardClickAnimation {
+                val mainActivity = activity as? MainActivity
+                mainActivity?.openChildDestination(R.id.nav_home, R.id.nav_notices)
+            }
         }
 
-        binding.tileMore.setOnClickListener {
-            showMoreToolsBottomSheet()
+        binding.tileMore.setOnClickListener { view ->
+            view.applyCardClickAnimation {
+                showMoreToolsBottomSheet()
+            }
         }
 
         binding.cardCampusFeed.setOnClickListener {
@@ -398,63 +412,85 @@ class HomeFragment : Fragment() {
 
     private fun showMoreToolsBottomSheet() {
         val ctx = context ?: return
-        val dialog = BottomSheetDialog(ctx)
+        val dialog = Dialog(ctx)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         val mainActivity = activity as? MainActivity
 
         val view = LayoutInflater.from(ctx).inflate(R.layout.dialog_more_tools, null)
         dialog.setContentView(view)
+        dialog.applyFloatingPostAnimation(ctx, 0.94, 0.78)
 
-        view.findViewById<View>(R.id.toolItemLibrary).setOnClickListener {
+        view.findViewById<ImageButton>(R.id.btnCloseMoreTools)?.setOnClickListener {
             dialog.dismiss()
-            mainActivity?.openChildDestination(R.id.nav_home, R.id.nav_pdf)
         }
 
-        view.findViewById<View>(R.id.toolItemQuestionBank).setOnClickListener {
-            dialog.dismiss()
-            mainActivity?.openChildDestination(R.id.nav_home, R.id.fragment_question_bank)
+        view.findViewById<View>(R.id.toolItemLibrary).setOnClickListener { v ->
+            v.applyCardClickAnimation {
+                dialog.dismiss()
+                mainActivity?.openChildDestination(R.id.nav_home, R.id.nav_pdf)
+            }
         }
 
-        view.findViewById<View>(R.id.toolItemCgpa).setOnClickListener {
-            dialog.dismiss()
-            startActivity(Intent(ctx, CgpaCalculatorActivity::class.java))
+        view.findViewById<View>(R.id.toolItemQuestionBank).setOnClickListener { v ->
+            v.applyCardClickAnimation {
+                dialog.dismiss()
+                mainActivity?.openChildDestination(R.id.nav_home, R.id.fragment_question_bank)
+            }
         }
 
-        view.findViewById<View>(R.id.toolItemCvMaker)?.setOnClickListener {
+        view.findViewById<View>(R.id.toolItemCgpa).setOnClickListener { v ->
+            v.launchActivityWithCardAnimation(Intent(ctx, CgpaCalculatorActivity::class.java))
             dialog.dismiss()
-            com.shuaib.classmate.utils.UpcomingFeaturesHelper.showCvMakerDialog(ctx)
         }
 
-        view.findViewById<View>(R.id.toolItemLiveBus)?.setOnClickListener {
-            dialog.dismiss()
-            com.shuaib.classmate.utils.UpcomingFeaturesHelper.showLiveBusTrackingDialog(ctx)
+        view.findViewById<View>(R.id.toolItemCvMaker)?.setOnClickListener { v ->
+            v.applyCardClickAnimation {
+                dialog.dismiss()
+                com.shuaib.classmate.utils.UpcomingFeaturesHelper.showCvMakerDialog(ctx)
+            }
         }
 
-        view.findViewById<View>(R.id.toolItemCafeteria)?.setOnClickListener {
-            dialog.dismiss()
-            com.shuaib.classmate.utils.UpcomingFeaturesHelper.showCafeteriaMenuDialog(ctx)
+        view.findViewById<View>(R.id.toolItemLiveBus)?.setOnClickListener { v ->
+            v.applyCardClickAnimation {
+                dialog.dismiss()
+                com.shuaib.classmate.utils.UpcomingFeaturesHelper.showLiveBusTrackingDialog(ctx)
+            }
         }
 
-        view.findViewById<View>(R.id.toolItemHall)?.setOnClickListener {
-            dialog.dismiss()
-            com.shuaib.classmate.utils.UpcomingFeaturesHelper.showHallAlumniDialog(ctx)
+        view.findViewById<View>(R.id.toolItemCafeteria)?.setOnClickListener { v ->
+            v.applyCardClickAnimation {
+                dialog.dismiss()
+                com.shuaib.classmate.utils.UpcomingFeaturesHelper.showCafeteriaMenuDialog(ctx)
+            }
         }
 
-        view.findViewById<View>(R.id.toolItemPolls).setOnClickListener {
-            dialog.dismiss()
-            mainActivity?.openChildDestination(R.id.nav_home, R.id.nav_polls)
+        view.findViewById<View>(R.id.toolItemHall)?.setOnClickListener { v ->
+            v.applyCardClickAnimation {
+                dialog.dismiss()
+                com.shuaib.classmate.utils.UpcomingFeaturesHelper.showHallAlumniDialog(ctx)
+            }
         }
 
-        view.findViewById<View>(R.id.toolItemCalendar).setOnClickListener {
-            dialog.dismiss()
-            startActivity(Intent(ctx, AcademicCalendarActivity::class.java))
+        view.findViewById<View>(R.id.toolItemPolls).setOnClickListener { v ->
+            v.applyCardClickAnimation {
+                dialog.dismiss()
+                mainActivity?.openChildDestination(R.id.nav_home, R.id.nav_polls)
+            }
         }
 
-        view.findViewById<View>(R.id.toolItemCampusFeed).setOnClickListener {
+        view.findViewById<View>(R.id.toolItemCalendar).setOnClickListener { v ->
+            v.launchActivityWithCardAnimation(Intent(ctx, AcademicCalendarActivity::class.java))
             dialog.dismiss()
-            if (isAdminUser) {
-                startActivity(Intent(ctx, CampusFeedActivity::class.java))
-            } else {
-                startActivity(Intent(ctx, CampusFeedFeaturesActivity::class.java))
+        }
+
+        view.findViewById<View>(R.id.toolItemCampusFeed).setOnClickListener { v ->
+            v.applyCardClickAnimation {
+                dialog.dismiss()
+                if (isAdminUser) {
+                    v.launchActivityWithCardAnimation(Intent(ctx, CampusFeedActivity::class.java))
+                } else {
+                    v.launchActivityWithCardAnimation(Intent(ctx, CampusFeedFeaturesActivity::class.java))
+                }
             }
         }
 

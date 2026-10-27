@@ -89,6 +89,8 @@ class RegisterActivity : AppCompatActivity() {
         setupStudentIdFormatting()
         setupRoleToggle()
         setupDepartmentPicker()
+        com.shuaib.classmate.utils.PhoneNumberUtils.attachPhonePrefixWatcher(binding.etPhone)
+        com.shuaib.classmate.utils.PhoneNumberUtils.attachPhonePrefixWatcher(binding.etWhatsApp)
         showStep(0, focus = false)
 
         binding.btnRegister.applyClickAnimation { handlePrimaryAction() }
@@ -292,8 +294,8 @@ class RegisterActivity : AppCompatActivity() {
         
         // Additional fields
         val department = binding.etDepartment.text.toString().trim()
-        val whatsapp = binding.etWhatsApp.text.toString().trim()
-        val phone = binding.etPhone.text.toString().trim()
+        val whatsapp = com.shuaib.classmate.utils.PhoneNumberUtils.normalize(binding.etWhatsApp.text.toString())
+        val phone = com.shuaib.classmate.utils.PhoneNumberUtils.normalize(binding.etPhone.text.toString())
         
         val batch = if (isTeacher) "" else {
             val prefix = studentId.take(2).toIntOrNull()

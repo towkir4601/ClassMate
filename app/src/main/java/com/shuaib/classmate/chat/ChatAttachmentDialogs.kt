@@ -1,5 +1,6 @@
 package com.shuaib.classmate.chat
 
+import android.app.Dialog
 import android.content.Context
 import android.text.Editable
 import android.text.TextWatcher
@@ -7,6 +8,7 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.Window
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -21,6 +23,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.shuaib.classmate.R
 import com.shuaib.classmate.chat.model.ChatUser
+import com.shuaib.classmate.utils.applyFloatingPostAnimation
 
 object ChatAttachmentDialogs {
 
@@ -122,12 +125,14 @@ object ChatAttachmentDialogs {
         context: Context,
         onPollCreated: (question: String, options: List<String>) -> Unit
     ) {
-        val dialog = BottomSheetDialog(context)
+        val dialog = Dialog(context)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         val pad = (20 * context.resources.displayMetrics.density).toInt()
         val inputMargin = (10 * context.resources.displayMetrics.density).toInt()
 
         val root = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
+            setBackgroundResource(R.drawable.bg_dialog_rounded)
             setPadding(pad, pad, pad, pad)
         }
 
@@ -218,5 +223,6 @@ object ChatAttachmentDialogs {
 
         dialog.setContentView(root)
         dialog.show()
+        dialog.applyFloatingPostAnimation(context, 0.92, 0.65, isWrapHeight = true)
     }
 }

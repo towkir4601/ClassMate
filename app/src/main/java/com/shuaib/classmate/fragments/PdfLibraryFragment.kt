@@ -23,6 +23,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
@@ -47,6 +48,8 @@ import com.shuaib.classmate.utils.Subject
 import com.shuaib.classmate.utils.SubjectList
 import com.shuaib.classmate.utils.ThemeColors
 import com.shuaib.classmate.utils.applyClickAnimation
+import com.shuaib.classmate.utils.applyComposerBounceAnimation
+import com.shuaib.classmate.utils.applyFloatingPostAnimation
 import java.util.Locale
 
 class PdfLibraryFragment : Fragment() {
@@ -190,14 +193,20 @@ class PdfLibraryFragment : Fragment() {
             (activity as? MainActivity)?.openChildDestination(R.id.nav_pdf, R.id.fragment_library_all_files)
         }
         
-        binding.btnAddRegular.applyClickAnimation {
-            showAddSubjectDialog("regular")
+        binding.btnAddRegular.setOnClickListener { view ->
+            view.applyComposerBounceAnimation {
+                showAddSubjectDialog("regular")
+            }
         }
-        binding.btnAddLab.applyClickAnimation {
-            showAddSubjectDialog("lab")
+        binding.btnAddLab.setOnClickListener { view ->
+            view.applyComposerBounceAnimation {
+                showAddSubjectDialog("lab")
+            }
         }
-        binding.btnAddOther.applyClickAnimation {
-            showAddSubjectDialog("other")
+        binding.btnAddOther.setOnClickListener { view ->
+            view.applyComposerBounceAnimation {
+                showAddSubjectDialog("other")
+            }
         }
         
         updateLibraryView()
@@ -1019,7 +1028,7 @@ class PdfLibraryFragment : Fragment() {
         val etCode = dialogView.findViewById<android.widget.EditText>(R.id.etSubjectCode)
         val etBatch = dialogView.findViewById<android.widget.EditText>(R.id.etSubjectBatch)
 
-        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle("Add New Course")
             .setView(dialogView)
             .setPositiveButton("Save") { _, _ ->
@@ -1041,6 +1050,9 @@ class PdfLibraryFragment : Fragment() {
                 }
             }
             .setNegativeButton("Cancel", null)
-            .show()
+            .create()
+
+        dialog.show()
+        dialog.applyFloatingPostAnimation(requireContext(), 0.92, 0.50, isWrapHeight = true)
     }
 }

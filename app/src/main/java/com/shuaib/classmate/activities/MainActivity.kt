@@ -48,6 +48,7 @@ import com.shuaib.classmate.fragments.AcademicsFragment
 import com.shuaib.classmate.fragments.CampusFragment
 import com.shuaib.classmate.fragments.CommunityFragment
 import com.shuaib.classmate.fragments.FriendsFragment
+import com.shuaib.classmate.utils.applyComposerBounceAnimation
 import com.shuaib.classmate.fragments.NoticeFragment
 import com.shuaib.classmate.fragments.PdfLibraryFragment
 import com.shuaib.classmate.fragments.ProfileFragment
@@ -180,33 +181,36 @@ class MainActivity : AppCompatActivity() {
         applyRootInsets()
         applyBottomNavInsets()
 
-        binding.fabChat.setOnClickListener {
-            HapticHelper.lightPop(it)
-            val parentTabId = if (binding.mainViewPager.isVisible) {
-                mainTabs.getOrNull(binding.mainViewPager.currentItem) ?: R.id.nav_home
-            } else {
-                childParentTabId ?: R.id.nav_home
+        binding.fabChat.setOnClickListener { view ->
+            view.applyComposerBounceAnimation {
+                val parentTabId = if (binding.mainViewPager.isVisible) {
+                    mainTabs.getOrNull(binding.mainViewPager.currentItem) ?: R.id.nav_home
+                } else {
+                    childParentTabId ?: R.id.nav_home
+                }
+                val bundle = Bundle().apply {
+                    putInt("initialTab", if (ChatRepository.isTeacher()) 0 else 2)
+                }
+                openChildDestination(parentTabId, R.id.nav_chat, bundle)
             }
-            val bundle = Bundle().apply {
-                putInt("initialTab", if (ChatRepository.isTeacher()) 0 else 2)
-            }
-            openChildDestination(parentTabId, R.id.nav_chat, bundle)
         }
 
-        binding.fabGlobalAdd.setOnClickListener {
-            val currentTabId = if (binding.mainViewPager.isVisible) {
-                mainTabs.getOrNull(binding.mainViewPager.currentItem)
-            } else {
-                navController.currentDestination?.id
-            }
-
-            if (currentTabId == R.id.nav_academics || currentTabId == R.id.nav_timetable) {
-                val intent = Intent(this, TimetableManagementActivity::class.java).apply {
-                    putExtra("SELECTED_SEMESTER", TimetableFragment.currentActiveSemester)
+        binding.fabGlobalAdd.setOnClickListener { view ->
+            view.applyComposerBounceAnimation {
+                val currentTabId = if (binding.mainViewPager.isVisible) {
+                    mainTabs.getOrNull(binding.mainViewPager.currentItem)
+                } else {
+                    navController.currentDestination?.id
                 }
-                startActivity(intent)
-            } else if (currentTabId == R.id.nav_campus) {
-                startActivity(Intent(this, BusScheduleManagementActivity::class.java))
+
+                if (currentTabId == R.id.nav_academics || currentTabId == R.id.nav_timetable) {
+                    val intent = Intent(this, TimetableManagementActivity::class.java).apply {
+                        putExtra("SELECTED_SEMESTER", TimetableFragment.currentActiveSemester)
+                    }
+                    startActivity(intent)
+                } else if (currentTabId == R.id.nav_campus) {
+                    startActivity(Intent(this, BusScheduleManagementActivity::class.java))
+                }
             }
         }
 
@@ -348,7 +352,13 @@ class MainActivity : AppCompatActivity() {
             } finally {
                 resettingChildBackStack = false
             }
-            navController.navigate(destinationId, args)
+            val navOptions = NavOptions.Builder()
+                .setEnterAnim(R.anim.anim_ios_card_open_enter)
+                .setExitAnim(R.anim.anim_ios_card_open_exit)
+                .setPopEnterAnim(R.anim.fade_in)
+                .setPopExitAnim(R.anim.anim_ios_card_open_exit)
+                .build()
+            navController.navigate(destinationId, args, navOptions)
         }.onFailure {
             Log.e("MainActivity", "Child navigation failed to $destinationId", it)
             showMainTab(parentTabId)

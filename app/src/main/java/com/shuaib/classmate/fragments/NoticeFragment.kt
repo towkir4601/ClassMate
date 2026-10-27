@@ -56,6 +56,7 @@ import com.shuaib.classmate.utils.NetworkMonitor
 import com.shuaib.classmate.utils.NoticeReadTracker
 import com.shuaib.classmate.utils.ThemeColors
 import com.shuaib.classmate.utils.applyClickAnimation
+import com.shuaib.classmate.utils.applyComposerBounceAnimation
 import com.shuaib.classmate.viewmodels.NoticeViewModel
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -225,8 +226,18 @@ class NoticeFragment : Fragment() {
     }
 
     private fun setupTopBar() {
-        binding.btnPostNotice.applyClickAnimation { startActivity(Intent(requireContext(), PostNoticeActivity::class.java)) }
-        binding.btnEmptyPost.applyClickAnimation { startActivity(Intent(requireContext(), PostNoticeActivity::class.java)) }
+        binding.btnPostNotice.setOnClickListener { view ->
+            view.applyComposerBounceAnimation {
+                startActivity(Intent(requireContext(), PostNoticeActivity::class.java))
+                activity?.overridePendingTransition(R.anim.anim_floating_post_enter, R.anim.anim_floating_post_exit)
+            }
+        }
+        binding.btnEmptyPost.setOnClickListener { view ->
+            view.applyComposerBounceAnimation {
+                startActivity(Intent(requireContext(), PostNoticeActivity::class.java))
+                activity?.overridePendingTransition(R.anim.anim_floating_post_enter, R.anim.anim_floating_post_exit)
+            }
+        }
         binding.btnEmptyReset.applyClickAnimation { resetFiltersAndSearch() }
     }
 

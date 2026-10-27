@@ -28,6 +28,8 @@ import com.shuaib.classmate.repositories.AcademicCalendarRepository
 import com.shuaib.classmate.repositories.TimetableRepository
 import com.shuaib.classmate.utils.AppPreferences
 import com.shuaib.classmate.utils.DateHelper
+import com.shuaib.classmate.utils.applyCardClickAnimation
+import com.shuaib.classmate.utils.launchActivityWithCardAnimation
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.util.Calendar
@@ -84,32 +86,36 @@ class AcademicsFragment : Fragment() {
     private fun setupUtilitiesGrid() {
         val mainActivity = activity as? MainActivity
 
-        binding.cardCgpaCalc.setOnClickListener {
+        binding.cardCgpaCalc.setOnClickListener { view ->
             val ctx = context ?: return@setOnClickListener
-            startActivity(Intent(ctx, CgpaCalculatorActivity::class.java))
+            view.launchActivityWithCardAnimation(Intent(ctx, CgpaCalculatorActivity::class.java))
         }
 
-        binding.cardQuestionBank.setOnClickListener {
-            mainActivity?.openChildDestination(R.id.nav_academics, R.id.fragment_question_bank)
+        binding.cardQuestionBank.setOnClickListener { view ->
+            view.applyCardClickAnimation {
+                mainActivity?.openChildDestination(R.id.nav_academics, R.id.fragment_question_bank)
+            }
         }
 
-        binding.cardPdfLibrary.setOnClickListener {
-            mainActivity?.openChildDestination(R.id.nav_academics, R.id.nav_pdf)
+        binding.cardPdfLibrary.setOnClickListener { view ->
+            view.applyCardClickAnimation {
+                mainActivity?.openChildDestination(R.id.nav_academics, R.id.nav_pdf)
+            }
         }
 
-        binding.cardExamResults.setOnClickListener {
+        binding.cardExamResults.setOnClickListener { view ->
             val ctx = context ?: return@setOnClickListener
-            startActivity(Intent(ctx, ResultViewerActivity::class.java))
+            view.launchActivityWithCardAnimation(Intent(ctx, ResultViewerActivity::class.java))
         }
 
-        binding.cardSeatPlan.setOnClickListener {
+        binding.cardSeatPlan.setOnClickListener { view ->
             val ctx = context ?: return@setOnClickListener
-            startActivity(Intent(ctx, SeatPlanViewerActivity::class.java))
+            view.launchActivityWithCardAnimation(Intent(ctx, SeatPlanViewerActivity::class.java))
         }
 
-        binding.cardAcademicCalendar.setOnClickListener {
+        binding.cardAcademicCalendar.setOnClickListener { view ->
             val ctx = context ?: return@setOnClickListener
-            startActivity(Intent(ctx, AcademicCalendarActivity::class.java))
+            view.launchActivityWithCardAnimation(Intent(ctx, AcademicCalendarActivity::class.java))
         }
     }
 

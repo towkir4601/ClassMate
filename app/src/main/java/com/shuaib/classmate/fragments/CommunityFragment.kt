@@ -14,6 +14,8 @@ import com.shuaib.classmate.R
 import com.shuaib.classmate.activities.BloodDonorDirectoryActivity
 import com.shuaib.classmate.activities.MainActivity
 import com.shuaib.classmate.databinding.FragmentCommunityBinding
+import com.shuaib.classmate.utils.applyCardClickAnimation
+import com.shuaib.classmate.utils.launchActivityWithCardAnimation
 
 class CommunityFragment : Fragment() {
 
@@ -63,24 +65,30 @@ class CommunityFragment : Fragment() {
     private fun setupGrid() {
         val mainActivity = activity as? MainActivity
 
-        binding.cardPollsEvents.setOnClickListener {
-            mainActivity?.openChildDestination(R.id.nav_community, R.id.nav_polls)
-        }
-
-        binding.cardGroupChat.setOnClickListener {
-            val bundle = Bundle().apply {
-                putInt("initialTab", 1)
+        binding.cardPollsEvents.setOnClickListener { view ->
+            view.applyCardClickAnimation {
+                mainActivity?.openChildDestination(R.id.nav_community, R.id.nav_polls)
             }
-            mainActivity?.openChildDestination(R.id.nav_community, R.id.nav_chat, bundle)
         }
 
-        binding.cardNoticeDiscussions.setOnClickListener {
-            mainActivity?.openChildDestination(R.id.nav_community, R.id.nav_notices)
+        binding.cardGroupChat.setOnClickListener { view ->
+            view.applyCardClickAnimation {
+                val bundle = Bundle().apply {
+                    putInt("initialTab", 1)
+                }
+                mainActivity?.openChildDestination(R.id.nav_community, R.id.nav_chat, bundle)
+            }
         }
 
-        binding.cardBloodBank.setOnClickListener {
+        binding.cardNoticeDiscussions.setOnClickListener { view ->
+            view.applyCardClickAnimation {
+                mainActivity?.openChildDestination(R.id.nav_community, R.id.nav_notices)
+            }
+        }
+
+        binding.cardBloodBank.setOnClickListener { view ->
             val ctx = context ?: return@setOnClickListener
-            startActivity(Intent(ctx, BloodDonorDirectoryActivity::class.java))
+            view.launchActivityWithCardAnimation(Intent(ctx, BloodDonorDirectoryActivity::class.java))
         }
     }
 
