@@ -33,9 +33,8 @@ class CampusFeedFeaturesActivity : AppCompatActivity() {
 
     private fun setupAdminAccess() {
         val role = UserRoleHelper.getEffectiveRole(this)
-        val perms = UserRoleHelper.getEffectivePermissions(this, role)
         val r = role.trim().lowercase()
-        val isAdmin = (r == "superadmin" || r == "admin" || r == "teacher" || r == "club_admin" || r == "cr" || perms.values.any { it == true })
+        val isAdmin = (r == "superadmin" || r == "admin" || r == "university_admin")
 
         if (isAdmin) {
             binding.layoutAdminBetaBar.visibility = View.VISIBLE

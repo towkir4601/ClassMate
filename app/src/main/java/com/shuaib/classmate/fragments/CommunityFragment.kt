@@ -71,12 +71,18 @@ class CommunityFragment : Fragment() {
             }
         }
 
-        binding.cardGroupChat.setOnClickListener { view ->
-            view.applyCardClickAnimation {
-                val bundle = Bundle().apply {
-                    putInt("initialTab", 1)
+        val isGuest = context?.let { com.shuaib.classmate.utils.GuestUserHelper.isGuest(it) } ?: false
+        if (isGuest) {
+            binding.cardGroupChat.visibility = View.GONE
+        } else {
+            binding.cardGroupChat.visibility = View.VISIBLE
+            binding.cardGroupChat.setOnClickListener { view ->
+                view.applyCardClickAnimation {
+                    val bundle = Bundle().apply {
+                        putInt("initialTab", 1)
+                    }
+                    mainActivity?.openChildDestination(R.id.nav_community, R.id.nav_chat, bundle)
                 }
-                mainActivity?.openChildDestination(R.id.nav_community, R.id.nav_chat, bundle)
             }
         }
 

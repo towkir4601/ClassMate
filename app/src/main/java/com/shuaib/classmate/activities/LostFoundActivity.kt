@@ -133,12 +133,20 @@ class LostFoundActivity : AppCompatActivity() {
         binding.btnBack.setOnClickListener { finish() }
 
         binding.btnReportItemHeader.setOnClickListener { view ->
+            if (com.shuaib.classmate.utils.GuestUserHelper.isGuest(this)) {
+                com.shuaib.classmate.utils.GuestUserHelper.promptLogin(this, "report a lost or found item")
+                return@setOnClickListener
+            }
             view.applyComposerBounceAnimation {
                 showReportDialog()
             }
         }
 
         binding.btnFloatingReportItem.setOnClickListener { view ->
+            if (com.shuaib.classmate.utils.GuestUserHelper.isGuest(this)) {
+                com.shuaib.classmate.utils.GuestUserHelper.promptLogin(this, "report a lost or found item")
+                return@setOnClickListener
+            }
             view.applyComposerBounceAnimation {
                 showReportDialog()
             }

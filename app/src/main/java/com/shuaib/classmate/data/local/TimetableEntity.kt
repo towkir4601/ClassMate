@@ -30,6 +30,8 @@ data class TimetableEntity(
     val isTemporary: Boolean = false,
     val temporaryDate: String = "",
     val batch: String = "",
+    val department: String = "",
+    val departmentId: String = "",
     val teacherUid: String = "",
     val teacherEmail: String = "",
     val teacherCode: String = "",
@@ -64,6 +66,8 @@ data class TimetableEntity(
             isTemporary = isTemporary,
             temporaryDate = temporaryDate,
             batch = batch,
+            department = department,
+            departmentId = departmentId,
             teacherUid = teacherUid,
             teacherEmail = teacherEmail,
             teacherCode = teacherCode
@@ -90,6 +94,8 @@ data class TimetableEntity(
             isTemporary = period.isTemporary,
             temporaryDate = period.temporaryDate,
             batch = period.batch,
+            department = period.department,
+            departmentId = period.departmentId,
             teacherUid = period.teacherUid,
             teacherEmail = period.teacherEmail,
             teacherCode = period.teacherCode

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Checked State: Pure Green -->
+    <item android:state_checked="true">
+        <shape android:shape="rectangle">
+            <size android:width="51dp" android:height="31dp" />
+            <solid android:color="#22C55E" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+    <!-- Unchecked State: Sky White Track with soft sky border -->
+    <item>
+        <shape android:shape="rectangle">
+            <size android:width="51dp" android:height="31dp" />
+            <solid android:color="#F0F9FF" />
+            <stroke android:width="1.5dp" android:color="#BAE6FD" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+</selector>
+

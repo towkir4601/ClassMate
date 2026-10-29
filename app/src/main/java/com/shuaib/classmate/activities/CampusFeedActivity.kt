@@ -100,11 +100,10 @@ class CampusFeedActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Beta Security Guard: Only Superadmin and other Admin levels can access Live CampusFeed
+        // Security Guard: Live CampusFeed is only viewable to superadmin and admin levels
         val role = UserRoleHelper.getEffectiveRole(this)
-        val perms = UserRoleHelper.getEffectivePermissions(this, role)
         val r = role.trim().lowercase()
-        val isAdmin = (r == "superadmin" || r == "admin" || r == "teacher" || r == "club_admin" || r == "cr" || perms.values.any { it == true })
+        val isAdmin = (r == "superadmin" || r == "admin" || r == "university_admin")
 
         if (!isAdmin) {
             Toast.makeText(this, "CampusFeed is currently in closed beta for admins.", Toast.LENGTH_SHORT).show()
@@ -180,25 +179,37 @@ class CampusFeedActivity : AppCompatActivity() {
             currentUserId = currentUserId,
             currentUserName = currentUserName,
             onLoveClick = { post, willLove ->
-                repo.toggleLove(post.id, currentUserId, willLove)
+                if (com.shuaib.classmate.utils.GuestUserHelper.isGuest(this)) {
+                    com.shuaib.classmate.utils.GuestUserHelper.promptLogin(this, "like posts")
+                } else {
+                    repo.toggleLove(post.id, currentUserId, willLove)
+                }
             },
             onPollVote = { post, selectedOption ->
-                repo.votePoll(post.id, currentUserId, selectedOption)
-                    .addOnSuccessListener {
-                        Toast.makeText(this, "Vote recorded!", Toast.LENGTH_SHORT).show()
-                    }
-                    .addOnFailureListener {
-                        Toast.makeText(this, "Vote recorded!", Toast.LENGTH_SHORT).show()
-                    }
+                if (com.shuaib.classmate.utils.GuestUserHelper.isGuest(this)) {
+                    com.shuaib.classmate.utils.GuestUserHelper.promptLogin(this, "vote in polls")
+                } else {
+                    repo.votePoll(post.id, currentUserId, selectedOption)
+                        .addOnSuccessListener {
+                            Toast.makeText(this, "Vote recorded!", Toast.LENGTH_SHORT).show()
+                        }
+                        .addOnFailureListener {
+                            Toast.makeText(this, "Vote recorded!", Toast.LENGTH_SHORT).show()
+                        }
+                }
             },
             onPetitionSign = { post ->
-                repo.signPetition(post.id, currentUserId)
-                    .addOnSuccessListener {
-                        Toast.makeText(this, "✍️ Petition signed! Thank you for standing with fellow students.", Toast.LENGTH_SHORT).show()
-                    }
-                    .addOnFailureListener {
-                        Toast.makeText(this, "✍️ Petition signed!", Toast.LENGTH_SHORT).show()
-                    }
+                if (com.shuaib.classmate.utils.GuestUserHelper.isGuest(this)) {
+                    com.shuaib.classmate.utils.GuestUserHelper.promptLogin(this, "sign petitions")
+                } else {
+                    repo.signPetition(post.id, currentUserId)
+                        .addOnSuccessListener {
+                            Toast.makeText(this, "✍️ Petition signed! Thank you for standing with fellow students.", Toast.LENGTH_SHORT).show()
+                        }
+                        .addOnFailureListener {
+                            Toast.makeText(this, "✍️ Petition signed!", Toast.LENGTH_SHORT).show()
+                        }
+                }
             },
             onCommentClick = { post ->
                 showCommentsBottomSheet(post)
@@ -253,6 +264,10 @@ class CampusFeedActivity : AppCompatActivity() {
         }
 
         binding.fabNewDrop.setOnClickListener { view ->
+            if (com.shuaib.classmate.utils.GuestUserHelper.isGuest(this)) {
+                com.shuaib.classmate.utils.GuestUserHelper.promptLogin(this, "post on CampusFeed")
+                return@setOnClickListener
+            }
             view.applyComposerBounceAnimation {
                 showDropComposerDialog()
             }

@@ -202,4 +202,16 @@
         <item name="android:windowEnterAnimation">@anim/anim_floating_post_enter</item>
         <item name="android:windowExitAnimation">@anim/anim_floating_post_exit</item>
     </style>
+
+    <!-- Modern Toggle Settings Switch -->
+    <style name="Widget.ClassMate.Switch.Toggle" parent="Widget.AppCompat.CompoundButton.Switch">
+        <item name="track">@drawable/switch_toggle_track</item>
+        <item name="android:thumb">@drawable/switch_toggle_thumb</item>
+        <item name="showText">false</item>
+        <item name="thumbTextPadding">0dp</item>
+        <item name="switchMinWidth">51dp</item>
+        <item name="switchPadding">0dp</item>
+    </style>
+
+    <style name="Widget.ClassMate.Switch.IOS" parent="Widget.ClassMate.Switch.Toggle" />
 </resources>

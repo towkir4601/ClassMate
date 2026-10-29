@@ -469,9 +469,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateFabVisibility(destinationId: Int) {
-        val showChatFab = destinationId in CHAT_FAB_TABS
+        val isGuest = com.shuaib.classmate.utils.GuestUserHelper.isGuest(this)
+        val showChatFab = destinationId in CHAT_FAB_TABS && !isGuest
         binding.layoutFabChat.isVisible = showChatFab
-        binding.fabGlobalAdd.isVisible = isAdmin && (destinationId == R.id.nav_academics || destinationId == R.id.nav_timetable)
+        binding.fabGlobalAdd.isVisible = !isGuest && isAdmin && (destinationId == R.id.nav_academics || destinationId == R.id.nav_timetable)
     }
 
     private fun updateBottomChromeVisibility(destinationId: Int) {

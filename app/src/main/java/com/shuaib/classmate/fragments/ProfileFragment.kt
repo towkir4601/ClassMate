@@ -136,18 +136,34 @@ class ProfileFragment : Fragment() {
         }
 
         binding.fabEditPhoto.setOnClickListener {
+            if (com.shuaib.classmate.utils.GuestUserHelper.isGuest(requireContext())) {
+                com.shuaib.classmate.utils.GuestUserHelper.promptLogin(requireContext(), "change your profile photo")
+                return@setOnClickListener
+            }
             showPhotoOptions()
         }
 
         binding.cardSwitchRole.setOnClickListener {
+            if (com.shuaib.classmate.utils.GuestUserHelper.isGuest(requireContext())) {
+                com.shuaib.classmate.utils.GuestUserHelper.promptLogin(requireContext(), "switch roles")
+                return@setOnClickListener
+            }
             showRoleSwitcherDialog()
         }
 
         binding.tvRoleBadge.setOnClickListener {
+            if (com.shuaib.classmate.utils.GuestUserHelper.isGuest(requireContext())) {
+                com.shuaib.classmate.utils.GuestUserHelper.promptLogin(requireContext(), "switch roles")
+                return@setOnClickListener
+            }
             showRoleSwitcherDialog()
         }
 
         binding.btnHeaderEditProfile.setOnClickListener {
+            if (com.shuaib.classmate.utils.GuestUserHelper.isGuest(requireContext())) {
+                com.shuaib.classmate.utils.GuestUserHelper.promptLogin(requireContext(), "edit your profile")
+                return@setOnClickListener
+            }
             HapticHelper.lightPop(it)
             startActivity(Intent(requireContext(), EditProfileActivity::class.java))
             requireActivity().overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
@@ -804,12 +820,16 @@ class ProfileFragment : Fragment() {
             binding.tvHeaderBatchPill.isVisible = false
         }
 
-        val isAdmin = user.isAdmin()
+        val isGuest = context?.let { com.shuaib.classmate.utils.GuestUserHelper.isGuest(it) } ?: false
+        val isAdmin = !isGuest && user.isAdmin()
         binding.adminSection.isVisible = isAdmin
 
-        val canManageUsers = user.canManageUsers()
+        val canManageUsers = !isGuest && user.canManageUsers()
         binding.layoutUserManagement.isVisible = canManageUsers
         binding.dividerUserManagement.isVisible = canManageUsers
+
+        binding.cardSwitchRole.isVisible = !isGuest
+        binding.fabEditPhoto.isVisible = !isGuest
 
         binding.dividerFriendsToggle.isVisible = false
         binding.layoutFriendsToggle.isVisible = false

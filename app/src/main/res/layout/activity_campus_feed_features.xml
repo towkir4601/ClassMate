@@ -48,7 +48,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Overview &amp; Feature Roadmap"
+                    android:text="Upcoming Features"
                     android:textColor="#0284C7"
                     android:textSize="11.5sp"
                     android:textStyle="bold" />
@@ -114,7 +114,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Admin Live Beta Preview"
+                        android:text="Admin Live Preview"
                         android:textColor="#0369A1"
                         android:textSize="12.5sp"
                         android:textStyle="bold" />
@@ -122,7 +122,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="You have administrator privileges to test live CampusFeed drops."
+                        android:text="Live feed testing is currently open for administrators."
                         android:textColor="#0284C7"
                         android:textSize="11sp" />
                 </LinearLayout>
@@ -166,7 +166,7 @@
                         android:backgroundTint="#E0F2FE"
                         android:paddingHorizontal="14dp"
                         android:paddingVertical="6dp"
-                        android:text="🚀 Coming Soon... Features under active development"
+                        android:text="🚀 Upcoming Feature"
                         android:textColor="#0284C7"
                         android:textSize="11.5sp"
                         android:textStyle="bold" />
@@ -202,7 +202,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:gravity="center"
-                        android:text="The Connected Student Community &amp; Voice of GSTU"
+                        android:text="GSTU Student Community &amp; Voice"
                         android:textColor="#0369A1"
                         android:textSize="13.5sp"
                         android:textStyle="bold" />
@@ -213,7 +213,7 @@
                         android:layout_marginTop="10dp"
                         android:gravity="center"
                         android:lineSpacingExtra="3dp"
-                        android:text="CampusFeed is an upcoming interactive social space tailor-made for Gopalganj Science and Technology University students. Discover peer perspectives, vote on real campus issues, connect through shared interests, and spark student initiatives together."
+                        android:text="An upcoming space for GSTU students to share opinions, vote on campus polls, connect through interests, and start student petitions."
                         android:textColor="#475569"
                         android:textSize="13sp" />
                 </LinearLayout>
@@ -232,7 +232,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Full Features Breakdown"
+                    android:text="Planned Features"
                     android:textColor="#0F172A"
                     android:textSize="17sp"
                     android:textStyle="bold" />
@@ -307,7 +307,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:lineSpacingExtra="2dp"
-                        android:text="Speak freely, share campus insights, ask academic questions, and discuss university life in a moderated, respectful student-only space."
+                        android:text="Speak freely, discuss campus topics, and exchange insights in a student space."
                         android:textColor="#475569"
                         android:textSize="13sp" />
 
@@ -323,7 +323,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="• Filter feed by department, batch, or entire GSTU"
+                            android:text="• Department &amp; batch-level feed filtering"
                             android:textColor="#334155"
                             android:textSize="12sp" />
 
@@ -331,15 +331,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="• Rich reactions (Support, Insightful, Relatable, Celebrate)"
-                            android:textColor="#334155"
-                            android:textSize="12sp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="• Threaded replies and constructive discussions"
+                            android:text="• Threaded replies and campus reactions"
                             android:textColor="#334155"
                             android:textSize="12sp" />
                     </LinearLayout>
@@ -403,7 +395,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:lineSpacingExtra="2dp"
-                        android:text="Make collective decisions effortlessly. Create multi-choice polls for class routines, exam gaps, event themes, or batch plans."
+                        android:text="Create instant multi-choice polls for class plans, events, or exam feedback."
                         android:textColor="#475569"
                         android:textSize="13sp" />
 
@@ -419,7 +411,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="• Real-time animated percentage bars as votes come in"
+                            android:text="• Real-time animated vote counts &amp; percentages"
                             android:textColor="#334155"
                             android:textSize="12sp" />
 
@@ -427,15 +419,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="• Anonymous voting option for unbiased student feedback"
-                            android:textColor="#334155"
-                            android:textSize="12sp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="• One vote per verified GSTU student to ensure fairness"
+                            android:text="• Anonymous or verified student voting"
                             android:textColor="#334155"
                             android:textSize="12sp" />
                     </LinearLayout>
@@ -499,7 +483,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:lineSpacingExtra="2dp"
-                        android:text="Connect with peers across departments who share your hobbies, passion projects, and extracurricular pursuits."
+                        android:text="Connect with peers across departments sharing your interests and hobbies."
                         android:textColor="#475569"
                         android:textSize="13sp" />
 
@@ -515,7 +499,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="• Hubs for CP, AI/ML, Robotics, Debate, Sports &amp; Art"
+                            android:text="• Hubs for CP, AI/ML, Debate, Sports &amp; Art"
                             android:textColor="#334155"
                             android:textSize="12sp" />
 
@@ -523,15 +507,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="• Find teammates for upcoming hackathons &amp; contests"
-                            android:textColor="#334155"
-                            android:textSize="12sp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="• Cross-department study groups and skill exchanges"
+                            android:text="• Find teammates for hackathons &amp; projects"
                             android:textColor="#334155"
                             android:textSize="12sp" />
                     </LinearLayout>
@@ -572,7 +548,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
-                            android:text="Call for Petitions &amp; Initiatives"
+                            android:text="Petitions &amp; Initiatives"
                             android:textColor="#0F172A"
                             android:textSize="15.5sp"
                             android:textStyle="bold" />
@@ -595,7 +571,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:lineSpacingExtra="2dp"
-                        android:text="Champion student rights and campus improvements through transparent, organized digital petition drives."
+                        android:text="Champion student initiatives with transparent, verified digital petitions."
                         android:textColor="#475569"
                         android:textSize="13sp" />
 
@@ -611,7 +587,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="• Transparent petition signing verified with GSTU Student IDs"
+                            android:text="• Verified GSTU student signatures"
                             android:textColor="#334155"
                             android:textSize="12sp" />
 
@@ -619,15 +595,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="• Milestone updates (e.g. 100, 500 signatures reached)"
-                            android:textColor="#334155"
-                            android:textSize="12sp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="• Exportable summaries for university administration"
+                            android:text="• Milestone tracking &amp; summaries"
                             android:textColor="#334155"
                             android:textSize="12sp" />
                     </LinearLayout>
@@ -656,7 +624,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="✨ Be the First to Experience CampusFeed!"
+                        android:text="✨ Upcoming CampusFeed"
                         android:textColor="#0369A1"
                         android:textSize="15sp"
                         android:textStyle="bold" />
@@ -666,7 +634,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
                         android:gravity="center"
-                        android:text="We are actively crafting the best student platform for GSTU. Tap below to be notified as soon as beta testing opens!"
+                        android:text="We are actively crafting the student platform for GSTU. Get notified when public beta opens!"
                         android:textColor="#475569"
                         android:textSize="12.5sp" />
 

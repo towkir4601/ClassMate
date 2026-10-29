@@ -187,10 +187,18 @@ class BloodDonorDirectoryActivity : AppCompatActivity() {
 
     private fun setupActionButtons() {
         binding.btnUpdateMyBlood.setOnClickListener {
+            if (com.shuaib.classmate.utils.GuestUserHelper.isGuest(this)) {
+                com.shuaib.classmate.utils.GuestUserHelper.promptLogin(this, "update your blood group")
+                return@setOnClickListener
+            }
             showUpdateBloodGroupDialog()
         }
 
         binding.btnRequestBlood.setOnClickListener { view ->
+            if (com.shuaib.classmate.utils.GuestUserHelper.isGuest(this)) {
+                com.shuaib.classmate.utils.GuestUserHelper.promptLogin(this, "post a blood request")
+                return@setOnClickListener
+            }
             view.applyComposerBounceAnimation {
                 showCreateBloodRequestDialog()
             }

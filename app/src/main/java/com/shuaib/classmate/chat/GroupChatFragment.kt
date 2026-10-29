@@ -226,34 +226,46 @@ class GroupChatFragment : Fragment() {
         }
         
         // Fetch fresh batch & department asynchronously
-        FirebaseFirestore.getInstance().collection("users").document(currentUserId).get().addOnSuccessListener { doc ->
-            if (_binding == null) return@addOnSuccessListener
-            val batch = doc.getString("batch") ?: ""
-            val dept = doc.getString("department") ?: ""
-            if (batch.isBlank() && cachedBatch.isBlank()) {
-                binding.bottomComposeArea.visibility = View.GONE
-                binding.rvMessages.visibility = View.GONE
-                binding.emptyState?.visibility = View.VISIBLE
-                try {
-                    val emptyTitle = binding.root.findViewById<android.widget.TextView>(R.id.tvEmptyTitle)
-                    val emptySubtitle = binding.root.findViewById<android.widget.TextView>(R.id.tvEmptySubtitle)
-                    emptyTitle?.text = "Batch Not Set"
-                    emptySubtitle?.text = "Please set your batch number in profile."
-                } catch (_: Exception) {}
-            } else {
-                binding.bottomComposeArea.visibility = View.VISIBLE
-                binding.rvMessages.visibility = View.VISIBLE
-                if (batch.isNotBlank()) {
-                    prefs.setUserBatch(batch)
-                    com.shuaib.classmate.chat.ChatRepository.userBatch = batch
+        if (currentUserId.isNotBlank()) {
+            FirebaseFirestore.getInstance().collection("users").document(currentUserId).get().addOnSuccessListener { doc ->
+                if (_binding == null) return@addOnSuccessListener
+                val batch = doc.getString("batch") ?: ""
+                val dept = doc.getString("department") ?: ""
+                if (batch.isBlank() && cachedBatch.isBlank()) {
+                    binding.bottomComposeArea.visibility = View.GONE
+                    binding.rvMessages.visibility = View.GONE
+                    binding.emptyState?.visibility = View.VISIBLE
+                    try {
+                        val emptyTitle = binding.root.findViewById<android.widget.TextView>(R.id.tvEmptyTitle)
+                        val emptySubtitle = binding.root.findViewById<android.widget.TextView>(R.id.tvEmptySubtitle)
+                        emptyTitle?.text = "Batch Not Set"
+                        emptySubtitle?.text = "Please set your batch number in profile."
+                    } catch (_: Exception) {}
+                } else {
+                    binding.bottomComposeArea.visibility = View.VISIBLE
+                    binding.rvMessages.visibility = View.VISIBLE
+                    if (batch.isNotBlank()) {
+                        prefs.setUserBatch(batch)
+                        com.shuaib.classmate.chat.ChatRepository.userBatch = batch
+                    }
+                    if (dept.isNotBlank()) {
+                        prefs.setUserDepartment(dept)
+                        com.shuaib.classmate.chat.ChatRepository.userDepartment = dept
+                    }
+                    viewModel.openRoom(groupRoomId)
+                    ChatRepository.enterRoom(groupRoomId)
                 }
-                if (dept.isNotBlank()) {
-                    prefs.setUserDepartment(dept)
-                    com.shuaib.classmate.chat.ChatRepository.userDepartment = dept
-                }
-                viewModel.openRoom(groupRoomId)
-                ChatRepository.enterRoom(groupRoomId)
             }
+        } else {
+            binding.bottomComposeArea.visibility = View.GONE
+            binding.rvMessages.visibility = View.GONE
+            binding.emptyState?.visibility = View.VISIBLE
+            try {
+                val emptyTitle = binding.root.findViewById<android.widget.TextView>(R.id.tvEmptyTitle)
+                val emptySubtitle = binding.root.findViewById<android.widget.TextView>(R.id.tvEmptySubtitle)
+                emptyTitle?.text = "Sign In Required"
+                emptySubtitle?.text = "Class group chat is available for signed-in students."
+            } catch (_: Exception) {}
         }
     }
 

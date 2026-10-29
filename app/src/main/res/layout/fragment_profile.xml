@@ -575,6 +575,7 @@
                         android:layout_marginStart="14dp"/>
                     <androidx.appcompat.widget.SwitchCompat
                         android:id="@+id/switchDarkMode"
+                        style="@style/Widget.ClassMate.Switch.Toggle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"/>
                 </LinearLayout>
@@ -607,6 +608,7 @@
                         android:layout_marginStart="14dp"/>
                     <androidx.appcompat.widget.SwitchCompat
                         android:id="@+id/switchNotifications"
+                        style="@style/Widget.ClassMate.Switch.Toggle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"/>
                 </LinearLayout>
@@ -639,6 +641,7 @@
                         android:layout_marginStart="14dp"/>
                     <androidx.appcompat.widget.SwitchCompat
                         android:id="@+id/switchAutoMute"
+                        style="@style/Widget.ClassMate.Switch.Toggle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"/>
                 </LinearLayout>
@@ -671,6 +674,7 @@
                         android:layout_marginStart="14dp"/>
                     <androidx.appcompat.widget.SwitchCompat
                         android:id="@+id/switchShakeToTorch"
+                        style="@style/Widget.ClassMate.Switch.Toggle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"/>
                 </LinearLayout>
@@ -1078,6 +1082,7 @@
                             android:layout_marginStart="14dp"/>
                         <androidx.appcompat.widget.SwitchCompat
                             android:id="@+id/switchFriendsPublic"
+                            style="@style/Widget.ClassMate.Switch.Toggle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"/>
                     </LinearLayout>
