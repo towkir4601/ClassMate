@@ -513,9 +513,13 @@ class TimetableFragment : Fragment() {
 
     private fun applyBatchFilterAndRender() {
         if (_binding == null) return
-        val userDeptId = context?.let { com.shuaib.classmate.utils.AppPreferences(it).getUserDepartmentId() } ?: ""
+        val ctx = context ?: return
         var filtered = currentPeriods.filter { period ->
-            val deptMatches = period.departmentId.isBlank() || userDeptId.isBlank() || period.departmentId == userDeptId || period.departmentId == "all"
+            val deptMatches = com.shuaib.classmate.utils.GuestUserHelper.doesPeriodMatchUserDepartment(
+                ctx,
+                period.departmentId,
+                period.department
+            )
             if (!deptMatches) return@filter false
 
             if (currentBatchFilter == "All") {
@@ -606,7 +610,11 @@ class TimetableFragment : Fragment() {
             binding.emptyState.isVisible = true
             lastAnimatedDay = ""
 
-            if (day == "thursday" || day == "friday") {
+            val ctx = context
+            if (ctx != null && !com.shuaib.classmate.utils.GuestUserHelper.isDepartmentRoutineAdded(ctx)) {
+                binding.tvNoClassesTitle.text = "Class Routine Appears Here..."
+                binding.tvNoClassesSubtitle.text = "Contact us through your department or CR to configure your routine."
+            } else if (day == "thursday" || day == "friday") {
                 binding.tvNoClassesTitle.text = "No Classes Today!"
                 binding.tvNoClassesSubtitle.text = "Enjoy your day off!"
             } else {

@@ -131,6 +131,20 @@ class ProfileFragment : Fragment() {
         listenToFriendsConfig()
         fetchUserProfile()
 
+        // Ensure modern toggle switches retain pure green ON and sky white OFF with white thumb
+        listOf(
+            binding.switchDarkMode,
+            binding.switchNotifications,
+            binding.switchAutoMute,
+            binding.switchShakeToTorch,
+            binding.switchFriendsPublic
+        ).forEach { sw ->
+            sw.trackTintList = null
+            sw.thumbTintList = null
+            sw.setTrackResource(R.drawable.switch_toggle_track)
+            sw.setThumbResource(R.drawable.switch_toggle_thumb)
+        }
+
         context?.let { ctx ->
             GlowHelper.pulseGlow(binding.profileBorder, ThemeColors.primary(ctx))
         }

@@ -203,15 +203,17 @@
         <item name="android:windowExitAnimation">@anim/anim_floating_post_exit</item>
     </style>
 
-    <!-- Modern Toggle Settings Switch -->
+    <!-- Modern Toggle Settings Switch (Pure Green ON, Sky White OFF) -->
     <style name="Widget.ClassMate.Switch.Toggle" parent="Widget.AppCompat.CompoundButton.Switch">
         <item name="track">@drawable/switch_toggle_track</item>
+        <item name="android:track">@drawable/switch_toggle_track</item>
         <item name="android:thumb">@drawable/switch_toggle_thumb</item>
+        <item name="trackTint">@null</item>
+        <item name="android:trackTint">@null</item>
+        <item name="android:thumbTint">@null</item>
         <item name="showText">false</item>
         <item name="thumbTextPadding">0dp</item>
         <item name="switchMinWidth">51dp</item>
         <item name="switchPadding">0dp</item>
     </style>
-
-    <style name="Widget.ClassMate.Switch.IOS" parent="Widget.ClassMate.Switch.Toggle" />
 </resources>

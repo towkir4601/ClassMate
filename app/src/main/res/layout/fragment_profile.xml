@@ -577,7 +577,14 @@
                         android:id="@+id/switchDarkMode"
                         style="@style/Widget.ClassMate.Switch.Toggle"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"/>
+                        android:layout_height="wrap_content"
+                        app:track="@drawable/switch_toggle_track"
+                        android:thumb="@drawable/switch_toggle_thumb"
+                        app:trackTint="@null"
+                        android:thumbTint="@null"
+                        app:showText="false"
+                        app:switchMinWidth="51dp"
+                        app:switchPadding="0dp"/>
                 </LinearLayout>
 
                 <View
@@ -610,7 +617,14 @@
                         android:id="@+id/switchNotifications"
                         style="@style/Widget.ClassMate.Switch.Toggle"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"/>
+                        android:layout_height="wrap_content"
+                        app:track="@drawable/switch_toggle_track"
+                        android:thumb="@drawable/switch_toggle_thumb"
+                        app:trackTint="@null"
+                        android:thumbTint="@null"
+                        app:showText="false"
+                        app:switchMinWidth="51dp"
+                        app:switchPadding="0dp"/>
                 </LinearLayout>
 
                 <View
@@ -643,7 +657,14 @@
                         android:id="@+id/switchAutoMute"
                         style="@style/Widget.ClassMate.Switch.Toggle"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"/>
+                        android:layout_height="wrap_content"
+                        app:track="@drawable/switch_toggle_track"
+                        android:thumb="@drawable/switch_toggle_thumb"
+                        app:trackTint="@null"
+                        android:thumbTint="@null"
+                        app:showText="false"
+                        app:switchMinWidth="51dp"
+                        app:switchPadding="0dp"/>
                 </LinearLayout>
 
                 <View
@@ -676,7 +697,14 @@
                         android:id="@+id/switchShakeToTorch"
                         style="@style/Widget.ClassMate.Switch.Toggle"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"/>
+                        android:layout_height="wrap_content"
+                        app:track="@drawable/switch_toggle_track"
+                        android:thumb="@drawable/switch_toggle_thumb"
+                        app:trackTint="@null"
+                        android:thumbTint="@null"
+                        app:showText="false"
+                        app:switchMinWidth="51dp"
+                        app:switchPadding="0dp"/>
                 </LinearLayout>
 
             </LinearLayout>
@@ -1084,7 +1112,14 @@
                             android:id="@+id/switchFriendsPublic"
                             style="@style/Widget.ClassMate.Switch.Toggle"
                             android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"/>
+                            android:layout_height="wrap_content"
+                            app:track="@drawable/switch_toggle_track"
+                            android:thumb="@drawable/switch_toggle_thumb"
+                            app:trackTint="@null"
+                            android:thumbTint="@null"
+                            app:showText="false"
+                            app:switchMinWidth="51dp"
+                            app:switchPadding="0dp"/>
                     </LinearLayout>
 
                 </LinearLayout>

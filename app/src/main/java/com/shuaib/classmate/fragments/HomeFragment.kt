@@ -672,14 +672,17 @@ class HomeFragment : Fragment() {
                 val periods = TimetableRepository.getInstance(appContext).getPeriodsForDay(todayStr)
                 if (_binding == null) return@launch
 
-                val userDeptId = AppPreferences(appContext).getUserDepartmentId()
-                val isGuest = com.shuaib.classmate.utils.GuestUserHelper.isGuest(appContext)
+                val isRoutineAdded = com.shuaib.classmate.utils.GuestUserHelper.isDepartmentRoutineAdded(appContext)
 
-                todayPeriods = if (isGuest || userDeptId.isBlank()) {
+                todayPeriods = if (!isRoutineAdded) {
                     emptyList()
                 } else {
                     periods.filter { period ->
-                        val deptMatches = period.departmentId == userDeptId || period.departmentId == "all"
+                        val deptMatches = com.shuaib.classmate.utils.GuestUserHelper.doesPeriodMatchUserDepartment(
+                            appContext,
+                            period.departmentId,
+                            period.department
+                        )
                         if (!deptMatches) return@filter false
 
                         val b = if (period.batch == "14") "2-1" else period.batch
@@ -1173,9 +1176,7 @@ class HomeFragment : Fragment() {
 
         val slides = mutableListOf<HeroSlide>()
 
-        val userDeptId = AppPreferences(appContext).getUserDepartmentId()
-        val isGuest = com.shuaib.classmate.utils.GuestUserHelper.isGuest(appContext)
-        val isRoutineUninitialized = isGuest || userDeptId.isBlank()
+        val isRoutineUninitialized = !com.shuaib.classmate.utils.GuestUserHelper.isDepartmentRoutineAdded(appContext)
 
         // If routine is not initialized or user is anonymous / other uninitialized department:
         if (isRoutineUninitialized) {

@@ -931,179 +931,81 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:gravity="center"
-                            android:text="Student community feed &amp; campus voice"
+                            android:text="Student voice, live polls &amp; discussions"
                             android:textColor="#475569"
                             android:textSize="12.5sp" />
 
-                        <!-- Features List Preview (Clean Crisp White Surface) -->
+                        <!-- Compact Chips Row -->
                         <LinearLayout
-                            android:layout_width="match_parent"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="12dp"
-                            android:background="@drawable/bg_dialog_input_dark"
-                            android:backgroundTint="#FFFFFF"
-                            android:orientation="vertical"
-                            android:padding="12dp">
+                            android:layout_marginTop="10dp"
+                            android:gravity="center"
+                            android:orientation="horizontal">
 
-                            <!-- Feature 1: Share Opinions -->
-                            <LinearLayout
-                                android:layout_width="match_parent"
+                            <TextView
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal">
+                                android:background="@drawable/bg_badge_accent_pill"
+                                android:backgroundTint="#FFFFFF"
+                                android:paddingHorizontal="8dp"
+                                android:paddingVertical="4dp"
+                                android:text="💬 Discussions"
+                                android:textColor="#0F172A"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
 
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="💬"
-                                    android:textSize="14sp" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="8dp"
-                                    android:layout_weight="1"
-                                    android:text="Post &amp; Share Opinions"
-                                    android:textColor="#0F172A"
-                                    android:textSize="12.5sp"
-                                    android:textStyle="bold" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:background="@drawable/bg_badge_accent_pill"
-                                    android:backgroundTint="#E0F2FE"
-                                    android:paddingHorizontal="7dp"
-                                    android:paddingVertical="2dp"
-                                    android:text="Open Voice"
-                                    android:textColor="#0284C7"
-                                    android:textSize="10.5sp"
-                                    android:textStyle="bold" />
-                            </LinearLayout>
-
-                            <!-- Feature 2: Create Polls -->
-                            <LinearLayout
-                                android:layout_width="match_parent"
+                            <TextView
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal">
+                                android:layout_marginStart="6dp"
+                                android:background="@drawable/bg_badge_accent_pill"
+                                android:backgroundTint="#FFFFFF"
+                                android:paddingHorizontal="8dp"
+                                android:paddingVertical="4dp"
+                                android:text="📊 Polls"
+                                android:textColor="#0F172A"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
 
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="📊"
-                                    android:textSize="14sp" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="8dp"
-                                    android:layout_weight="1"
-                                    android:text="Campus Polls"
-                                    android:textColor="#0F172A"
-                                    android:textSize="12.5sp"
-                                    android:textStyle="bold" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:background="@drawable/bg_badge_accent_pill"
-                                    android:backgroundTint="#E0F2FE"
-                                    android:paddingHorizontal="7dp"
-                                    android:paddingVertical="2dp"
-                                    android:text="Live Voting"
-                                    android:textColor="#0284C7"
-                                    android:textSize="10.5sp"
-                                    android:textStyle="bold" />
-                            </LinearLayout>
-
-                            <!-- Feature 3: Share Interests -->
-                            <LinearLayout
-                                android:layout_width="match_parent"
+                            <TextView
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal">
+                                android:layout_marginStart="6dp"
+                                android:background="@drawable/bg_badge_accent_pill"
+                                android:backgroundTint="#FFFFFF"
+                                android:paddingHorizontal="8dp"
+                                android:paddingVertical="4dp"
+                                android:text="🎯 Clubs"
+                                android:textColor="#0F172A"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
 
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="🎯"
-                                    android:textSize="14sp" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="8dp"
-                                    android:layout_weight="1"
-                                    android:text="Interests &amp; Hobbies"
-                                    android:textColor="#0F172A"
-                                    android:textSize="12.5sp"
-                                    android:textStyle="bold" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:background="@drawable/bg_badge_accent_pill"
-                                    android:backgroundTint="#E0F2FE"
-                                    android:paddingHorizontal="7dp"
-                                    android:paddingVertical="2dp"
-                                    android:text="Connect"
-                                    android:textColor="#0284C7"
-                                    android:textSize="10.5sp"
-                                    android:textStyle="bold" />
-                            </LinearLayout>
-
-                            <!-- Feature 4: Call for Petitions -->
-                            <LinearLayout
-                                android:layout_width="match_parent"
+                            <TextView
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="📜"
-                                    android:textSize="14sp" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="8dp"
-                                    android:layout_weight="1"
-                                    android:text="Petitions &amp; Initiatives"
-                                    android:textColor="#0F172A"
-                                    android:textSize="12.5sp"
-                                    android:textStyle="bold" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:background="@drawable/bg_badge_accent_pill"
-                                    android:backgroundTint="#E0F2FE"
-                                    android:paddingHorizontal="7dp"
-                                    android:paddingVertical="2dp"
-                                    android:text="Student Rights"
-                                    android:textColor="#0284C7"
-                                    android:textSize="10.5sp"
-                                    android:textStyle="bold" />
-                            </LinearLayout>
+                                android:layout_marginStart="6dp"
+                                android:background="@drawable/bg_badge_accent_pill"
+                                android:backgroundTint="#FFFFFF"
+                                android:paddingHorizontal="8dp"
+                                android:paddingVertical="4dp"
+                                android:text="📜 Petitions"
+                                android:textColor="#0F172A"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
                         </LinearLayout>
 
                         <!-- Option: View Full Features Button -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnViewFullFeatures"
                             android:layout_width="match_parent"
-                            android:layout_height="46dp"
-                            android:layout_marginTop="14dp"
+                            android:layout_height="44dp"
+                            android:layout_marginTop="12dp"
                             android:backgroundTint="#0284C7"
                             android:text="Explore Upcoming Features →"
                             android:textAllCaps="false"
                             android:textColor="#FFFFFF"
-                            android:textSize="13.5sp"
+                            android:textSize="13sp"
                             android:textStyle="bold"
                             app:cornerRadius="12dp" />
 

@@ -263,7 +263,11 @@ class AcademicsFragment : Fragment() {
 
                         val filtered = rawPeriods
                             .filter { period ->
-                                val deptMatches = period.departmentId.isBlank() || userDeptId.isBlank() || period.departmentId == userDeptId || period.departmentId == "all"
+                                val deptMatches = com.shuaib.classmate.utils.GuestUserHelper.doesPeriodMatchUserDepartment(
+                                    appContext,
+                                    period.departmentId,
+                                    period.department
+                                )
                                 if (!deptMatches) return@filter false
 
                                 !period.isTemporary || period.temporaryDate.isBlank() || period.temporaryDate == targetDateString

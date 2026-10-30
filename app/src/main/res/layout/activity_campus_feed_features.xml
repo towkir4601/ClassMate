@@ -254,7 +254,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="14dp"
+                android:layout_marginBottom="12dp"
                 app:cardBackgroundColor="#FFFFFF"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="1dp"
@@ -307,34 +307,9 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:lineSpacingExtra="2dp"
-                        android:text="Speak freely, discuss campus topics, and exchange insights in a student space."
+                        android:text="Speak freely, discuss campus topics, and exchange insights in a moderated student space."
                         android:textColor="#475569"
                         android:textSize="13sp" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:background="@drawable/bg_badge_accent_pill"
-                        android:backgroundTint="#F0F9FF"
-                        android:orientation="vertical"
-                        android:padding="10dp">
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="• Department &amp; batch-level feed filtering"
-                            android:textColor="#334155"
-                            android:textSize="12sp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="• Threaded replies and campus reactions"
-                            android:textColor="#334155"
-                            android:textSize="12sp" />
-                    </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -342,7 +317,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="14dp"
+                android:layout_marginBottom="12dp"
                 app:cardBackgroundColor="#FFFFFF"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="1dp"
@@ -372,7 +347,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
-                            android:text="Create Campus Polls"
+                            android:text="Campus Polls"
                             android:textColor="#0F172A"
                             android:textSize="15.5sp"
                             android:textStyle="bold" />
@@ -395,34 +370,9 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:lineSpacingExtra="2dp"
-                        android:text="Create instant multi-choice polls for class plans, events, or exam feedback."
+                        android:text="Create instant multi-choice polls for class plans, routine preferences, or student decisions."
                         android:textColor="#475569"
                         android:textSize="13sp" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:background="@drawable/bg_badge_accent_pill"
-                        android:backgroundTint="#F0F9FF"
-                        android:orientation="vertical"
-                        android:padding="10dp">
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="• Real-time animated vote counts &amp; percentages"
-                            android:textColor="#334155"
-                            android:textSize="12sp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="• Anonymous or verified student voting"
-                            android:textColor="#334155"
-                            android:textSize="12sp" />
-                    </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -430,7 +380,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="14dp"
+                android:layout_marginBottom="12dp"
                 app:cardBackgroundColor="#FFFFFF"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="1dp"
@@ -460,7 +410,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
-                            android:text="Share Interests &amp; Hobbies"
+                            android:text="Interests &amp; Circles"
                             android:textColor="#0F172A"
                             android:textSize="15.5sp"
                             android:textStyle="bold" />
@@ -483,34 +433,9 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:lineSpacingExtra="2dp"
-                        android:text="Connect with peers across departments sharing your interests and hobbies."
+                        android:text="Connect across departments over programming, debate, sports, art, and hackathons."
                         android:textColor="#475569"
                         android:textSize="13sp" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:background="@drawable/bg_badge_accent_pill"
-                        android:backgroundTint="#F0F9FF"
-                        android:orientation="vertical"
-                        android:padding="10dp">
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="• Hubs for CP, AI/ML, Debate, Sports &amp; Art"
-                            android:textColor="#334155"
-                            android:textSize="12sp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="• Find teammates for hackathons &amp; projects"
-                            android:textColor="#334155"
-                            android:textSize="12sp" />
-                    </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -518,7 +443,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
+                android:layout_marginBottom="14dp"
                 app:cardBackgroundColor="#FFFFFF"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="1dp"
@@ -548,7 +473,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
-                            android:text="Petitions &amp; Initiatives"
+                            android:text="Student Petitions"
                             android:textColor="#0F172A"
                             android:textSize="15.5sp"
                             android:textStyle="bold" />
@@ -560,7 +485,7 @@
                             android:backgroundTint="#E0F2FE"
                             android:paddingHorizontal="9dp"
                             android:paddingVertical="3dp"
-                            android:text="Student Rights"
+                            android:text="Rights"
                             android:textColor="#0284C7"
                             android:textSize="11sp"
                             android:textStyle="bold" />
@@ -571,34 +496,9 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:lineSpacingExtra="2dp"
-                        android:text="Champion student initiatives with transparent, verified digital petitions."
+                        android:text="Champion student initiatives and campus improvements through transparent petitions."
                         android:textColor="#475569"
                         android:textSize="13sp" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:background="@drawable/bg_badge_accent_pill"
-                        android:backgroundTint="#F0F9FF"
-                        android:orientation="vertical"
-                        android:padding="10dp">
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="• Verified GSTU student signatures"
-                            android:textColor="#334155"
-                            android:textSize="12sp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="• Milestone tracking &amp; summaries"
-                            android:textColor="#334155"
-                            android:textSize="12sp" />
-                    </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
