@@ -20,6 +20,7 @@ import android.view.inputmethod.EditorInfo
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
@@ -37,7 +38,9 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.shuaib.classmate.R
+import com.shuaib.classmate.activities.MainActivity
 import com.shuaib.classmate.chat.audio.VoiceRecorderHelper
 import com.shuaib.classmate.chat.model.ChatMessage
 import com.shuaib.classmate.databinding.FragmentDmChatBinding
@@ -75,6 +78,7 @@ class DmChatFragment : Fragment() {
     private var roomId: String = ""
     private var otherUserName: String = ""
     private var otherUserId: String = ""
+    private var otherUserPresenceListener: ListenerRegistration? = null
 
     private var voiceRecorderHelper: VoiceRecorderHelper? = null
 
@@ -120,8 +124,9 @@ class DmChatFragment : Fragment() {
         binding.tvChatTitle.text = otherUserName
 
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
-        if (otherUserId.isBlank()) {
-            otherUserId = roomId.removePrefix("dm_").split("_").firstOrNull { it != currentUserId }.orEmpty()
+        val targetId = resolveTargetUserId()
+        if (targetId.isNotBlank()) {
+            listenToOtherUserPresence(targetId)
         }
         
         adapter = ChatAdapter(
@@ -159,7 +164,14 @@ class DmChatFragment : Fragment() {
         
         ItemTouchHelper(replySwipeCallback()).attachToRecyclerView(binding.rvMessages)
 
-        binding.btnBack.setOnClickListener { findNavController().navigateUp() }
+        binding.btnBack.setOnClickListener { handleChatBack() }
+
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                handleChatBack()
+            }
+        })
+
         binding.btnSend.setOnClickListener { sendCurrentMessage() }
         binding.btnAttach.setOnClickListener { showWhatsAppAttachmentSheet() }
         setupMicButton()
@@ -232,8 +244,13 @@ class DmChatFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        (activity as? MainActivity)?.setOnlineStatus(true)
         if (roomId.isNotBlank()) {
             ChatRepository.enterRoom(roomId)
+        }
+        val targetId = resolveTargetUserId()
+        if (targetId.isNotBlank() && otherUserPresenceListener == null) {
+            listenToOtherUserPresence(targetId)
         }
     }
 
@@ -242,6 +259,67 @@ class DmChatFragment : Fragment() {
         if (roomId.isNotBlank()) {
             ChatRepository.leaveRoom(roomId)
         }
+    }
+
+    private fun handleChatBack() {
+        if (binding.searchBar.isVisible) {
+            binding.searchBar.isVisible = false
+            binding.rvSearchResults.isVisible = false
+            activeSearchQuery = ""
+            emptySearchToastShownFor = null
+            return
+        }
+        val previousDestinationId = findNavController().previousBackStackEntry?.destination?.id
+        if (previousDestinationId == R.id.nav_chat || previousDestinationId == R.id.fragment_dm_list) {
+            findNavController().navigateUp()
+        } else {
+            (activity as? MainActivity)?.openChildDestination(R.id.nav_community, R.id.nav_chat)
+                ?: findNavController().navigateUp()
+        }
+    }
+
+    private fun resolveTargetUserId(): String {
+        if (otherUserId.isNotBlank()) return otherUserId
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
+        val raw = roomId.removePrefix("dm_")
+        val extracted = if (currentUserId.isNotBlank() && raw.contains(currentUserId)) {
+            raw.replace(currentUserId, "").removePrefix("_").removeSuffix("_")
+        } else {
+            raw.split("_").firstOrNull { it != currentUserId }.orEmpty()
+        }
+        if (extracted.isNotBlank()) {
+            otherUserId = extracted
+        }
+        return otherUserId
+    }
+
+    private fun listenToOtherUserPresence(targetUserId: String) {
+        if (targetUserId.isBlank()) return
+        otherUserPresenceListener?.remove()
+        otherUserPresenceListener = FirebaseFirestore.getInstance()
+            .collection("users").document(targetUserId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    android.util.Log.e("DmChat", "Error listening to target user presence: ${error.message}")
+                    return@addSnapshotListener
+                }
+                if (_binding == null) return@addSnapshotListener
+                if (snapshot != null && snapshot.exists()) {
+                    val isOnline = snapshot.getBoolean("isOnline") == true
+                    binding.tvOnlineStatus.text = if (isOnline) "Online" else "Offline"
+                    binding.tvOnlineStatus.setTextColor(
+                        if (isOnline) com.shuaib.classmate.utils.ThemeColors.success(requireContext())
+                        else com.shuaib.classmate.utils.ThemeColors.textMuted(requireContext())
+                    )
+                    val name = snapshot.getString("name")?.takeIf { it.isNotBlank() }
+                        ?: snapshot.getString("fullName")?.takeIf { it.isNotBlank() }
+                    if (!name.isNullOrBlank() && (binding.tvChatTitle.text.isNullOrBlank() || binding.tvChatTitle.text == "Chat")) {
+                        binding.tvChatTitle.text = name
+                    }
+                    val photoUrl = snapshot.getString("photoUrl").orEmpty()
+                    AvatarUtils.bind(binding.ivToolbarAvatar, binding.tvToolbarAvatarLetter, targetUserId, name ?: otherUserName, photoUrl)
+                }
+            }
     }
 
     private fun collectChatState() {
@@ -293,8 +371,13 @@ class DmChatFragment : Fragment() {
                 }
                 launch {
                     combine(viewModel.users, viewModel.onlineUsers) { users, onlineIds ->
-                        val user = users.firstOrNull { it.id == otherUserId || it.name == otherUserName }
-                        val resolvedUserId = otherUserId.ifBlank { user?.id.orEmpty() }
+                        val targetId = resolveTargetUserId()
+                        val user = users.firstOrNull { it.id == targetId || (targetId.isBlank() && it.name == otherUserName) }
+                        val resolvedUserId = targetId.ifBlank { user?.id.orEmpty() }
+                        if (resolvedUserId.isNotBlank() && otherUserId.isBlank()) {
+                            otherUserId = resolvedUserId
+                            listenToOtherUserPresence(resolvedUserId)
+                        }
                         if (binding.tvChatTitle.text.isNullOrBlank() && user != null) {
                             binding.tvChatTitle.text = user.name
                         }
@@ -303,11 +386,13 @@ class DmChatFragment : Fragment() {
                         }
                         resolvedUserId.isNotBlank() && onlineIds.contains(resolvedUserId)
                     }.collect { online ->
-                        binding.tvOnlineStatus.text = if (online) "Online" else "Offline"
-                        binding.tvOnlineStatus.setTextColor(
-                            if (online) com.shuaib.classmate.utils.ThemeColors.success(requireContext())
-                            else com.shuaib.classmate.utils.ThemeColors.textMuted(requireContext())
-                        )
+                        if (otherUserPresenceListener == null) {
+                            binding.tvOnlineStatus.text = if (online) "Online" else "Offline"
+                            binding.tvOnlineStatus.setTextColor(
+                                if (online) com.shuaib.classmate.utils.ThemeColors.success(requireContext())
+                                else com.shuaib.classmate.utils.ThemeColors.textMuted(requireContext())
+                            )
+                        }
                     }
                 }
                 launch {
@@ -730,6 +815,8 @@ class DmChatFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        otherUserPresenceListener?.remove()
+        otherUserPresenceListener = null
         voiceRecorderHelper?.cancelRecording()
         voiceRecorderHelper = null
         adapter?.stopAudioPlayback()

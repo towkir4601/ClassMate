@@ -70,7 +70,10 @@ object NoticeUi {
             deadlineType = doc.getString("deadlineType") ?: "assignment",
             pdfId = doc.getString("pdfId").orEmpty(),
             readCount = (doc.getLong("readCount") ?: 0L).toInt(),
-            targetBatch = doc.getString("targetBatch") ?: doc.getString("batch") ?: "all"
+            targetBatch = doc.getString("targetBatch") ?: doc.getString("batch") ?: "all",
+            department = doc.getString("department").orEmpty().ifBlank { "all" },
+            departmentId = doc.getString("departmentId").orEmpty().ifBlank { "all" },
+            authorRole = doc.getString("authorRole").orEmpty()
         )
     }
 

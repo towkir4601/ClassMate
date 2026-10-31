@@ -674,10 +674,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
-                app:cardBackgroundColor="#F8FAFC"
+                app:cardBackgroundColor="@color/cm_card"
                 app:cardCornerRadius="18dp"
                 app:cardElevation="0dp"
-                app:strokeColor="#BAE6FD"
+                app:strokeColor="@color/cm_border"
                 app:strokeWidth="1.5dp">
 
                 <LinearLayout
@@ -708,7 +708,7 @@
                                 android:layout_width="22dp"
                                 android:layout_height="22dp"
                                 android:src="@drawable/ic_debate_voice"
-                                app:tint="#0284C7" />
+                                app:tint="@color/cm_sky_primary" />
 
                             <TextView
                                 android:layout_width="0dp"
@@ -716,7 +716,7 @@
                                 android:layout_marginStart="8dp"
                                 android:layout_weight="1"
                                 android:text="CampusFeed"
-                                android:textColor="#0F172A"
+                                android:textColor="@color/cm_text_primary"
                                 android:textSize="17sp"
                                 android:textStyle="bold" />
 
@@ -724,11 +724,11 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:background="@drawable/bg_badge_accent_pill"
-                                android:backgroundTint="#FEF3C7"
+                                android:backgroundTint="@color/cm_notice_assignment_bg"
                                 android:paddingHorizontal="9dp"
                                 android:paddingVertical="3dp"
                                 android:text="🧪 Admin Preview"
-                                android:textColor="#D97706"
+                                android:textColor="@color/cm_notice_assignment_text"
                                 android:textSize="10.5sp"
                                 android:textStyle="bold" />
 
@@ -738,14 +738,14 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="6dp"
                                 android:background="@drawable/bg_badge_accent_pill"
-                                android:backgroundTint="#E0F2FE"
+                                android:backgroundTint="@color/cm_sky_container"
                                 android:clickable="true"
                                 android:focusable="true"
                                 android:foreground="?attr/selectableItemBackground"
                                 android:paddingHorizontal="8dp"
                                 android:paddingVertical="3dp"
                                 android:text="✨ Features"
-                                android:textColor="#0284C7"
+                                android:textColor="@color/cm_sky_primary"
                                 android:textSize="10.5sp"
                                 android:textStyle="bold" />
                         </LinearLayout>
@@ -755,7 +755,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="Real-time thoughts, polls &amp; student petitions across GSTU"
-                            android:textColor="#64748B"
+                            android:textColor="@color/cm_text_muted"
                             android:textSize="12sp" />
 
                         <!-- Features Roadmap Banner inside Admin Preview -->
@@ -765,7 +765,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
                             android:background="@drawable/bg_badge_accent_pill"
-                            android:backgroundTint="#E0F2FE"
+                            android:backgroundTint="@color/cm_sky_container"
                             android:clickable="true"
                             android:focusable="true"
                             android:foreground="?attr/selectableItemBackground"
@@ -786,7 +786,7 @@
                                 android:layout_marginStart="6dp"
                                 android:layout_weight="1"
                                 android:text="Explore features: Opinions, Polls, Circles &amp; Petitions"
-                                android:textColor="#0284C7"
+                                android:textColor="@color/cm_sky_primary"
                                 android:textSize="11.5sp"
                                 android:textStyle="bold" />
 
@@ -794,7 +794,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Roadmap ›"
-                                android:textColor="#0369A1"
+                                android:textColor="@color/cm_sky_primary"
                                 android:textSize="11sp"
                                 android:textStyle="bold" />
                         </LinearLayout>
@@ -816,7 +816,7 @@
                             android:layout_marginTop="8dp"
                             android:padding="14dp"
                             android:background="@drawable/bg_dialog_input_dark"
-                            android:backgroundTint="#FFFFFF"
+                            android:backgroundTint="@color/cm_card_alt"
                             android:gravity="center"
                             android:orientation="vertical"
                             android:visibility="gone">
@@ -825,7 +825,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Campus square is open! 🎓"
-                                android:textColor="#0F172A"
+                                android:textColor="@color/cm_text_primary"
                                 android:textSize="13.5sp"
                                 android:textStyle="bold" />
 
@@ -835,7 +835,7 @@
                                 android:layout_marginTop="2dp"
                                 android:gravity="center"
                                 android:text="Be the first to test dropping a thought, poll, or petition!"
-                                android:textColor="#64748B"
+                                android:textColor="@color/cm_text_muted"
                                 android:textSize="11.5sp" />
                         </LinearLayout>
 
@@ -850,7 +850,7 @@
                                 android:id="@+id/btnCampusFeedShowMore"
                                 android:layout_width="match_parent"
                                 android:layout_height="44dp"
-                                android:backgroundTint="#0284C7"
+                                android:backgroundTint="@color/cm_sky_primary"
                                 android:text="Open Live CampusFeed 💬"
                                 android:textAllCaps="false"
                                 android:textColor="#FFFFFF"
@@ -866,11 +866,11 @@
                                 android:layout_marginTop="8dp"
                                 android:text="View CampusFeed Features &amp; Roadmap 🚀"
                                 android:textAllCaps="false"
-                                android:textColor="#0284C7"
+                                android:textColor="@color/cm_sky_primary"
                                 android:textSize="12.5sp"
                                 android:textStyle="bold"
                                 app:cornerRadius="12dp"
-                                app:strokeColor="#BAE6FD"
+                                app:strokeColor="@color/cm_sky_border"
                                 app:strokeWidth="1.2dp" />
                         </LinearLayout>
 
@@ -894,11 +894,11 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:background="@drawable/bg_badge_accent_pill"
-                            android:backgroundTint="#E0F2FE"
+                            android:backgroundTint="@color/cm_sky_container"
                             android:paddingHorizontal="12dp"
                             android:paddingVertical="5dp"
                             android:text="🚀 Upcoming Feature"
-                            android:textColor="#0284C7"
+                            android:textColor="@color/cm_sky_primary"
                             android:textSize="11sp"
                             android:textStyle="bold" />
 
@@ -914,14 +914,14 @@
                                 android:layout_width="22dp"
                                 android:layout_height="22dp"
                                 android:src="@drawable/ic_notice"
-                                app:tint="#0284C7" />
+                                app:tint="@color/cm_sky_primary" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="8dp"
                                 android:text="CampusFeed"
-                                android:textColor="#0F172A"
+                                android:textColor="@color/cm_text_primary"
                                 android:textSize="18.5sp"
                                 android:textStyle="bold" />
                         </LinearLayout>
@@ -932,7 +932,7 @@
                             android:layout_marginTop="3dp"
                             android:gravity="center"
                             android:text="Student voice, live polls &amp; discussions"
-                            android:textColor="#475569"
+                            android:textColor="@color/cm_text_muted"
                             android:textSize="12.5sp" />
 
                         <!-- Compact Chips Row -->
@@ -947,11 +947,11 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:background="@drawable/bg_badge_accent_pill"
-                                android:backgroundTint="#FFFFFF"
+                                android:backgroundTint="@color/cm_card_alt"
                                 android:paddingHorizontal="8dp"
                                 android:paddingVertical="4dp"
                                 android:text="💬 Discussions"
-                                android:textColor="#0F172A"
+                                android:textColor="@color/cm_text_primary"
                                 android:textSize="11sp"
                                 android:textStyle="bold" />
 
@@ -960,11 +960,11 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="6dp"
                                 android:background="@drawable/bg_badge_accent_pill"
-                                android:backgroundTint="#FFFFFF"
+                                android:backgroundTint="@color/cm_card_alt"
                                 android:paddingHorizontal="8dp"
                                 android:paddingVertical="4dp"
                                 android:text="📊 Polls"
-                                android:textColor="#0F172A"
+                                android:textColor="@color/cm_text_primary"
                                 android:textSize="11sp"
                                 android:textStyle="bold" />
 
@@ -973,11 +973,11 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="6dp"
                                 android:background="@drawable/bg_badge_accent_pill"
-                                android:backgroundTint="#FFFFFF"
+                                android:backgroundTint="@color/cm_card_alt"
                                 android:paddingHorizontal="8dp"
                                 android:paddingVertical="4dp"
                                 android:text="🎯 Clubs"
-                                android:textColor="#0F172A"
+                                android:textColor="@color/cm_text_primary"
                                 android:textSize="11sp"
                                 android:textStyle="bold" />
 
@@ -986,11 +986,11 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="6dp"
                                 android:background="@drawable/bg_badge_accent_pill"
-                                android:backgroundTint="#FFFFFF"
+                                android:backgroundTint="@color/cm_card_alt"
                                 android:paddingHorizontal="8dp"
                                 android:paddingVertical="4dp"
                                 android:text="📜 Petitions"
-                                android:textColor="#0F172A"
+                                android:textColor="@color/cm_text_primary"
                                 android:textSize="11sp"
                                 android:textStyle="bold" />
                         </LinearLayout>
@@ -1001,7 +1001,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="44dp"
                             android:layout_marginTop="12dp"
-                            android:backgroundTint="#0284C7"
+                            android:backgroundTint="@color/cm_sky_primary"
                             android:text="Explore Upcoming Features →"
                             android:textAllCaps="false"
                             android:textColor="#FFFFFF"

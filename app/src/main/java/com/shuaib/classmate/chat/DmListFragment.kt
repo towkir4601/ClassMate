@@ -19,6 +19,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.firebase.auth.FirebaseAuth
 import com.shuaib.classmate.R
+import com.shuaib.classmate.activities.MainActivity
 import com.shuaib.classmate.databinding.FragmentDmListBinding
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -51,7 +52,12 @@ class DmListFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        binding.btnBack.setOnClickListener { findNavController().navigateUp() }
+        binding.btnBack.setOnClickListener {
+            if (!findNavController().navigateUp()) {
+                (activity as? MainActivity)?.openChildDestination(R.id.nav_community, R.id.nav_chat)
+                    ?: requireActivity().onBackPressedDispatcher.onBackPressed()
+            }
+        }
         
         adapter = DmUsersAdapter(
             onlineIdsProvider = { onlineUserIds },
@@ -228,13 +234,21 @@ class DmListFragment : Fragment() {
 
     private fun safeNavigateToDm(roomId: String, otherUserName: String, otherUserId: String?) {
         runCatching {
+            val navOptions = androidx.navigation.NavOptions.Builder()
+                .setPopUpTo(R.id.fragment_dm_list, true)
+                .setEnterAnim(R.anim.slide_in_right)
+                .setExitAnim(R.anim.slide_out_left)
+                .setPopEnterAnim(R.anim.slide_in_left)
+                .setPopExitAnim(R.anim.slide_out_right)
+                .build()
             findNavController().navigate(
                 R.id.fragment_dm_chat,
                 bundleOf(
                     "roomId" to roomId,
                     "otherUserName" to otherUserName,
                     "otherUserId" to otherUserId
-                )
+                ),
+                navOptions
             )
         }.onFailure {
             Toast.makeText(requireContext(), "Could not open chat. Try again.", Toast.LENGTH_SHORT).show()

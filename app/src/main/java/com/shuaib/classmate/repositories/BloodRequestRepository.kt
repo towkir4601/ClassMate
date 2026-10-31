@@ -28,11 +28,8 @@ class BloodRequestRepository {
         val fifteenDaysMs = 15L * 24 * 60 * 60 * 1000L
         val cutoffMs = nowMs - fifteenDaysMs
 
-        collection
-            .whereEqualTo("isFulfilled", false)
-            .orderBy("timestamp", Query.Direction.DESCENDING)
-            .limit(limit * 2)
-            .get()
+        // Query without composite filter/order to avoid index requirement failures
+        collection.get()
             .addOnSuccessListener { snapshot ->
                 val activeList = mutableListOf<BloodRequest>()
                 val expiredDocs = mutableListOf<com.google.firebase.firestore.DocumentSnapshot>()
@@ -41,6 +38,7 @@ class BloodRequestRepository {
                     for (doc in snapshot.documents) {
                         val req = doc.toObject(BloodRequest::class.java)?.copy(id = doc.id) ?: continue
                         if (isDeletedLocally(req.id)) continue
+                        if (req.isFulfilled) continue
                         val itemTime = req.timestamp?.toDate()?.time ?: 0L
                         if (itemTime in 1..cutoffMs) {
                             expiredDocs.add(doc)
@@ -58,8 +56,9 @@ class BloodRequestRepository {
                         batch.commit()
                     }
                 }
+                val sortedActive = activeList.sortedByDescending { it.timestamp?.toDate()?.time ?: 0L }
                 val localActive = localRequests.filter { !it.isFulfilled && !isDeletedLocally(it.id) }
-                val merged = (localActive + activeList)
+                val merged = (localActive + sortedActive)
                     .filter { !isDeletedLocally(it.id) && !it.isFulfilled }
                     .distinctBy { it.id }
                 onResult(merged.take(limit.toInt()))

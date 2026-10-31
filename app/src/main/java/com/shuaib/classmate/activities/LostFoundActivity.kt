@@ -229,7 +229,7 @@ class LostFoundActivity : AppCompatActivity() {
 
         val selectedBg = R.drawable.bg_badge_accent_pill
         val unselectedBg = R.drawable.bg_lost_found_pill_unselected
-        val textMuted = Color.parseColor("#475569")
+        val textMuted = androidx.core.content.ContextCompat.getColor(this, R.color.cm_text_secondary)
         val selectedText = Color.WHITE
         val selectedTint = android.content.res.ColorStateList.valueOf(Color.parseColor("#0284C7"))
 
@@ -293,7 +293,7 @@ class LostFoundActivity : AppCompatActivity() {
             "approvedBy" to currentUserId,
             "approvedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
         )
-        FirebaseFirestore.getInstance().collection("lost_found")
+        FirebaseFirestore.getInstance().collection("lost_and_found")
             .document(item.id)
             .update(updates)
             .addOnSuccessListener {
@@ -308,7 +308,7 @@ class LostFoundActivity : AppCompatActivity() {
 
     /** Admin rejects and permanently removes a pending Lost & Found post */
     fun rejectItem(item: LostFoundItem) {
-        FirebaseFirestore.getInstance().collection("lost_found")
+        FirebaseFirestore.getInstance().collection("lost_and_found")
             .document(item.id)
             .delete()
             .addOnSuccessListener {
@@ -522,9 +522,9 @@ class LostFoundActivity : AppCompatActivity() {
         val isGiven = status == "item_given"
         val actionTitle = if (isGiven) "Item Given" else "Item Found"
         val confirmMessage = if (isGiven) {
-            "Confirm that this found item has been handed over to its owner? Superadmin and admins will be notified."
+            "Confirm that this found item has been handed over to its owner?"
         } else {
-            "Confirm that this lost item has been recovered? Superadmin and admins will be notified."
+            "Confirm that this lost item has been recovered?"
         }
 
         AlertDialog.Builder(this)
@@ -535,21 +535,7 @@ class LostFoundActivity : AppCompatActivity() {
                     itemId = item.id,
                     status = status,
                     onSuccess = {
-                        val notifType = if (isGiven) "item_given" else "item_found"
-                        val notifTitle = if (isGiven) "🎁 Item Given / Handed Over" else "🔍 Lost Item Recovered"
-                        val notifMessage = "$currentUserName marked \"${item.title}\" as ${if (isGiven) "Given to owner" else "Found / Recovered"}."
-
-                        notificationRepo.sendNotificationToAdmins(
-                            type = notifType,
-                            title = notifTitle,
-                            message = notifMessage,
-                            postId = item.id,
-                            postType = "lost_found",
-                            actorId = currentUserId,
-                            actorName = currentUserName
-                        )
-
-                        Toast.makeText(this, "Marked as $actionTitle! Admins notified.", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this, "Marked as $actionTitle successfully!", Toast.LENGTH_SHORT).show()
                         allItems = allItems.map { if (it.id == item.id) it.copy(isResolved = true, resolvedStatus = status) else it }
                         applyFilters()
                     },

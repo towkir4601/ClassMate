@@ -1,10 +1,12 @@
 package com.shuaib.classmate.activities
 
+import android.app.Dialog
 import android.app.TimePickerDialog
 import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import android.view.Window
 import android.widget.ArrayAdapter
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -416,96 +418,102 @@ class TimetableManagementActivity : AppCompatActivity() {
             showTimePicker { time -> dialogBinding.etEndTime.setText(time) }
         }
 
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setTitle(if (isEdit) "Edit Period" else "Add New Period")
-            .setView(dialogBinding.root)
-            .setPositiveButton(if (isEdit) "Update" else "Add") { _, _ ->
-                val selectedSubject = dialogBinding.dropdownSubject.text.toString().trim()
-                val teacher = dialogBinding.etTeacher.text.toString().trim()
-                val room = dialogBinding.etRoom.text.toString().trim()
-                val start = dialogBinding.etStartTime.text.toString().trim()
-                val end = dialogBinding.etEndTime.text.toString().trim()
-                val rawBatch = dialogBinding.etBatch.text.toString().trim()
-                val batch = when {
-                    rawBatch == "14" -> "2-1"
-                    rawBatch.isNotBlank() -> rawBatch
-                    period != null -> if (period.batch == "14") "2-1" else period.batch
-                    else -> "2-1"
-                }
-                val isTemp = dialogBinding.cbTemporary.isChecked
-                val tempDate = if (isTemp) getFullDateForIndex(days.indexOf(currentDay)) else ""
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(dialogBinding.root)
 
-                if (selectedSubject.isNotEmpty() && teacher.isNotEmpty()) {
-                    val updatedPeriod = period?.copy(
-                        subject = selectedSubject,
-                        teacher = teacher,
-                        startTime = start,
-                        endTime = end,
-                        room = room,
-                        batch = batch,
-                        isTemporary = isTemp,
-                        temporaryDate = tempDate,
-                        teacherUid = selectedTeacherUid,
-                        teacherEmail = selectedTeacherEmail,
-                        teacherCode = selectedTeacherCode
-                    ) ?: Period(
-                        id = "",
-                        subject = selectedSubject,
-                        teacher = teacher,
-                        startTime = start,
-                        endTime = end,
-                        room = room,
-                        batch = batch,
-                        isTemporary = isTemp,
-                        temporaryDate = tempDate,
-                        teacherUid = selectedTeacherUid,
-                        teacherEmail = selectedTeacherEmail,
-                        teacherCode = selectedTeacherCode
-                    )
-                    
-                    val roomPart = if (room.isNotBlank()) "Room $room" else "Schedule updated"
-                    val dayLabel = currentDay.replaceFirstChar { it.uppercase(Locale.US) }
-                    com.shuaib.classmate.utils.NotificationSender.sendScheduleUpdateAlert(
-                        subject = selectedSubject,
-                        details = "Time $start - $end · $roomPart ($dayLabel)",
-                        day = currentDay,
-                        targetBatch = batch.ifBlank { "all" }
-                    )
-                    
-                    if (isEdit) {
-                        savePeriod(updatedPeriod, true)
+        dialogBinding.tvDialogTitle.text = if (isEdit) "Edit Period" else "Add New Period"
+        dialogBinding.btnSave.text = if (isEdit) "Update Period" else "Add Period"
+
+        dialogBinding.btnCloseDialog.setOnClickListener { dialog.dismiss() }
+        dialogBinding.btnCancel.setOnClickListener { dialog.dismiss() }
+
+        dialogBinding.btnSave.setOnClickListener {
+            val selectedSubject = dialogBinding.dropdownSubject.text.toString().trim()
+            val teacher = dialogBinding.etTeacher.text.toString().trim()
+            val room = dialogBinding.etRoom.text.toString().trim()
+            val start = dialogBinding.etStartTime.text.toString().trim()
+            val end = dialogBinding.etEndTime.text.toString().trim()
+            val rawBatch = dialogBinding.etBatch.text.toString().trim()
+            val batch = when {
+                rawBatch == "14" -> "2-1"
+                rawBatch.isNotBlank() -> rawBatch
+                period != null -> if (period.batch == "14") "2-1" else period.batch
+                else -> "2-1"
+            }
+            val isTemp = dialogBinding.cbTemporary.isChecked
+            val tempDate = if (isTemp) getFullDateForIndex(days.indexOf(currentDay)) else ""
+
+            if (selectedSubject.isNotEmpty() && teacher.isNotEmpty()) {
+                val updatedPeriod = period?.copy(
+                    subject = selectedSubject,
+                    teacher = teacher,
+                    startTime = start,
+                    endTime = end,
+                    room = room,
+                    batch = batch,
+                    isTemporary = isTemp,
+                    temporaryDate = tempDate,
+                    teacherUid = selectedTeacherUid,
+                    teacherEmail = selectedTeacherEmail,
+                    teacherCode = selectedTeacherCode
+                ) ?: Period(
+                    id = "",
+                    subject = selectedSubject,
+                    teacher = teacher,
+                    startTime = start,
+                    endTime = end,
+                    room = room,
+                    batch = batch,
+                    isTemporary = isTemp,
+                    temporaryDate = tempDate,
+                    teacherUid = selectedTeacherUid,
+                    teacherEmail = selectedTeacherEmail,
+                    teacherCode = selectedTeacherCode
+                )
+                
+                val roomPart = if (room.isNotBlank()) "Room $room" else "Schedule updated"
+                val dayLabel = currentDay.replaceFirstChar { it.uppercase(Locale.US) }
+                com.shuaib.classmate.utils.NotificationSender.sendScheduleUpdateAlert(
+                    subject = selectedSubject,
+                    details = "Time $start - $end · $roomPart ($dayLabel)",
+                    day = currentDay,
+                    targetBatch = batch.ifBlank { "all" }
+                )
+                
+                if (isEdit) {
+                    savePeriod(updatedPeriod, true)
+                } else {
+                    val selectedDays = mutableListOf<String>()
+                    if (isTemp) {
+                        selectedDays.add(currentDay)
                     } else {
-                        val selectedDays = mutableListOf<String>()
-                        if (isTemp) {
-                            selectedDays.add(currentDay)
-                        } else {
-                            val checkedIds = dialogBinding.chipGroupDays.checkedChipIds
-                            for (id in checkedIds) {
-                                when (id) {
-                                    R.id.chipSat -> selectedDays.add("saturday")
-                                    R.id.chipSun -> selectedDays.add("sunday")
-                                    R.id.chipMon -> selectedDays.add("monday")
-                                    R.id.chipTue -> selectedDays.add("tuesday")
-                                    R.id.chipWed -> selectedDays.add("wednesday")
-                                    R.id.chipThu -> selectedDays.add("thursday")
-                                    R.id.chipFri -> selectedDays.add("friday")
-                                }
-                            }
-                            if (selectedDays.isEmpty()) {
-                                selectedDays.add(currentDay)
+                        val checkedIds = dialogBinding.chipGroupDays.checkedChipIds
+                        for (id in checkedIds) {
+                            when (id) {
+                                R.id.chipSat -> selectedDays.add("saturday")
+                                R.id.chipSun -> selectedDays.add("sunday")
+                                R.id.chipMon -> selectedDays.add("monday")
+                                R.id.chipTue -> selectedDays.add("tuesday")
+                                R.id.chipWed -> selectedDays.add("wednesday")
+                                R.id.chipThu -> selectedDays.add("thursday")
+                                R.id.chipFri -> selectedDays.add("friday")
                             }
                         }
-                        savePeriodsForMultipleDays(updatedPeriod, selectedDays)
+                        if (selectedDays.isEmpty()) {
+                            selectedDays.add(currentDay)
+                        }
                     }
-                } else {
-                    Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show()
+                    savePeriodsForMultipleDays(updatedPeriod, selectedDays)
                 }
+                dialog.dismiss()
+            } else {
+                Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show()
             }
-            .setNegativeButton("Cancel", null)
-            .create()
+        }
 
         dialog.show()
-        dialog.applyFloatingPostAnimation(this, 0.94, 0.75, isWrapHeight = true)
+        dialog.applyFloatingPostAnimation(this, 0.94, 0.85, isWrapHeight = true)
     }
 
     private fun showTimePicker(onTimeSelected: (String) -> Unit) {

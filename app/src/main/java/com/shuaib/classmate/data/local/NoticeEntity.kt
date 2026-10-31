@@ -49,6 +49,9 @@ data class NoticeEntity(
     val deadlineType: String,
     val pdfId: String,
     val targetBatch: String = "all",
+    val department: String = "all",
+    val departmentId: String = "all",
+    val authorRole: String = "",
     val cachedAtMillis: Long = System.currentTimeMillis(),
     val readCount: Int = 0
 ) {
@@ -85,6 +88,9 @@ data class NoticeEntity(
         deadlineType = deadlineType,
         pdfId = pdfId,
         targetBatch = targetBatch,
+        department = department,
+        departmentId = departmentId,
+        authorRole = authorRole,
         readCount = readCount
     )
 
@@ -122,6 +128,9 @@ data class NoticeEntity(
             deadlineType = notice.deadlineType,
             pdfId = notice.pdfId,
             targetBatch = notice.targetBatch,
+            department = notice.department,
+            departmentId = notice.departmentId,
+            authorRole = notice.authorRole,
             readCount = notice.readCount
         )
 

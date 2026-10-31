@@ -165,10 +165,10 @@ object NotificationSender {
                     type = "chat_message",
                     extraData = data,
                     targetBuilder = {
-                        if (playerId != null) {
-                            put("include_player_ids", org.json.JSONArray().put(playerId))
-                        } else {
-                            put("include_aliases", org.json.JSONObject().put("external_id", org.json.JSONArray().put(uid)))
+                        val externalIdArray = org.json.JSONArray().put(uid)
+                        put("include_aliases", org.json.JSONObject().put("external_id", externalIdArray))
+                        if (!playerId.isNullOrBlank()) {
+                            put("include_subscription_ids", org.json.JSONArray().put(playerId))
                         }
                         put("target_channel", "push")
                     },

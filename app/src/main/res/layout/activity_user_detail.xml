@@ -199,6 +199,14 @@
                         android:textColor="@color/cm_text_primary" />
 
                     <RadioButton
+                        android:id="@+id/radioCR"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:buttonTint="@color/cm_primary"
+                        android:text="Class Representative (CR)"
+                        android:textColor="@color/cm_text_primary" />
+
+                    <RadioButton
                         android:id="@+id/radioAdmin"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"

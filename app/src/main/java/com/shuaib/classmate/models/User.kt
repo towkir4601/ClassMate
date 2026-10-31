@@ -208,7 +208,14 @@ data class User(
 
     companion object {
         fun slugifyDepartment(department: String): String {
-            return department.trim().lowercase().replace(" ", "_").replace(".", "").replace("&", "")
+            val trimmed = department.trim()
+            if (trimmed.isEmpty()) return ""
+            val canonical = com.shuaib.classmate.utils.GstuDepartments.ITEMS.firstOrNull { item ->
+                item.acronym.equals(trimmed, ignoreCase = true) ||
+                item.name.equals(trimmed, ignoreCase = true) ||
+                item.aliases.any { it.equals(trimmed, ignoreCase = true) }
+            }?.acronym ?: trimmed
+            return canonical.trim().lowercase().replace(" ", "_").replace(".", "").replace("&", "")
         }
 
         /** All valid assignable roles in the system */

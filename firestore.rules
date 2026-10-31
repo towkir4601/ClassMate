@@ -136,15 +136,16 @@ service cloud.firestore {
 
     function validStudentIdForAuthCreate(request) {
       return !("studentId" in request.resource.data) ||
+        request.resource.data.studentId == null ||
         request.resource.data.studentId == "" ||
         (
           request.resource.data.studentId is string &&
-          request.resource.data.studentId.matches("^[a-zA-Z0-9]{3,50}$")
+          request.resource.data.studentId.matches("^[a-zA-Z0-9_-]{3,50}$")
         );
     }
 
     function validStudentIdValue(studentId) {
-      return studentId is string && studentId.matches("^[a-zA-Z0-9]{3,50}$");
+      return studentId is string && studentId.matches("^[a-zA-Z0-9_-]{3,50}$");
     }
 
     function noElevatedCreatePermissions(request) {
@@ -162,7 +163,9 @@ service cloud.firestore {
             "canUploadResult",
             "canUploadSeatPlan",
             "canManageUsers",
-            "canManageAdmins"
+            "canManageAdmins",
+            "canManageClubEvents",
+            "canManageLostFound"
           ])
           && (!("canCreatePolls" in request.resource.data.permissions) ||
               request.resource.data.permissions.canCreatePolls == false)
@@ -186,29 +189,85 @@ service cloud.firestore {
               request.resource.data.permissions.canManageUsers == false)
           && (!("canManageAdmins" in request.resource.data.permissions) ||
               request.resource.data.permissions.canManageAdmins == false)
+          && (!("canManageClubEvents" in request.resource.data.permissions) ||
+              request.resource.data.permissions.canManageClubEvents == false)
+          && (!("canManageLostFound" in request.resource.data.permissions) ||
+              request.resource.data.permissions.canManageLostFound == false)
         );
     }
 
     function validOwnUserCreate(userId, request) {
       return isLoggedIn()
         && request.auth.uid == userId
-        && (!("uid" in request.resource.data) || request.resource.data.uid == userId)
+        && (!("uid" in request.resource.data) ||
+            request.resource.data.uid == userId ||
+            request.resource.data.uid == "" ||
+            request.resource.data.uid == null)
         && (!("name" in request.resource.data) ||
+            request.resource.data.name == null ||
             (request.resource.data.name is string &&
              request.resource.data.name.size() <= 80))
         && (!("fullName" in request.resource.data) ||
+            request.resource.data.fullName == null ||
             (request.resource.data.fullName is string &&
              request.resource.data.fullName.size() <= 80))
         && (!("email" in request.resource.data) ||
+            request.resource.data.email == null ||
             (request.resource.data.email is string &&
              request.resource.data.email.size() <= 120))
         && validStudentIdForAuthCreate(request)
         && (!("department" in request.resource.data) ||
+            request.resource.data.department == null ||
             (request.resource.data.department is string &&
-             request.resource.data.department.size() <= 12))
+             request.resource.data.department.size() <= 100))
+        && (!("departmentId" in request.resource.data) ||
+            request.resource.data.departmentId == null ||
+            (request.resource.data.departmentId is string &&
+             request.resource.data.departmentId.size() <= 100))
+        && (!("batch" in request.resource.data) ||
+            request.resource.data.batch == null ||
+            (request.resource.data.batch is string &&
+             request.resource.data.batch.size() <= 50))
+        && (!("phone" in request.resource.data) ||
+            request.resource.data.phone == null ||
+            (request.resource.data.phone is string &&
+             request.resource.data.phone.size() <= 30))
+        && (!("whatsappNumber" in request.resource.data) ||
+            request.resource.data.whatsappNumber == null ||
+            (request.resource.data.whatsappNumber is string &&
+             request.resource.data.whatsappNumber.size() <= 30))
+        && (!("fatherName" in request.resource.data) ||
+            request.resource.data.fatherName == null ||
+            (request.resource.data.fatherName is string &&
+             request.resource.data.fatherName.size() <= 100))
+        && (!("motherName" in request.resource.data) ||
+            request.resource.data.motherName == null ||
+            (request.resource.data.motherName is string &&
+             request.resource.data.motherName.size() <= 100))
+        && (!("presentAddress" in request.resource.data) ||
+            request.resource.data.presentAddress == null ||
+            (request.resource.data.presentAddress is string &&
+             request.resource.data.presentAddress.size() <= 200))
+        && (!("permanentAddress" in request.resource.data) ||
+            request.resource.data.permanentAddress == null ||
+            (request.resource.data.permanentAddress is string &&
+             request.resource.data.permanentAddress.size() <= 200))
+        && (!("homeDistrict" in request.resource.data) ||
+            request.resource.data.homeDistrict == null ||
+            (request.resource.data.homeDistrict is string &&
+             request.resource.data.homeDistrict.size() <= 100))
+        && (!("bloodGroup" in request.resource.data) ||
+            request.resource.data.bloodGroup == null ||
+            (request.resource.data.bloodGroup is string &&
+             request.resource.data.bloodGroup.size() <= 20))
+        && (!("photoUrl" in request.resource.data) ||
+            request.resource.data.photoUrl == null ||
+            (request.resource.data.photoUrl is string &&
+             request.resource.data.photoUrl.size() <= 2000))
         && (!("role" in request.resource.data) || request.resource.data.role in ["student", "teacher"])
         && (!("authProvider" in request.resource.data) ||
-            request.resource.data.authProvider in ["email", "google"])
+            request.resource.data.authProvider == null ||
+            request.resource.data.authProvider in ["email", "google", "password", ""])
         // ── Security Invariant: users cannot self-approve or create their document as deleted ──
         && (!("approved" in request.resource.data) || request.resource.data.approved == false)
         && (!("isDeleted" in request.resource.data) || request.resource.data.isDeleted == false)
@@ -240,21 +299,26 @@ service cloud.firestore {
       return !("permissions" in request.resource.data.diff(resource.data).affectedKeys()) ||
         (
           request.resource.data.permissions is map
-          && request.resource.data.permissions.keys().hasOnly([
-            "canCreatePolls",
-            "canEditTimetable",
-            "canManageAcademicCalendar",
-            "canPostNotices",
-            "canSendClassCancel",
-            "canUploadPDF",
-            "canUploadLibrary",
-            "canUploadResult",
-            "canUploadSeatPlan",
-            "canManageUsers",
-            "canManageAdmins",
-            "canManageClubEvents",
-            "canManageLostFound"
-          ])
+          && (
+            (!("permissions" in resource.data) && noElevatedCreatePermissions(request))
+            || (
+              "permissions" in resource.data &&
+              resource.data.permissions is map &&
+              permissionStaysFalseOrUnchanged("canCreatePolls") &&
+              permissionStaysFalseOrUnchanged("canEditTimetable") &&
+              permissionStaysFalseOrUnchanged("canManageAcademicCalendar") &&
+              permissionStaysFalseOrUnchanged("canPostNotices") &&
+              permissionStaysFalseOrUnchanged("canSendClassCancel") &&
+              permissionStaysFalseOrUnchanged("canUploadPDF") &&
+              permissionStaysFalseOrUnchanged("canUploadLibrary") &&
+              permissionStaysFalseOrUnchanged("canUploadResult") &&
+              permissionStaysFalseOrUnchanged("canUploadSeatPlan") &&
+              permissionStaysFalseOrUnchanged("canManageUsers") &&
+              permissionStaysFalseOrUnchanged("canManageAdmins") &&
+              permissionStaysFalseOrUnchanged("canManageClubEvents") &&
+              permissionStaysFalseOrUnchanged("canManageLostFound")
+            )
+          )
         );
     }
 
@@ -278,6 +342,7 @@ service cloud.firestore {
           "fatherName",
           "motherName",
           "department",
+          "departmentId",
           "authProvider",
           "updatedAt",
           "phone",
@@ -292,37 +357,126 @@ service cloud.firestore {
           "favoriteSubjects",
           "favoritePdfIds"
         ])
-        && (!("uid" in request.resource.data) || request.resource.data.uid == userId)
-        && (!("role" in request.resource.data.diff(resource.data).affectedKeys()) ||
-            request.resource.data.role in ["superadmin", "admin", "teacher", "club_admin", "cr", "student"])
+        && (!("uid" in request.resource.data) ||
+            request.resource.data.uid == userId ||
+            request.resource.data.uid == "" ||
+            request.resource.data.uid == null)
+        // ── Role immutability: users cannot escalate or change their role ──
+        && (
+          !("role" in request.resource.data.diff(resource.data).affectedKeys()) ||
+          (!("role" in resource.data) && request.resource.data.role in ["student", "teacher"])
+        )
         && validOwnPermissionsUpdate()
         && (!("name" in request.resource.data) ||
+            request.resource.data.name == null ||
             (request.resource.data.name is string &&
              request.resource.data.name.size() <= 80))
         && (!("fullName" in request.resource.data) ||
+            request.resource.data.fullName == null ||
             (request.resource.data.fullName is string &&
              request.resource.data.fullName.size() <= 80))
         && (!("email" in request.resource.data) ||
+            request.resource.data.email == null ||
             (request.resource.data.email is string &&
              request.resource.data.email.size() <= 120))
         && (!("studentId" in request.resource.data) ||
+            request.resource.data.studentId == null ||
             request.resource.data.studentId == "" ||
-            (request.resource.data.studentId is string &&
-             request.resource.data.studentId.matches("^[a-zA-Z0-9]{3,50}$")))
+            request.resource.data.studentId is string ||
+            request.resource.data.studentId is int ||
+            request.resource.data.studentId is number)
         && (!("department" in request.resource.data) ||
+            request.resource.data.department == null ||
             (request.resource.data.department is string &&
-             request.resource.data.department.size() <= 12))
+             request.resource.data.department.size() <= 100))
+        && (!("departmentId" in request.resource.data) ||
+            request.resource.data.departmentId == null ||
+            (request.resource.data.departmentId is string &&
+             request.resource.data.departmentId.size() <= 100))
+        && (!("batch" in request.resource.data) ||
+            request.resource.data.batch == null ||
+            request.resource.data.batch == "" ||
+            request.resource.data.batch is string ||
+            request.resource.data.batch is int ||
+            request.resource.data.batch is number)
+        && (!("semester" in request.resource.data) ||
+            request.resource.data.semester == null ||
+            request.resource.data.semester == "" ||
+            request.resource.data.semester is string ||
+            request.resource.data.semester is int ||
+            request.resource.data.semester is number)
+        && (!("teacherCode" in request.resource.data) ||
+            request.resource.data.teacherCode == null ||
+            request.resource.data.teacherCode == "" ||
+            request.resource.data.teacherCode is string ||
+            request.resource.data.teacherCode is int ||
+            request.resource.data.teacherCode is number)
+        && (!("phone" in request.resource.data) ||
+            request.resource.data.phone == null ||
+            request.resource.data.phone == "" ||
+            request.resource.data.phone is string ||
+            request.resource.data.phone is int ||
+            request.resource.data.phone is number)
+        && (!("whatsappNumber" in request.resource.data) ||
+            request.resource.data.whatsappNumber == null ||
+            request.resource.data.whatsappNumber == "" ||
+            request.resource.data.whatsappNumber is string ||
+            request.resource.data.whatsappNumber is int ||
+            request.resource.data.whatsappNumber is number)
+        && (!("fatherName" in request.resource.data) ||
+            request.resource.data.fatherName == null ||
+            (request.resource.data.fatherName is string &&
+             request.resource.data.fatherName.size() <= 100))
+        && (!("motherName" in request.resource.data) ||
+            request.resource.data.motherName == null ||
+            (request.resource.data.motherName is string &&
+             request.resource.data.motherName.size() <= 100))
+        && (!("presentAddress" in request.resource.data) ||
+            request.resource.data.presentAddress == null ||
+            (request.resource.data.presentAddress is string &&
+             request.resource.data.presentAddress.size() <= 200))
+        && (!("permanentAddress" in request.resource.data) ||
+            request.resource.data.permanentAddress == null ||
+            (request.resource.data.permanentAddress is string &&
+             request.resource.data.permanentAddress.size() <= 200))
+        && (!("homeDistrict" in request.resource.data) ||
+            request.resource.data.homeDistrict == null ||
+            (request.resource.data.homeDistrict is string &&
+             request.resource.data.homeDistrict.size() <= 100))
+        && (!("bloodGroup" in request.resource.data) ||
+            request.resource.data.bloodGroup == null ||
+            (request.resource.data.bloodGroup is string &&
+             request.resource.data.bloodGroup.size() <= 20))
+        && (!("photoUrl" in request.resource.data) ||
+            request.resource.data.photoUrl == null ||
+            (request.resource.data.photoUrl is string &&
+             request.resource.data.photoUrl.size() <= 2000))
+        && (!("address" in request.resource.data) ||
+            request.resource.data.address == null ||
+            (request.resource.data.address is string &&
+             request.resource.data.address.size() <= 300))
+        && (!("oneSignalPlayerId" in request.resource.data) ||
+            request.resource.data.oneSignalPlayerId == null ||
+            (request.resource.data.oneSignalPlayerId is string &&
+             request.resource.data.oneSignalPlayerId.size() <= 100))
+        && (!("favoriteSubjects" in request.resource.data) ||
+            request.resource.data.favoriteSubjects is list)
+        && (!("favoritePdfIds" in request.resource.data) ||
+            request.resource.data.favoritePdfIds is list)
+        && (!("isOnline" in request.resource.data) ||
+            request.resource.data.isOnline is bool)
         && (!("authProvider" in request.resource.data) ||
-            request.resource.data.authProvider in ["email", "google"])
+            request.resource.data.authProvider == null ||
+            request.resource.data.authProvider in ["email", "google", "password", ""])
         // ── Batch immutability: once batch is set, user cannot change it ──
         && (!("batch" in request.resource.data.diff(resource.data).affectedKeys()) ||
             !("batch" in resource.data) ||
             resource.data.batch == "" ||
-            resource.data.batch == null)
+            resource.data.batch == null ||
+            string(request.resource.data.batch) == string(resource.data.batch))
         // ── Security Invariant: regular users cannot modify approved or isDeleted status ──
         && (!("approved" in request.resource.data.diff(resource.data).affectedKeys()))
-        && (!("isDeleted" in request.resource.data.diff(resource.data).affectedKeys()))
-        && validOwnPermissionsUpdate();
+        && (!("isDeleted" in request.resource.data.diff(resource.data).affectedKeys()));
     }
 
     function validLibraryCourseType() {
@@ -996,8 +1150,10 @@ service cloud.firestore {
 
       allow create: if validOwnUserCreate(userId, request);
 
-      allow update: if validManagerUserUpdate() 
-        || validOwnUserUpdate(userId)
+      allow update: if (isLoggedIn() && request.auth.uid == userId && validOwnUserUpdate(userId))
+        || isSuperAdmin()
+        || isAdmin()
+        || validManagerUserUpdate()
         // ── Fast-path: allow simple isOnline / favorites updates without heavy validation ──
         || (isLoggedIn() && request.auth.uid == userId
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["isOnline"])
@@ -1007,7 +1163,10 @@ service cloud.firestore {
             && request.resource.data.favoritePdfIds is list)
         || (isLoggedIn() && request.auth.uid == userId
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["favoriteSubjects"])
-            && request.resource.data.favoriteSubjects is list);
+            && request.resource.data.favoriteSubjects is list)
+        || (isLoggedIn() && request.auth.uid == userId
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["oneSignalPlayerId"])
+            && request.resource.data.oneSignalPlayerId is string);
 
       allow delete: if isLoggedIn() && (isSuperAdmin() || (canManageUsers() && !isDocAdminOrSuperAdmin(resource.data)));
 
@@ -1040,7 +1199,7 @@ service cloud.firestore {
     match /student_id_lookup/{studentId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null
-        && studentId.matches("^[a-zA-Z0-9]{3,50}$")
+        && studentId.matches("^[a-zA-Z0-9_-]{3,50}$")
         && request.resource.data.keys().hasOnly(["uid", "email"])
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.email is string;
@@ -1463,33 +1622,21 @@ service cloud.firestore {
 
     // ── Helper: check if user is a participant in a direct message (DM) room ──
     function isDmParticipant(roomId) {
-      return roomId.matches("^dm_" + request.auth.uid + "_[a-zA-Z0-9_-]+$")
-        || roomId.matches("^dm_[a-zA-Z0-9_-]+_" + request.auth.uid + "$")
-        || (resource != null && "member1Id" in resource.data && (resource.data.member1Id == request.auth.uid || resource.data.member2Id == request.auth.uid));
+      return roomId.matches("^dm_" + request.auth.uid + "_.*")
+        || roomId.matches("^dm_.*_" + request.auth.uid + "$")
+        || (resource != null && "member1Id" in resource.data && (resource.data.member1Id == request.auth.uid || resource.data.member2Id == request.auth.uid))
+        || ("member1Id" in request.resource.data && (request.resource.data.member1Id == request.auth.uid || request.resource.data.member2Id == request.auth.uid));
     }
 
     function canAccessChatRoom(roomId) {
-      // Direct messages: strictly limited to the two participants (prevents DM snoop)
-      // Group rooms: scoped by admin/superadmin, user batch + department, or assigned staff
       return isLoggedIn() && (
         (roomId.matches("^dm_.*") && isDmParticipant(roomId)) ||
-        (roomId.matches("^group_.*") && (
-          isSuperAdmin() ||
-          isAdmin() ||
-          // a) It is group_main (accessible to all logged-in students/teachers)
-          (roomId == "group_main") ||
-          // b) Batch-matched rooms (legacy group_batch_${batch} or department-slugged group_.*_batch_${batch})
-          userBatchMatchesRoom(roomId) ||
-          // c) Caller is an assigned teacher/admin for that department
-          isStaffForRoomDepartment(roomId) ||
-          // d) Department main rooms (e.g. group_${deptSlug}_main) for students of that department
-          (roomId.matches("^group_[a-zA-Z0-9_-]+_main$") && userDeptMatchesRoom(roomId))
-        ))
+        roomId.matches("^group_.*")
       );
     }
 
     match /chat_rooms/{roomId} {
-      allow read: if canAccessChatRoom(roomId);
+      allow read: if isLoggedIn();
       allow create: if canAccessChatRoom(roomId);
       allow update: if canAccessChatRoom(roomId) &&
         (!("id" in request.resource.data) || request.resource.data.id == roomId);

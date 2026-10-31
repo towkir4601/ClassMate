@@ -150,18 +150,34 @@ class UserDetailActivity : AppCompatActivity() {
         binding.tvAddress.text = field("Address", targetUser.address)
         binding.tvAuthProvider.text = field("Auth Provider", targetUser.authProvider)
 
-        when (targetUser.role) {
+        binding.radioGroupRole.setOnCheckedChangeListener(null)
+        when (targetUser.role.lowercase()) {
             "superadmin" -> binding.radioSuperadmin.isChecked = true
             "admin" -> binding.radioAdmin.isChecked = true
             "teacher" -> binding.radioTeacher.isChecked = true
+            "cr" -> binding.radioCR.isChecked = true
             else -> binding.radioStudent.isChecked = true
         }
 
         val isSuperadmin = currentUser.role == "superadmin"
-        val canEditRole = isSuperadmin || currentUser.canManageAdmins()
+        val canEditRole = isSuperadmin || currentUser.canManageUsers() || currentUser.canManageAdmins()
         binding.tvRoleLabel.visibility = if (canEditRole) View.VISIBLE else View.GONE
         binding.radioGroupRole.visibility = if (canEditRole) View.VISIBLE else View.GONE
         binding.radioSuperadmin.visibility = if (isSuperadmin) View.VISIBLE else View.GONE
+        binding.radioAdmin.visibility = if (isSuperadmin || currentUser.canManageAdmins()) View.VISIBLE else View.GONE
+        binding.radioTeacher.visibility = View.VISIBLE
+        binding.radioCR.visibility = View.VISIBLE
+        binding.radioStudent.visibility = View.VISIBLE
+
+        binding.radioGroupRole.setOnCheckedChangeListener { _, _ ->
+            val newRole = selectedRole()
+            val defaults = User.getRoleDefaultPermissions(newRole)
+            switchMap.forEach { (key, switchView) ->
+                if (switchView.visibility == View.VISIBLE) {
+                    switchView.isChecked = defaults[key] == true
+                }
+            }
+        }
 
         bindPermissionControls()
     }
@@ -175,13 +191,15 @@ class UserDetailActivity : AppCompatActivity() {
             view.isChecked = targetUser.permissions[key] == true
             if (canControl) visibleCount++
         }
+        val isSuperadmin = currentUser.role == "superadmin"
+        val canEditRole = isSuperadmin || currentUser.canManageUsers() || currentUser.canManageAdmins()
         binding.tvPermissionHint.visibility = if (visibleCount == 0) View.VISIBLE else View.GONE
-        binding.btnSave.isEnabled = currentUser.role == "superadmin" || visibleCount > 0
+        binding.btnSave.isEnabled = canEditRole || visibleCount > 0
     }
 
     private fun saveChanges() {
         val isSuperadmin = currentUser.role == "superadmin"
-        val canEditRole = isSuperadmin || currentUser.canManageAdmins()
+        val canEditRole = isSuperadmin || currentUser.canManageUsers() || currentUser.canManageAdmins()
         val allowedKeys = permissionLabels.keys.filter { currentUser.hasPermission(it) }
         val newPermissions = targetUser.permissions.toMutableMap()
         allowedKeys.forEach { key ->
@@ -197,6 +215,18 @@ class UserDetailActivity : AppCompatActivity() {
                 "superadmin" -> User.DEFAULT_PERMISSIONS.mapValues { true }
                 "admin" -> newPermissions.apply { 
                     put("canManageAdmins", false)
+                }
+                "cr" -> newPermissions.apply {
+                    put("canSendClassCancel", true)
+                    put("canPostNotices", true)
+                    put("canUploadLibrary", true)
+                    put("canCreatePolls", true)
+                }
+                "student" -> newPermissions.apply {
+                    put("canSendClassCancel", false)
+                    put("canPostNotices", false)
+                    put("canUploadLibrary", false)
+                    put("canCreatePolls", false)
                 }
                 else -> newPermissions
             }
@@ -230,6 +260,7 @@ class UserDetailActivity : AppCompatActivity() {
             R.id.radioSuperadmin -> "superadmin"
             R.id.radioAdmin -> "admin"
             R.id.radioTeacher -> "teacher"
+            R.id.radioCR -> "cr"
             else -> "student"
         }
     }

@@ -43,6 +43,20 @@ class CreatePollActivity : AppCompatActivity() {
             .addOnSuccessListener { doc ->
                 currentUserName = doc.getString("name") ?: "Admin"
                 currentUserBatch = doc.getString("batch") ?: ""
+                val role = doc.getString("role")?.lowercase() ?: "student"
+                val dept = doc.getString("department") ?: ""
+                if (role == "cr" && (dept.isBlank() || currentUserBatch.isBlank())) {
+                    androidx.appcompat.app.AlertDialog.Builder(this)
+                        .setTitle("Profile Incomplete")
+                        .setMessage("Please update your Department and Year/Semester in your profile first before creating a poll.")
+                        .setPositiveButton("Complete Profile") { _, _ ->
+                            startActivity(android.content.Intent(this, EditProfileActivity::class.java))
+                            finish()
+                        }
+                        .setNegativeButton("Cancel") { _, _ -> finish() }
+                        .setCancelable(false)
+                        .show()
+                }
             }
 
         // Check if editing

@@ -58,10 +58,16 @@ class EditProfileActivity : AppCompatActivity() {
                     binding.etDepartment.setText(doc.getString("department") ?: "")
                     binding.etPhone.setText(doc.getString("phone") ?: "")
                     binding.etWhatsApp.setText(doc.getString("whatsappNumber") ?: "")
-                    binding.etBatch.setText(doc.getString("batch") ?: "")
+                    val batchObj = doc.get("batch")
+                    val batchStr = when (batchObj) {
+                        is String -> batchObj
+                        is Number -> batchObj.toString()
+                        else -> ""
+                    }
+                    binding.etBatch.setText(batchStr)
                     binding.etSemester.setText(doc.getString("semester") ?: "")
                     binding.etTeacherCode.setText(doc.getString("teacherCode") ?: "")
-                    originalBatch = doc.getString("batch") ?: ""
+                    originalBatch = batchStr
                     
                     // Lock batch field if already set — prevent batch change fraud
                     if (originalBatch.isNotBlank()) {
@@ -96,13 +102,18 @@ class EditProfileActivity : AppCompatActivity() {
     private fun saveUserProfile() {
         val uid = auth.currentUser?.uid ?: return
         
-        val newBatch = binding.etBatch.text.toString().trim()
+        val rawBatch = binding.etBatch.text.toString().trim()
+        val batchDigits = rawBatch.filter { it.isDigit() }
+        val newBatch = if (batchDigits.isNotBlank()) batchDigits else rawBatch
         val newSemester = binding.etSemester.text.toString().trim()
         val newTeacherCode = binding.etTeacherCode.text.toString().trim().uppercase()
+        val chosenDept = binding.etDepartment.text.toString().trim()
         val updates = hashMapOf<String, Any>(
+            "uid" to uid,
             "name" to binding.etName.text.toString().trim(),
             "studentId" to binding.etStudentId.text.toString().trim(),
-            "department" to binding.etDepartment.text.toString().trim(),
+            "department" to chosenDept,
+            "departmentId" to com.shuaib.classmate.models.User.slugifyDepartment(chosenDept),
             "phone" to com.shuaib.classmate.utils.PhoneNumberUtils.normalize(binding.etPhone.text.toString()),
             "whatsappNumber" to com.shuaib.classmate.utils.PhoneNumberUtils.normalize(binding.etWhatsApp.text.toString()),
             "semester" to newSemester,
@@ -124,33 +135,40 @@ class EditProfileActivity : AppCompatActivity() {
         binding.btnSave.isEnabled = false
         binding.btnSave.text = "Saving..."
         
-        db.collection("users").document(uid)
-            .set(updates, SetOptions.merge())
-            .addOnSuccessListener {
+        val handleSuccess = {
+            try {
+                com.onesignal.OneSignal.User.addTag("semester", newSemester)
+                val prefs = com.shuaib.classmate.utils.AppPreferences(this)
+                prefs.setUserSemester(newSemester)
+                prefs.setTeacherCode(newTeacherCode)
+            } catch (e: Exception) {
+                // ignore
+            }
+
+            if (originalBatch.isBlank() && newBatch.isNotBlank()) {
                 try {
-                    com.onesignal.OneSignal.User.addTag("semester", newSemester)
-                    val prefs = com.shuaib.classmate.utils.AppPreferences(this)
-                    prefs.setUserSemester(newSemester)
-                    prefs.setTeacherCode(newTeacherCode)
+                    com.onesignal.OneSignal.User.addTag("batch", newBatch)
+                    com.shuaib.classmate.utils.AppPreferences(this).setUserBatch(newBatch)
                 } catch (e: Exception) {
                     // ignore
                 }
-
-                if (originalBatch.isBlank() && newBatch.isNotBlank()) {
-                    try {
-                        com.onesignal.OneSignal.User.addTag("batch", newBatch)
-                        com.shuaib.classmate.utils.AppPreferences(this).setUserBatch(newBatch)
-                    } catch (e: Exception) {
-                        // ignore
-                    }
-                }
-                Toast.makeText(this, "Profile updated successfully", Toast.LENGTH_SHORT).show()
-                finish()
             }
+            Toast.makeText(this, "Profile updated successfully", Toast.LENGTH_SHORT).show()
+            finish()
+        }
+
+        db.collection("users").document(uid)
+            .update(updates)
+            .addOnSuccessListener { handleSuccess() }
             .addOnFailureListener {
-                binding.btnSave.isEnabled = true
-                binding.btnSave.text = "Save Profile"
-                Toast.makeText(this, "Failed to update profile", Toast.LENGTH_SHORT).show()
+                db.collection("users").document(uid)
+                    .set(updates, SetOptions.merge())
+                    .addOnSuccessListener { handleSuccess() }
+                    .addOnFailureListener { setErr ->
+                        binding.btnSave.isEnabled = true
+                        binding.btnSave.text = "Save Profile"
+                        Toast.makeText(this, "Failed to update profile: ${setErr.message}", Toast.LENGTH_SHORT).show()
+                    }
             }
     }
 }

@@ -31,56 +31,32 @@ class LostFoundRepository {
         val fifteenDaysMs = 15L * 24 * 60 * 60 * 1000L
         val cutoffMs = nowMs - fifteenDaysMs
 
-        collection
-            .whereEqualTo("isResolved", false)
-            .orderBy("timestamp", Query.Direction.DESCENDING)
-            .limit(limit * 2)
-            .get()
+        collection.get()
             .addOnSuccessListener { snapshot ->
-                val activeList = mutableListOf<LostFoundItem>()
+                val list = mutableListOf<LostFoundItem>()
                 if (snapshot != null && !snapshot.isEmpty) {
-                    val expiredDocs = mutableListOf<com.google.firebase.firestore.DocumentSnapshot>()
-
                     for (doc in snapshot.documents) {
                         val item = doc.toObject(LostFoundItem::class.java)?.copy(id = doc.id) ?: continue
                         if (isDeletedLocally(item.id)) continue
                         val itemTime = item.timestamp?.toDate()?.time ?: 0L
-                        if (itemTime in 1..cutoffMs) {
-                            expiredDocs.add(doc)
-                        } else {
-                            activeList.add(item)
-                        }
-                    }
-
-                    // Auto delete expired items from Firestore (> 15 days)
-                    if (expiredDocs.isNotEmpty()) {
-                        val batch = firestore.batch()
-                        for (doc in expiredDocs) {
-                            batch.delete(doc.reference)
-                        }
-                        batch.commit()
+                        if (itemTime in 1..cutoffMs) continue
+                        list.add(item)
                     }
                 }
-
-                val localActive = localItems.filter { !it.isResolved && !isDeletedLocally(it.id) }
-                val availableSamples = sampleItems.filter { !isDeletedLocally(it.id) }
-                val merged = (activeList + localActive + availableSamples)
-                    .filter { !isDeletedLocally(it.id) && !it.isResolved }
+                val sorted = list.sortedByDescending { it.timestamp?.toDate()?.time ?: 0L }
+                val local = localItems.filter { !isDeletedLocally(it.id) }
+                val merged = (local + sorted)
+                    .filter { !isDeletedLocally(it.id) }
                     .distinctBy { it.id }
                 onResult(merged.take(limit.toInt()))
             }
             .addOnFailureListener {
-                val localActive = localItems.filter { !it.isResolved && !isDeletedLocally(it.id) }
-                val availableSamples = sampleItems.filter { !isDeletedLocally(it.id) }
-                val merged = (localActive + availableSamples)
-                    .filter { !isDeletedLocally(it.id) && !it.isResolved }
-                    .distinctBy { it.id }
-                onResult(merged.take(limit.toInt()))
+                val local = localItems.filter { !isDeletedLocally(it.id) }
+                onResult(local.take(limit.toInt()))
             }
     }
 
     fun getAllActiveItems(onResult: (List<LostFoundItem>) -> Unit) {
-        // Legacy call - routes to getApprovedItems for backward compat
         getApprovedItems(onResult)
     }
 
@@ -90,10 +66,8 @@ class LostFoundRepository {
         val fifteenDaysMs = 15L * 24 * 60 * 60 * 1000L
         val cutoffMs = nowMs - fifteenDaysMs
 
-        collection
-            .whereEqualTo("isResolved", false)
-            .orderBy("timestamp", Query.Direction.DESCENDING)
-            .get()
+        // Fetch without compound filter/order to eliminate missing composite index crashes
+        collection.get()
             .addOnSuccessListener { snapshot ->
                 val activeList = mutableListOf<LostFoundItem>()
                 if (snapshot != null && !snapshot.isEmpty) {
@@ -101,6 +75,7 @@ class LostFoundRepository {
                     for (doc in snapshot.documents) {
                         val item = doc.toObject(LostFoundItem::class.java)?.copy(id = doc.id) ?: continue
                         if (isDeletedLocally(item.id)) continue
+                        if (item.isResolved) continue
                         val itemTime = item.timestamp?.toDate()?.time ?: 0L
                         if (itemTime in 1..cutoffMs) {
                             expiredDocs.add(doc)
@@ -115,35 +90,27 @@ class LostFoundRepository {
                         batch.commit()
                     }
                 }
-                // Local items: show all active non-resolved ones immediately
+                val sortedActive = activeList.sortedByDescending { it.timestamp?.toDate()?.time ?: 0L }
                 val localActive = localItems.filter { !it.isResolved && !isDeletedLocally(it.id) }
-                val availableSamples = sampleItems.filter { !isDeletedLocally(it.id) }
-                val merged = (activeList + localActive + availableSamples)
+                val merged = (localActive + sortedActive)
                     .filter { !isDeletedLocally(it.id) && !it.isResolved }
                     .distinctBy { it.id }
                 onResult(merged)
             }
             .addOnFailureListener {
                 val localActive = localItems.filter { !it.isResolved && !isDeletedLocally(it.id) }
-                val availableSamples = sampleItems.filter { !isDeletedLocally(it.id) }
-                val merged = (localActive + availableSamples)
-                    .filter { !isDeletedLocally(it.id) && !it.isResolved }
-                    .distinctBy { it.id }
-                onResult(merged)
+                onResult(localActive)
             }
     }
 
     /** Legacy / Admin moderation view: Returns any pending items if any */
     fun getPendingItems(onResult: (List<LostFoundItem>) -> Unit) {
-        collection
-            .whereEqualTo("isResolved", false)
-            .whereEqualTo("pendingApproval", true)
-            .orderBy("timestamp", Query.Direction.DESCENDING)
-            .get()
+        collection.get()
             .addOnSuccessListener { snapshot ->
                 val pending = snapshot?.documents?.mapNotNull { doc ->
                     doc.toObject(LostFoundItem::class.java)?.copy(id = doc.id)
-                }?.filter { !isDeletedLocally(it.id) } ?: emptyList()
+                }?.filter { !isDeletedLocally(it.id) && !it.isResolved && it.pendingApproval }
+                ?.sortedByDescending { it.timestamp?.toDate()?.time ?: 0L } ?: emptyList()
                 onResult(pending)
             }
             .addOnFailureListener {
@@ -257,7 +224,6 @@ class LostFoundRepository {
         onSuccess: () -> Unit = {},
         onFailure: (Exception) -> Unit = {}
     ) {
-        markDeletedLocally(itemId)
         synchronized(localItems) {
             val idx = localItems.indexOfFirst { it.id == itemId }
             if (idx >= 0) {

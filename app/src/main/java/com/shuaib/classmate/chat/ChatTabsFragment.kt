@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.google.android.material.tabs.TabLayoutMediator
 import com.shuaib.classmate.R
@@ -42,17 +43,30 @@ class ChatTabsFragment : Fragment() {
         binding.viewPager.isUserInputEnabled = false
 
         binding.btnHeaderCamera.setOnClickListener {
-            (requireActivity() as? com.shuaib.classmate.activities.MainActivity)?.openChildDestination(
-                R.id.nav_chat,
-                R.id.fragment_dm_list
-            )
+            try {
+                findNavController().navigate(R.id.action_chat_to_dm_list)
+            } catch (_: Exception) {
+                (requireActivity() as? com.shuaib.classmate.activities.MainActivity)?.openChildDestination(
+                    R.id.nav_chat,
+                    R.id.fragment_dm_list
+                )
+            }
         }
 
         binding.btnHeaderSearch.setOnClickListener {
-            (requireActivity() as? com.shuaib.classmate.activities.MainActivity)?.openChildDestination(
-                R.id.nav_chat,
-                R.id.fragment_dm_list
-            )
+            try {
+                findNavController().navigate(R.id.action_chat_to_dm_list)
+            } catch (_: Exception) {
+                (requireActivity() as? com.shuaib.classmate.activities.MainActivity)?.openChildDestination(
+                    R.id.nav_chat,
+                    R.id.fragment_dm_list
+                )
+            }
+        }
+
+        val initialTab = arguments?.getInt("initialTab", if (isTeacher) 0 else 2) ?: (if (isTeacher) 0 else 2)
+        if (initialTab in 0 until adapter.itemCount) {
+            binding.viewPager.setCurrentItem(initialTab, false)
         }
 
         TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
@@ -67,15 +81,6 @@ class ChatTabsFragment : Fragment() {
                 }
             }
         }.attach()
-
-        val initialTab = arguments?.getInt("initialTab", if (isTeacher) 0 else 1) ?: (if (isTeacher) 0 else 1)
-        if (initialTab in 0 until adapter.itemCount) {
-            binding.viewPager.post {
-                if (_binding != null) {
-                    binding.viewPager.currentItem = initialTab
-                }
-            }
-        }
 
         binding.viewPager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {

@@ -47,8 +47,19 @@ data class Notice(
     val readCount: Int = 0,
     val targetBatch: String = "all",
     val department: String = "all",
-    val departmentId: String = "all"
+    val departmentId: String = "all",
+    val authorRole: String = ""
 ) {
+    val isSuperAdminNotice: Boolean
+        get() = authorRole.equals("superadmin", ignoreCase = true) ||
+                postedBy.contains("Super Admin", ignoreCase = true) ||
+                createdByName.contains("Super Admin", ignoreCase = true) ||
+                postedBy.contains("Vice Chancellor", ignoreCase = true) ||
+                createdByName.contains("Vice Chancellor", ignoreCase = true) ||
+                postedBy.contains("Registrar", ignoreCase = true) ||
+                createdByName.contains("Registrar", ignoreCase = true) ||
+                postedBy.equals("VC", ignoreCase = true) ||
+                createdByName.equals("VC", ignoreCase = true)
     val displayType: String
         get() = when {
             isCancel -> "cancellation"

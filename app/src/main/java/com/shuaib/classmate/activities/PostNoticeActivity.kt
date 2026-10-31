@@ -53,6 +53,7 @@ class PostNoticeActivity : AppCompatActivity() {
     private var editNoticeId: String? = null
 
     private var isAiPostingMode = false
+    private var currentUserRole: String = "student"
     private var currentUserBatch: String = ""
     private var currentUserSemester: String = ""
     private var currentUserDepartment: String = ""
@@ -135,7 +136,27 @@ class PostNoticeActivity : AppCompatActivity() {
                 currentUserDepartment = doc.getString("department")?.takeIf { it.isNotBlank() } ?: currentUserDepartment
                 currentUserDepartmentId = com.shuaib.classmate.models.User.slugifyDepartment(currentUserDepartment)
                 setupSubjectPicker()
-                if (doc.getString("role") == "teacher") {
+                currentUserRole = doc.getString("role")?.lowercase() ?: "student"
+                val role = currentUserRole
+                if (role == "cr") {
+                    if (currentUserDepartment.isBlank() || currentUserBatch.isBlank()) {
+                        androidx.appcompat.app.AlertDialog.Builder(this)
+                            .setTitle("Profile Incomplete")
+                            .setMessage("Please update your Department and Year/Semester (e.g. CSE 2-1) in your profile first so your notices can be delivered to your batch.")
+                            .setPositiveButton("Complete Profile") { _, _ ->
+                                startActivity(android.content.Intent(this, EditProfileActivity::class.java))
+                                finish()
+                            }
+                            .setNegativeButton("Cancel") { _, _ -> finish() }
+                            .setCancelable(false)
+                            .show()
+                        return@addOnSuccessListener
+                    }
+                    // CR cannot announce university vacations or target the whole university
+                    binding.rbVacation.isVisible = false
+                    binding.toggleTarget.isVisible = false
+                    binding.sectionTargetBatch.isVisible = false
+                } else if (role == "teacher") {
                     binding.rbNormal.isVisible = false
                     binding.rbPoll.isVisible = false
                     binding.rbVacation.isVisible = false
@@ -501,7 +522,8 @@ class PostNoticeActivity : AppCompatActivity() {
             "timestamp" to FieldValue.serverTimestamp(),
             "targetBatch" to targetBatchId,
             "department" to currentUserDepartment,
-            "departmentId" to currentUserDepartmentId
+            "departmentId" to currentUserDepartmentId,
+            "authorRole" to currentUserRole
         )
 
         val newNoticeRef = db.collection("notices").document()
@@ -612,7 +634,8 @@ class PostNoticeActivity : AppCompatActivity() {
             "timestamp" to FieldValue.serverTimestamp(),
             "targetBatch" to targetBatchId,
             "department" to currentUserDepartment,
-            "departmentId" to currentUserDepartmentId
+            "departmentId" to currentUserDepartmentId,
+            "authorRole" to currentUserRole
         )
 
         val newNoticeRef = db.collection("notices").document()
@@ -697,7 +720,8 @@ class PostNoticeActivity : AppCompatActivity() {
             "timestamp" to FieldValue.serverTimestamp(),
             "targetBatch" to targetBatchId,
             "department" to currentUserDepartment,
-            "departmentId" to currentUserDepartmentId
+            "departmentId" to currentUserDepartmentId,
+            "authorRole" to currentUserRole
         )
 
         val newNoticeRef = db.collection("notices").document()
@@ -846,7 +870,8 @@ class PostNoticeActivity : AppCompatActivity() {
             "timestamp" to FieldValue.serverTimestamp(),
             "targetBatch" to targetBatchId,
             "department" to currentUserDepartment,
-            "departmentId" to currentUserDepartmentId
+            "departmentId" to currentUserDepartmentId,
+            "authorRole" to currentUserRole
         )
 
         val newNoticeRef = db.collection("notices").document()

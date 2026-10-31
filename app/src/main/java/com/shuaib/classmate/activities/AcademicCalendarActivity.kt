@@ -30,6 +30,7 @@ import com.shuaib.classmate.adapters.CalendarFeedItem
 import com.shuaib.classmate.adapters.CalendarGridAdapter
 import com.shuaib.classmate.databinding.ActivityAcademicCalendarBinding
 import com.shuaib.classmate.databinding.DialogAcademicCalendarExceptionBinding
+import com.shuaib.classmate.databinding.DialogCalendarAddChoiceBinding
 import com.shuaib.classmate.models.AcademicCalendarException
 import com.shuaib.classmate.models.CampusClub
 import com.shuaib.classmate.models.CampusEvent
@@ -405,23 +406,26 @@ class AcademicCalendarActivity : AppCompatActivity() {
     // ==========================================
 
     private fun showAddChoiceDialog() {
-        val options = arrayOf(
-            "📅 Add Class Off / University Holiday",
-            "🎪 Add Campus Event / Program"
-        )
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setTitle("Add to Calendar")
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> showExceptionDialog(null)
-                    1 -> showAddCampusEventDialog()
-                }
-            }
-            .setNegativeButton("Cancel", null)
-            .create()
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        val choiceBinding = DialogCalendarAddChoiceBinding.inflate(LayoutInflater.from(this))
+        dialog.setContentView(choiceBinding.root)
+
+        choiceBinding.btnCloseDialog.setOnClickListener { dialog.dismiss() }
+        choiceBinding.btnCancel.setOnClickListener { dialog.dismiss() }
+
+        choiceBinding.cardAddHoliday.setOnClickListener {
+            dialog.dismiss()
+            showExceptionDialog(null)
+        }
+
+        choiceBinding.cardAddCampusEvent.setOnClickListener {
+            dialog.dismiss()
+            showAddCampusEventDialog()
+        }
 
         dialog.show()
-        dialog.applyFloatingPostAnimation(this, 0.90, 0.35, isWrapHeight = true)
+        dialog.applyFloatingPostAnimation(this, 0.92, 0.45, isWrapHeight = true)
     }
 
     // ==========================================

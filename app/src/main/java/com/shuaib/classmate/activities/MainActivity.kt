@@ -339,26 +339,56 @@ class MainActivity : AppCompatActivity() {
         if (parentIndex != -1 && binding.mainViewPager.currentItem != parentIndex) {
             binding.mainViewPager.currentItem = parentIndex
         }
-        childParentTabId = parentTabId
+        if (parentTabId in MAIN_TAB_DESTINATIONS) {
+            childParentTabId = parentTabId
+        }
         binding.mainViewPager.isVisible = false
         binding.navHostFragment.isVisible = true
         updateBottomNavSelection(parentTabId)
         updateBottomChromeVisibility(destinationId)
 
         runCatching {
-            resettingChildBackStack = true
-            try {
-                navController.popBackStack(navController.graph.startDestinationId, false)
-            } finally {
-                resettingChildBackStack = false
+            val isChatSubDestination = destinationId == R.id.fragment_dm_chat || destinationId == R.id.fragment_dm_list
+            val isAlreadyInChat = navController.currentDestination?.id == R.id.nav_chat
+
+            if (isChatSubDestination && isAlreadyInChat) {
+                val navOptions = NavOptions.Builder()
+                    .setEnterAnim(R.anim.slide_in_right)
+                    .setExitAnim(R.anim.slide_out_left)
+                    .setPopEnterAnim(R.anim.slide_in_left)
+                    .setPopExitAnim(R.anim.slide_out_right)
+                    .build()
+                navController.navigate(destinationId, args, navOptions)
+            } else if (isChatSubDestination) {
+                resettingChildBackStack = true
+                try {
+                    navController.popBackStack(navController.graph.startDestinationId, false)
+                } finally {
+                    resettingChildBackStack = false
+                }
+                navController.navigate(R.id.nav_chat)
+                val navOptions = NavOptions.Builder()
+                    .setEnterAnim(R.anim.slide_in_right)
+                    .setExitAnim(R.anim.slide_out_left)
+                    .setPopEnterAnim(R.anim.slide_in_left)
+                    .setPopExitAnim(R.anim.slide_out_right)
+                    .build()
+                navController.navigate(destinationId, args, navOptions)
+            } else {
+                resettingChildBackStack = true
+                try {
+                    navController.popBackStack(navController.graph.startDestinationId, false)
+                } finally {
+                    resettingChildBackStack = false
+                }
+                val navOptions = NavOptions.Builder()
+                    .setEnterAnim(R.anim.anim_ios_card_open_enter)
+                    .setExitAnim(R.anim.anim_ios_card_open_exit)
+                    .setPopEnterAnim(R.anim.fade_in)
+                    .setPopExitAnim(R.anim.anim_ios_card_open_exit)
+                    .build()
+                navController.navigate(destinationId, args, navOptions)
             }
-            val navOptions = NavOptions.Builder()
-                .setEnterAnim(R.anim.anim_ios_card_open_enter)
-                .setExitAnim(R.anim.anim_ios_card_open_exit)
-                .setPopEnterAnim(R.anim.fade_in)
-                .setPopExitAnim(R.anim.anim_ios_card_open_exit)
-                .build()
-            navController.navigate(destinationId, args, navOptions)
         }.onFailure {
             Log.e("MainActivity", "Child navigation failed to $destinationId", it)
             showMainTab(parentTabId)
@@ -803,12 +833,15 @@ class MainActivity : AppCompatActivity() {
         setOnlineStatus(false)
     }
 
-    private fun setOnlineStatus(isOnline: Boolean) {
+    fun setOnlineStatus(isOnline: Boolean) {
         val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return
-        com.google.firebase.firestore.FirebaseFirestore.getInstance().collection("users").document(uid)
-            .update("isOnline", isOnline)
-            .addOnFailureListener { e ->
-                android.util.Log.e("MainActivity", "Failed to update online status: ${e.message}")
+        val userRef = com.google.firebase.firestore.FirebaseFirestore.getInstance().collection("users").document(uid)
+        userRef.update("isOnline", isOnline)
+            .addOnFailureListener {
+                userRef.set(mapOf("isOnline" to isOnline), com.google.firebase.firestore.SetOptions.merge())
+                    .addOnFailureListener { e ->
+                        android.util.Log.e("MainActivity", "Failed to update online status: ${e.message}")
+                    }
             }
     }
 

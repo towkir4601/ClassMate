@@ -92,9 +92,6 @@ class ChatFragment : Fragment(), TextToSpeech.OnInitListener {
             insets
         }
 
-        // Initialize TTS
-        tts = TextToSpeech(requireContext(), this)
-
         // Initialize Chat List
         adapter = AiChatAdapter(
             onCopy = { msg -> copyToClipboard(msg.text) },
@@ -939,12 +936,56 @@ class ChatFragment : Fragment(), TextToSpeech.OnInitListener {
         startActivity(Intent.createChooser(shareIntent, "Share response via"))
     }
 
+    private fun ensureTts(onReady: () -> Unit) {
+        if (tts == null) {
+            val ctx = context ?: return
+            tts = TextToSpeech(ctx.applicationContext) { status ->
+                if (status == TextToSpeech.SUCCESS) {
+                    tts?.language = Locale.US
+                    tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+                        override fun onStart(utteranceId: String?) {
+                            activity?.runOnUiThread {
+                                if (_binding != null) {
+                                    adapter?.setSpeakingMessageId(utteranceId)
+                                }
+                            }
+                        }
+
+                        override fun onDone(utteranceId: String?) {
+                            activity?.runOnUiThread {
+                                if (_binding != null && adapter?.speakingMessageId == utteranceId) {
+                                    adapter?.setSpeakingMessageId(null)
+                                }
+                            }
+                        }
+
+                        @Deprecated("Deprecated in Java")
+                        override fun onError(utteranceId: String?) {
+                            activity?.runOnUiThread {
+                                if (_binding != null && adapter?.speakingMessageId == utteranceId) {
+                                    adapter?.setSpeakingMessageId(null)
+                                }
+                            }
+                        }
+                    })
+                    activity?.runOnUiThread {
+                        onReady()
+                    }
+                }
+            }
+        } else {
+            onReady()
+        }
+    }
+
     private fun toggleSpeak(message: AiMessage) {
         if (adapter?.speakingMessageId == message.id) {
             tts?.stop()
             adapter?.setSpeakingMessageId(null)
         } else {
-            speak(message)
+            ensureTts {
+                speak(message)
+            }
         }
     }
 
@@ -962,37 +1003,8 @@ class ChatFragment : Fragment(), TextToSpeech.OnInitListener {
         binding.scrollSuggestions.isVisible = !isEmpty
     }
 
-
     override fun onInit(status: Int) {
-        if (status == TextToSpeech.SUCCESS) {
-            tts?.language = Locale.US
-            tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
-                override fun onStart(utteranceId: String?) {
-                    activity?.runOnUiThread {
-                        if (_binding != null) {
-                            adapter?.setSpeakingMessageId(utteranceId)
-                        }
-                    }
-                }
-
-                override fun onDone(utteranceId: String?) {
-                    activity?.runOnUiThread {
-                        if (_binding != null && adapter?.speakingMessageId == utteranceId) {
-                            adapter?.setSpeakingMessageId(null)
-                        }
-                    }
-                }
-
-                @Deprecated("Deprecated in Java")
-                override fun onError(utteranceId: String?) {
-                    activity?.runOnUiThread {
-                        if (_binding != null && adapter?.speakingMessageId == utteranceId) {
-                            adapter?.setSpeakingMessageId(null)
-                        }
-                    }
-                }
-            })
-        }
+        // Kept for TextToSpeech.OnInitListener interface compatibility if needed
     }
 
 

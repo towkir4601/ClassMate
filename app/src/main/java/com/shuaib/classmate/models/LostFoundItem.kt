@@ -1,6 +1,7 @@
 package com.shuaib.classmate.models
 
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.Exclude
 
 /**
  * GSTU Go - Lost & Found post model.
@@ -39,10 +40,19 @@ data class LostFoundItem(
     val reportedCount: Int = 0,
     val reportedBy: List<String> = emptyList()
 ) {
+    @get:Exclude
     val isFound: Boolean get() = type.equals("found", ignoreCase = true)
+
+    @get:Exclude
     val isLost: Boolean get() = type.equals("lost", ignoreCase = true)
+
+    @get:Exclude
     val isPublic: Boolean get() = approved && !pendingApproval
+
+    @get:Exclude
     val isItemGiven: Boolean get() = resolvedStatus.equals("item_given", ignoreCase = true)
+
+    @get:Exclude
     val isItemFound: Boolean get() = resolvedStatus.equals("item_found", ignoreCase = true)
 }
 

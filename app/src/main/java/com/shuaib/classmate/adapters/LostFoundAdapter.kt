@@ -55,21 +55,21 @@ class LostFoundAdapter(
         val context = holder.itemView.context
 
         b.tvItemTitle.text = item.title
-        b.tvItemTitle.setTextColor(Color.parseColor("#0F172A"))
+        b.tvItemTitle.setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.cm_text_primary))
 
         b.tvItemLocation.text = item.location.ifBlank { "Campus" }
-        b.tvItemLocation.setTextColor(Color.parseColor("#334155"))
+        b.tvItemLocation.setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.cm_text_secondary))
 
         b.tvContactInfo.text = "Contact: ${item.contactPhone.ifBlank { item.reporterName.ifBlank { "Campus Desk" } }}"
-        b.tvContactInfo.setTextColor(Color.parseColor("#334155"))
+        b.tvContactInfo.setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.cm_text_secondary))
 
         b.tvItemTime.text = formatItemTime(item.timestamp?.seconds)
-        b.tvItemTime.setTextColor(Color.parseColor("#64748B"))
+        b.tvItemTime.setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.cm_text_muted))
 
         if (item.description.isNotBlank() && !item.description.equals(item.title, ignoreCase = true)) {
             b.tvItemDescription.visibility = View.VISIBLE
             b.tvItemDescription.text = item.description
-            b.tvItemDescription.setTextColor(Color.parseColor("#475569"))
+            b.tvItemDescription.setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.cm_text_secondary))
         } else {
             b.tvItemDescription.visibility = View.GONE
         }

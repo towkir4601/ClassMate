@@ -155,6 +155,19 @@
     <color name="wa_attach_poll">#009688</color>
     <color name="wa_attach_contact">#007BFC</color>
 
+    <!-- CampusFeed Dark Mode Theme Palette -->
+    <color name="cm_sky_bg">#020817</color>
+    <color name="cm_sky_surface">#0B1324</color>
+    <color name="cm_sky_primary">#38BDF8</color>
+    <color name="cm_sky_primary_dark">#0284C7</color>
+    <color name="cm_sky_primary_light">#7DD3FC</color>
+    <color name="cm_sky_container">#0C2540</color>
+    <color name="cm_sky_border">#1E3A5F</color>
+    <color name="cm_sky_border_subtle">#14273E</color>
+    <color name="cm_sky_text_primary">#F8FAFC</color>
+    <color name="cm_sky_text_secondary">#CBD5E1</color>
+    <color name="cm_sky_text_muted">#94A3B8</color>
+
     <!-- Signal Chat Colors -->
     <color name="signal_blue">#3B82F6</color>
     <color name="signal_blue_dark">#2563EB</color>

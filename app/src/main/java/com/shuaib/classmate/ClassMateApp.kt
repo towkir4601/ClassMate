@@ -221,7 +221,22 @@ class ClassMateApp : Application() {
                         putExtra(ChatNotificationHelper.KEY_SENDER_NAME, senderName)
                     }
                     startActivity(intent)
+                    return
                 }
+
+                // Route notices, schedules, cancellations, polls to MainActivity
+                val targetTab = NotificationRouter.pendingTab ?: "notices"
+                val intent = Intent(this@ClassMateApp, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    putExtra("OPEN_TAB", targetTab)
+                    if (!noticeId.isNullOrBlank()) {
+                        putExtra("noticeId", noticeId)
+                    }
+                    if (!day.isNullOrBlank()) {
+                        putExtra("OPEN_DAY", day)
+                    }
+                }
+                startActivity(intent)
             }
         })
     }
@@ -349,7 +364,7 @@ class ClassMateApp : Application() {
 
             workManager.enqueueUniquePeriodicWork(
                 "MidnightClassUpdateBriefing",
-                ExistingPeriodicWorkPolicy.UPDATE,
+                ExistingPeriodicWorkPolicy.KEEP,
                 midnightBriefRequest
             )
 

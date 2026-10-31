@@ -94,7 +94,9 @@ object ChatRepository {
     val groupRoomId: String
         get() {
             val deptSlug = com.shuaib.classmate.models.User.slugifyDepartment(userDepartment)
-            val batchClean = userBatch.trim().lowercase().replace(Regex("[^a-z0-9]"), "_")
+            val rawBatch = userBatch.trim().lowercase()
+            val batchDigits = rawBatch.filter { it.isDigit() }
+            val batchClean = if (batchDigits.isNotBlank()) batchDigits else rawBatch.replace(Regex("[^a-z0-9]"), "_")
             return when {
                 deptSlug.isNotBlank() && batchClean.isNotBlank() -> "group_${deptSlug}_batch_${batchClean}"
                 batchClean.isNotBlank() -> "group_batch_${batchClean}"
@@ -136,20 +138,37 @@ object ChatRepository {
             if (userDepartment.isBlank()) userDepartment = prefs.getUserDepartment()
         } catch (_: Exception) {}
         
-        firestore.collection("users").document(userId).get().addOnSuccessListener { doc ->
-            val b = doc.getString("batch") ?: ""
-            val d = doc.getString("department") ?: ""
-            if (b.isNotBlank()) userBatch = b
-            if (d.isNotBlank()) userDepartment = d
-            try {
-                val prefs = com.shuaib.classmate.utils.AppPreferences(context)
-                if (b.isNotBlank()) prefs.setUserBatch(b)
-                if (d.isNotBlank()) prefs.setUserDepartment(d)
-            } catch (_: Exception) {}
-            ensureMainGroupExists()
-            getRooms()
-            getUsers()
-        }
+        // Immediately start group initialization, room listeners, and user presence listeners
+        ensureMainGroupExists()
+        getRooms()
+        getUsers()
+        
+        firestore.collection("users").document(userId).get()
+            .addOnSuccessListener { doc ->
+                val b = doc.getString("batch") ?: ""
+                val d = doc.getString("department") ?: ""
+                var changed = false
+                if (b.isNotBlank() && b != userBatch) {
+                    userBatch = b
+                    changed = true
+                }
+                if (d.isNotBlank() && d != userDepartment) {
+                    userDepartment = d
+                    changed = true
+                }
+                try {
+                    val prefs = com.shuaib.classmate.utils.AppPreferences(context)
+                    if (b.isNotBlank()) prefs.setUserBatch(b)
+                    if (d.isNotBlank()) prefs.setUserDepartment(d)
+                } catch (_: Exception) {}
+                if (changed) {
+                    ensureMainGroupExists()
+                    getRooms()
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("ChatRepo", "Failed to fetch user profile in init: ${e.message}")
+            }
     }
 
     private fun ensureMainGroupExists() {
@@ -612,26 +631,28 @@ object ChatRepository {
         roomsListener = firestore.collection("chat_rooms")
             .addSnapshotListener { snap, _ ->
                 if (snap != null) {
-                                        snap.documents.forEach { doc ->
-                        if (doc.id == currentRoomId) {
-                            ChatUnreadManager.markRoomSeen(doc.id)
+                    scope.launch(Dispatchers.Default) {
+                        snap.documents.forEach { doc ->
+                            if (doc.id == currentRoomId) {
+                                ChatUnreadManager.markRoomSeen(doc.id)
+                            }
                         }
+                        val allRooms = snap.documents.mapNotNull { parseRoom(it.data) }
+                        val currentUserRole = _users.value.find { it.id == userId }?.role ?: "student"
+                        val isTeacher = currentUserRole == "teacher"
+                        val userRooms = allRooms.filter { 
+                            if (it.type == "group") {
+                                !isTeacher && (it.id == groupRoomId || it.id == "group_main" || (activeGroupRoomId != null && it.id == activeGroupRoomId))
+                            } else {
+                                it.member1Id == userId || it.member2Id == userId 
+                            }
+                        }.sortedByDescending { it.lastMessageTime }
+                        
+                        val totalUnread = ChatUnreadManager.getTotalUnread(userRooms, userId)
+                        _rooms.value = userRooms
+                        // We can emit the total unread somewhere or MainActivity can observe _rooms
+                        _roomsLoaded.emit(Unit)
                     }
-                    val allRooms = snap.documents.mapNotNull { parseRoom(it.data) }
-                    val currentUserRole = _users.value.find { it.id == userId }?.role ?: "student"
-                    val isTeacher = currentUserRole == "teacher"
-                    val userRooms = allRooms.filter { 
-                        if (it.type == "group") {
-                            !isTeacher && (it.id == groupRoomId || it.id == "group_main" || (activeGroupRoomId != null && it.id == activeGroupRoomId))
-                        } else {
-                            it.member1Id == userId || it.member2Id == userId 
-                        }
-                    }.sortedByDescending { it.lastMessageTime }
-                    
-                    val totalUnread = ChatUnreadManager.getTotalUnread(userRooms, userId)
-                    _rooms.value = userRooms
-                    // We can emit the total unread somewhere or MainActivity can observe _rooms
-                    scope.launch { _roomsLoaded.emit(Unit) }
                 }
             }
     }
@@ -694,43 +715,54 @@ object ChatRepository {
     fun getUsers() {
         usersListener?.remove()
         usersListener = firestore.collection("users")
-            .addSnapshotListener { snap, _ ->
+            .addSnapshotListener { snap, error ->
+                if (error != null) {
+                    Log.e("ChatRepo", "Error listening to users collection: ${error.message}")
+                    return@addSnapshotListener
+                }
                 if (snap != null) {
-                    val chatUsers = snap.documents.mapNotNull { doc ->
-                        try {
-                            val u = doc.toObject(User::class.java) ?: return@mapNotNull null
-                            ChatUser(
-                                id = u.uid,
-                                name = u.name.ifBlank { u.fullName },
-                                avatarUrl = u.photoUrl,
-                                role = u.role,
-                                isOnline = u.isOnline,
-                                email = u.email,
-                                isVerified = u.isVerified || u.hasEduMail()
-                            )
-                        } catch (e: Exception) {
-                            Log.e("ChatRepo", "Error parsing user ${doc.id}", e)
-                            null
-                        }
-                    }
-                    _users.value = chatUsers
-                    _onlineUsers.value = chatUsers.filter { it.isOnline }.map { it.id }
-                    scope.launch { _usersLoaded.emit(Unit) }
-                    
-                    // Re-parse rooms to update avatars/names if they were missing
-                    val currentRooms = _rooms.value
-                    if (currentRooms.isNotEmpty()) {
-                        val updatedRooms = currentRooms.map { room ->
-                            if (room.type == "direct") {
-                                val oId = if (room.member1Id == userId) room.member2Id else room.member1Id
-                                val oUser = chatUsers.find { it.id == oId }
-                                room.copy(
-                                    otherUserName = oUser?.name ?: "User",
-                                    otherUserAvatar = oUser?.avatarUrl ?: ""
+                    scope.launch(Dispatchers.Default) {
+                        val chatUsers = snap.documents.mapNotNull { doc ->
+                            try {
+                                val u = doc.toObject(User::class.java)
+                                val resolvedUid = u?.uid?.ifBlank { doc.id } ?: doc.id
+                                val resolvedName = u?.name?.ifBlank { u.fullName }
+                                    ?.ifBlank { doc.getString("name") ?: doc.getString("fullName") }
+                                    ?: "User"
+                                val isUserOnline = u?.isOnline ?: (doc.getBoolean("isOnline") == true)
+                                ChatUser(
+                                    id = resolvedUid,
+                                    name = resolvedName,
+                                    avatarUrl = u?.photoUrl ?: doc.getString("photoUrl").orEmpty(),
+                                    role = u?.role ?: doc.getString("role").orEmpty(),
+                                    isOnline = isUserOnline,
+                                    email = u?.email ?: doc.getString("email").orEmpty(),
+                                    isVerified = (u?.isVerified == true) || (u?.hasEduMail() == true)
                                 )
-                            } else room
+                            } catch (e: Exception) {
+                                Log.e("ChatRepo", "Error parsing user ${doc.id}", e)
+                                null
+                            }
                         }
-                        _rooms.value = updatedRooms
+                        _users.value = chatUsers
+                        _onlineUsers.value = chatUsers.filter { it.isOnline }.map { it.id }
+                        _usersLoaded.emit(Unit)
+                        
+                        // Re-parse rooms to update avatars/names if they were missing
+                        val currentRooms = _rooms.value
+                        if (currentRooms.isNotEmpty()) {
+                            val updatedRooms = currentRooms.map { room ->
+                                if (room.type == "direct") {
+                                    val oId = if (room.member1Id == userId) room.member2Id else room.member1Id
+                                    val oUser = chatUsers.find { it.id == oId }
+                                    room.copy(
+                                        otherUserName = oUser?.name ?: "User",
+                                        otherUserAvatar = oUser?.avatarUrl ?: ""
+                                    )
+                                } else room
+                            }
+                            _rooms.value = updatedRooms
+                        }
                     }
                 }
             }

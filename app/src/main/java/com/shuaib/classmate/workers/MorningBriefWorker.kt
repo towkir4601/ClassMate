@@ -16,6 +16,7 @@ import com.shuaib.classmate.activities.MainActivity
 import com.shuaib.classmate.models.Period
 import com.shuaib.classmate.notices.NoticeUi
 import com.shuaib.classmate.repositories.AcademicCalendarRepository
+import com.shuaib.classmate.utils.DateHelper
 import com.shuaib.classmate.utils.SubjectList
 import kotlinx.coroutines.tasks.await
 import java.time.DayOfWeek
@@ -63,13 +64,11 @@ class MorningBriefWorker(context: Context, params: WorkerParameters) : Coroutine
                 ?: prefs.getUserSemester()
             val userBatch = userDoc?.getString("batch").orEmpty().trim()
 
-            // At 12:00 AM midnight (00:00..19:59), the new day has started so target is LocalDate.now().
-            // If triggered slightly before midnight (20:00..23:59), target is tomorrow.
-            val targetLocalDate = if (LocalTime.now().hour >= 20) {
-                LocalDate.now().plusDays(1)
-            } else {
-                LocalDate.now()
-            }
+            // At 12:00 AM midnight (00:00..17:59), the current day is targeted.
+            // In the evening (18:00..23:59), today's classes are over, so target is tomorrow.
+            val nowTime = LocalTime.now()
+            val nowDate = LocalDate.now()
+            val targetLocalDate = DailyBriefSchedulePolicy.getTargetDate(nowDate, nowTime)
             val targetDateStr = targetLocalDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.US))
             val targetDayName = when (targetLocalDate.dayOfWeek) {
                 DayOfWeek.SATURDAY -> "saturday"
@@ -152,16 +151,30 @@ class MorningBriefWorker(context: Context, params: WorkerParameters) : Coroutine
                     isSubstitute = isSub,
                     substituteTeacher = if (isSub) period.substituteTeacher else ""
                 )
+            }.sortedBy { DateHelper.parseTimeToMinutes(it.startTime) }
+
+            if (studentPeriods.isEmpty()) {
+                briefPrefs.edit().putString(dedupKey, targetDateStr).apply()
+                return Result.success()
             }
 
-            if (studentPeriods.isNotEmpty()) {
-                showMidnightClassUpdateNotification(targetDayName, targetLocalDate, studentPeriods)
+            val activePeriods = studentPeriods.filterNot { it.isCancelled }
+
+            // Stale Notification Protection:
+            // WorkManager can be delayed by Android Doze mode, battery saver, or network retries,
+            // firing hours late in the afternoon. If today's classes have already started or afternoon
+            // has arrived, showing a "Starts at [time in past]" morning brief is obsolete and confusing.
+            if (DailyBriefSchedulePolicy.isBriefStale(targetLocalDate, nowDate, nowTime, activePeriods)) {
                 briefPrefs.edit().putString(dedupKey, targetDateStr).apply()
+                return Result.success()
             }
+
+            showMidnightClassUpdateNotification(targetDayName, targetLocalDate, studentPeriods)
+            briefPrefs.edit().putString(dedupKey, targetDateStr).apply()
 
             return Result.success()
         } catch (e: Exception) {
-            return Result.retry()
+            return if (runAttemptCount >= 3) Result.failure() else Result.retry()
         }
     }
 
@@ -238,5 +251,39 @@ class MorningBriefWorker(context: Context, params: WorkerParameters) : Coroutine
             .build()
 
         notificationManager.notify(800, notification)
+    }
+}
+
+object DailyBriefSchedulePolicy {
+    fun getTargetDate(nowDate: LocalDate = LocalDate.now(), nowTime: LocalTime = LocalTime.now()): LocalDate {
+        return if (nowTime.hour >= 18) {
+            nowDate.plusDays(1)
+        } else {
+            nowDate
+        }
+    }
+
+    fun isBriefStale(
+        targetDate: LocalDate,
+        nowDate: LocalDate = LocalDate.now(),
+        nowTime: LocalTime = LocalTime.now(),
+        activePeriods: List<Period>
+    ): Boolean {
+        if (targetDate != nowDate) {
+            // Future target (e.g. tomorrow), not stale
+            return false
+        }
+        val nowMinutes = nowTime.hour * 60 + nowTime.minute
+        if (activePeriods.isNotEmpty()) {
+            val firstStartMinutes = DateHelper.parseTimeToMinutes(activePeriods.first().startTime)
+            if (nowMinutes >= firstStartMinutes || nowTime.hour >= 14) {
+                return true
+            }
+        } else {
+            if (nowTime.hour >= 12) {
+                return true
+            }
+        }
+        return false
     }
 }

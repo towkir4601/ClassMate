@@ -1,19 +1,27 @@
 // com/shuaib/classmate/fragments/TimetableFragment.kt
 package com.shuaib.classmate.fragments
 
+import android.app.Dialog
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.Window
+import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import android.widget.ArrayAdapter
 import android.widget.AdapterView
+import androidx.core.content.ContextCompat
+import com.google.android.material.button.MaterialButton
+import com.shuaib.classmate.models.Notice
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.os.bundleOf

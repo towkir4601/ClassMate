@@ -75,6 +75,10 @@ fun Dialog.applyFloatingPostAnimation(
         setGravity(Gravity.CENTER)
         attributes?.windowAnimations = R.style.FloatingPostDialogAnimation
     }
+    if (this is androidx.appcompat.app.AlertDialog) {
+        findViewById<View>(androidx.appcompat.R.id.parentPanel)?.background =
+            androidx.core.content.ContextCompat.getDrawable(context, R.drawable.bg_dialog_rounded)
+    }
 }
 
 fun View.applyClickAnimation(onClick: () -> Unit) {

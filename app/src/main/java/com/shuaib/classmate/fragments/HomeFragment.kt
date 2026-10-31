@@ -1217,170 +1217,187 @@ class HomeFragment : Fragment() {
             // When a holiday/vacation/suspension is active today, do NOT show regular classes
             val activeHoliday = getActiveHolidayException()
 
-            if (activeHoliday != null) {
-                val holidayTitle = activeHoliday.title.ifBlank { "University Holiday" }
-                val holidayReason = activeHoliday.reason.ifBlank { "Classes are suspended today for academic holiday" }
-                val dateRangeStr = if (activeHoliday.startDate.isNotBlank() && activeHoliday.endDate.isNotBlank()) {
-                    "${activeHoliday.startDate} to ${activeHoliday.endDate}"
-                } else "All Day"
+        if (activeHoliday != null) {
+            val holidayTitle = activeHoliday.title.ifBlank { "University Holiday" }
+            val holidayReason = activeHoliday.reason.ifBlank { "Classes are suspended today for academic holiday" }
+            val dateRangeStr = if (activeHoliday.startDate.isNotBlank() && activeHoliday.endDate.isNotBlank()) {
+                "${activeHoliday.startDate} to ${activeHoliday.endDate}"
+            } else "All Day"
 
+            slides.add(
+                HeroSlide(
+                    categoryTitle = "🏖️ ${holidayTitle.uppercase()} - DAY OFF",
+                    categoryIconRes = R.drawable.ic_calendar,
+                    categoryColor = Color.parseColor("#A7F3D0"),
+                    actionText = "Full routine >",
+                    statusBadge = "OFF TODAY",
+                    contextBadge = "Sem $semester",
+                    title = holidayTitle,
+                    detail1 = "🌴 $holidayReason",
+                    detail2 = "📅 $dateRangeStr",
+                    detail3 = "No regular classes scheduled today",
+                    bgDrawableRes = R.drawable.bg_hero_gradient_green,
+                    onClick = { mainActivity?.showMainTab(R.id.nav_academics) }
+                )
+            )
+        } else {
+            // 1. Live Class (if any is active right now)
+            val livePeriod = todayPeriods.firstOrNull { period ->
+                if (period.isCancelled) return@firstOrNull false
+                val startSec = parseTimeToSeconds(period.startTime)
+                val endSec = parseTimeToSeconds(period.endTime)
+                nowSec in startSec..endSec
+            }
+
+            if (livePeriod != null) {
+                val endSec = parseTimeToSeconds(livePeriod.endTime)
+                val remainingMins = Math.max(1, (endSec - nowSec) / 60)
                 slides.add(
                     HeroSlide(
-                        categoryTitle = "🏖️ ${holidayTitle.uppercase()} - DAY OFF",
+                        categoryTitle = "🔴 LIVE CLASS NOW",
+                        categoryIconRes = R.drawable.ic_clock,
+                        categoryColor = Color.parseColor("#FBBF24"),
+                        actionText = "Full routine >",
+                        statusBadge = "LIVE NOW",
+                        contextBadge = "Ends in ${remainingMins}m",
+                        title = livePeriod.subject,
+                        detail1 = if (livePeriod.room.isNotBlank()) "📍 Room ${livePeriod.room}" else "📍 Hall",
+                        detail2 = "🕒 ${livePeriod.startTime} - ${livePeriod.endTime}",
+                        detail3 = "👤 ${livePeriod.teacher.ifBlank { "Faculty" }}",
+                        bgDrawableRes = R.drawable.bg_hero_gradient_purple,
+                        onClick = { mainActivity?.showMainTab(R.id.nav_academics) }
+                    )
+                )
+            }
+
+            // 2. Next Upcoming Class and other upcoming classes today
+            val upcomingClassesToday = todayPeriods.filter { period ->
+                if (period.isCancelled) return@filter false
+                val startSec = parseTimeToSeconds(period.startTime)
+                nowSec < startSec
+            }
+
+            val nextPeriod = upcomingClassesToday.firstOrNull()
+            if (nextPeriod != null) {
+                val startSec = parseTimeToSeconds(nextPeriod.startTime)
+                val diffSec = Math.max(0, startSec - nowSec)
+                val diffMins = diffSec / 60
+                val hours = diffMins / 60
+                val mins = diffMins % 60
+                val countdownBadge = when {
+                    diffMins <= 0 -> "STARTING NOW"
+                    diffMins < 60 -> "in ${diffMins}m"
+                    mins == 0 -> "in ${hours}h"
+                    else -> "in ${hours}h ${mins}m"
+                }
+                slides.add(
+                    HeroSlide(
+                        categoryTitle = "⏳ NEXT UPCOMING CLASS",
+                        categoryIconRes = R.drawable.ic_clock,
+                        categoryColor = Color.parseColor("#67E8F9"),
+                        actionText = "Full routine >",
+                        statusBadge = countdownBadge,
+                        contextBadge = "Starts at ${nextPeriod.startTime}",
+                        title = nextPeriod.subject,
+                        detail1 = if (nextPeriod.room.isNotBlank()) "📍 Room ${nextPeriod.room}" else "📍 Hall",
+                        detail2 = "🕒 ${nextPeriod.startTime} - ${nextPeriod.endTime}",
+                        detail3 = "👤 ${nextPeriod.teacher.ifBlank { "Faculty" }}",
+                        bgDrawableRes = R.drawable.bg_hero_next_class,
+                        onClick = { mainActivity?.showMainTab(R.id.nav_academics) }
+                    )
+                )
+
+                // Other upcoming classes today
+                for (uClass in upcomingClassesToday.drop(1).take(2)) {
+                    val uStartSec = parseTimeToSeconds(uClass.startTime)
+                    val uDiffSec = Math.max(0, uStartSec - nowSec)
+                    val uDiffMins = uDiffSec / 60
+                    val uHours = uDiffMins / 60
+                    val uMins = uDiffMins % 60
+                    val uCountdown = when {
+                        uDiffMins < 60 -> "in ${uDiffMins}m"
+                        uMins == 0 -> "in ${uHours}h"
+                        else -> "in ${uHours}h ${uMins}m"
+                    }
+                    slides.add(
+                        HeroSlide(
+                            categoryTitle = "🕒 UPCOMING CLASS TODAY",
+                            categoryIconRes = R.drawable.ic_clock,
+                            categoryColor = Color.parseColor("#93C5FD"),
+                            actionText = "Full routine >",
+                            statusBadge = uCountdown,
+                            contextBadge = "Starts at ${uClass.startTime}",
+                            title = uClass.subject,
+                            detail1 = if (uClass.room.isNotBlank()) "📍 Room ${uClass.room}" else "📍 Scheduled",
+                            detail2 = "🕒 ${uClass.startTime} - ${uClass.endTime}",
+                            detail3 = "👤 ${uClass.teacher.ifBlank { "Faculty" }}",
+                            bgDrawableRes = R.drawable.bg_hero_gradient_purple,
+                            onClick = { mainActivity?.showMainTab(R.id.nav_academics) }
+                        )
+                    )
+                }
+            }
+        }
+
+        // 3. Upcoming Deadlines (Strictly live, next, and upcoming deadlines in bottom hero)
+        val upcomingDeadlines = allDeadlineItems.filter { it.type != "calendar" && it.daysRemaining >= 0L }
+        for (upcoming in upcomingDeadlines.take(3)) {
+            slides.add(
+                HeroSlide(
+                    categoryTitle = "📌 UPCOMING DEADLINE",
+                    categoryIconRes = R.drawable.ic_calendar,
+                    categoryColor = Color.parseColor("#C4B5FD"),
+                    actionText = "All deadlines >",
+                    statusBadge = upcoming.badgeText,
+                    contextBadge = upcoming.formattedDue,
+                    title = upcoming.title,
+                    detail1 = "📝 ${upcoming.subtitle}",
+                    detail2 = "🕒 ${upcoming.dateString}",
+                    detail3 = "Tap to view details",
+                    bgDrawableRes = R.drawable.bg_hero_gradient_indigo,
+                    onClick = { showDeadlinesBottomSheet() }
+                )
+            )
+        }
+
+        // 4. Fallback if no live class, no next class, and no upcoming deadlines
+        if (slides.isEmpty()) {
+            if (todayPeriods.isEmpty()) {
+                slides.add(
+                    HeroSlide(
+                        categoryTitle = "✨ FREE DAY! NO CLASSES TODAY",
                         categoryIconRes = R.drawable.ic_calendar,
                         categoryColor = Color.parseColor("#A7F3D0"),
                         actionText = "Full routine >",
                         statusBadge = "OFF TODAY",
                         contextBadge = "Sem $semester",
-                        title = holidayTitle,
-                        detail1 = "🌴 $holidayReason",
-                        detail2 = "📅 $dateRangeStr",
-                        detail3 = "No regular classes scheduled today",
+                        title = "Enjoy your day off!",
+                        detail1 = "📍 Campus",
+                        detail2 = "🕒 All day",
+                        detail3 = "Review library resources",
                         bgDrawableRes = R.drawable.bg_hero_gradient_green,
                         onClick = { mainActivity?.showMainTab(R.id.nav_academics) }
                     )
                 )
             } else {
-                // 1. Live Class (if any is active right now)
-                val livePeriod = todayPeriods.firstOrNull { period ->
-                    if (period.isCancelled) return@firstOrNull false
-                    val startSec = parseTimeToSeconds(period.startTime)
-                    val endSec = parseTimeToSeconds(period.endTime)
-                    nowSec in startSec..endSec
-                }
-
-                if (livePeriod != null) {
-                    val endSec = parseTimeToSeconds(livePeriod.endTime)
-                    val remainingMins = Math.max(1, (endSec - nowSec) / 60)
-                    slides.add(
-                        HeroSlide(
-                            categoryTitle = "🔴 LIVE CLASS NOW",
-                            categoryIconRes = R.drawable.ic_clock,
-                            categoryColor = Color.parseColor("#FBBF24"),
-                            actionText = "Full routine >",
-                            statusBadge = "LIVE NOW",
-                            contextBadge = "Ends in ${remainingMins}m",
-                            title = livePeriod.subject,
-                            detail1 = if (livePeriod.room.isNotBlank()) "📍 Room ${livePeriod.room}" else "📍 Hall",
-                            detail2 = "🕒 ${livePeriod.startTime} - ${livePeriod.endTime}",
-                            detail3 = "👤 ${livePeriod.teacher.ifBlank { "Faculty" }}",
-                            bgDrawableRes = R.drawable.bg_hero_gradient_purple,
-                            onClick = { mainActivity?.showMainTab(R.id.nav_academics) }
-                        )
-                    )
-                }
-
-                // 2. Next Upcoming Class and other upcoming classes today
-                val upcomingClassesToday = todayPeriods.filter { period ->
-                    if (period.isCancelled) return@filter false
-                    val startSec = parseTimeToSeconds(period.startTime)
-                    nowSec < startSec
-                }.sortedBy { parseTimeToSeconds(it.startTime) }
-
-                if (upcomingClassesToday.isNotEmpty()) {
-                    val nextPeriod = upcomingClassesToday.first()
-                    val nextStartSec = parseTimeToSeconds(nextPeriod.startTime)
-                    val diffMins = Math.max(0, (nextStartSec - nowSec) / 60)
-                    val startsInText = if (diffMins < 60) "Starts in ${diffMins}m" else "Starts in ${diffMins / 60}h ${diffMins % 60}m"
-
-                    slides.add(
-                        HeroSlide(
-                            categoryTitle = "⏰ NEXT CLASS TODAY",
-                            categoryIconRes = R.drawable.ic_clock,
-                            categoryColor = Color.parseColor("#93C5FD"),
-                            actionText = "Full routine >",
-                            statusBadge = "UPCOMING",
-                            contextBadge = startsInText,
-                            title = nextPeriod.subject,
-                            detail1 = if (nextPeriod.room.isNotBlank()) "📍 Room ${nextPeriod.room}" else "📍 Hall",
-                            detail2 = "🕒 ${nextPeriod.startTime} - ${nextPeriod.endTime}",
-                            detail3 = "👤 ${nextPeriod.teacher.ifBlank { "Faculty" }}",
-                            bgDrawableRes = R.drawable.bg_hero_gradient_purple,
-                            onClick = { mainActivity?.showMainTab(R.id.nav_academics) }
-                        )
-                    )
-
-                    // Add additional upcoming classes today if any
-                    for (period in upcomingClassesToday.drop(1).take(2)) {
-                        slides.add(
-                            HeroSlide(
-                                categoryTitle = "🕒 LATER TODAY",
-                                categoryIconRes = R.drawable.ic_clock,
-                                categoryColor = Color.parseColor("#A5B4FC"),
-                                actionText = "Full routine >",
-                                statusBadge = "SCHEDULED",
-                                contextBadge = "Sem $semester",
-                                title = period.subject,
-                                detail1 = if (period.room.isNotBlank()) "📍 Room ${period.room}" else "📍 Hall",
-                                detail2 = "🕒 ${period.startTime} - ${period.endTime}",
-                                detail3 = "👤 ${period.teacher.ifBlank { "Faculty" }}",
-                                bgDrawableRes = R.drawable.bg_hero_gradient_purple,
-                                onClick = { mainActivity?.showMainTab(R.id.nav_academics) }
-                            )
-                        )
-                    }
-                }
-            }
-
-            // 3. Upcoming Deadlines (Strictly live, next, and upcoming deadlines in bottom hero)
-            val upcomingDeadlines = allDeadlineItems.filter { it.type != "calendar" && it.daysRemaining >= 0L }
-            for (upcoming in upcomingDeadlines.take(3)) {
                 slides.add(
                     HeroSlide(
-                        categoryTitle = "📌 UPCOMING DEADLINE",
-                        categoryIconRes = R.drawable.ic_calendar,
-                        categoryColor = Color.parseColor("#C4B5FD"),
-                        actionText = "All deadlines >",
-                        statusBadge = upcoming.badgeText,
-                        contextBadge = upcoming.formattedDue,
-                        title = upcoming.title,
-                        detail1 = "🗒️ ${upcoming.subtitle}",
-                        detail2 = "🕒 ${upcoming.dateString}",
-                        detail3 = "Tap to view details",
-                        bgDrawableRes = R.drawable.bg_hero_gradient_indigo,
-                        onClick = { showDeadlinesBottomSheet() }
+                        categoryTitle = "✨ ALL CLASSES COMPLETED",
+                        categoryIconRes = R.drawable.ic_timetable,
+                        categoryColor = Color.parseColor("#A7F3D0"),
+                        actionText = "Full routine >",
+                        statusBadge = "ALL DONE",
+                        contextBadge = "Sem $semester",
+                        title = "You're done for today!",
+                        detail1 = "🎉 Finished all ${todayPeriods.size} scheduled classes",
+                        detail2 = "Have a restful evening",
+                        detail3 = "",
+                        bgDrawableRes = R.drawable.bg_hero_gradient_green,
+                        onClick = { mainActivity?.showMainTab(R.id.nav_academics) }
                     )
                 )
             }
-
-            // 4. Fallback if no live class, no next class, and no upcoming deadlines
-            if (slides.isEmpty()) {
-                if (todayPeriods.isEmpty()) {
-                    slides.add(
-                        HeroSlide(
-                            categoryTitle = "✨ FREE DAY! NO CLASSES TODAY",
-                            categoryIconRes = R.drawable.ic_calendar,
-                            categoryColor = Color.parseColor("#A7F3D0"),
-                            actionText = "Full routine >",
-                            statusBadge = "OFF TODAY",
-                            contextBadge = "Sem $semester",
-                            title = "Enjoy your day off!",
-                            detail1 = "📍 Campus",
-                            detail2 = "🕒 All day",
-                            detail3 = "Review library resources",
-                            bgDrawableRes = R.drawable.bg_hero_gradient_green,
-                            onClick = { mainActivity?.showMainTab(R.id.nav_academics) }
-                        )
-                    )
-                } else {
-                    slides.add(
-                        HeroSlide(
-                            categoryTitle = "✨ ALL CLASSES COMPLETED",
-                            categoryIconRes = R.drawable.ic_timetable,
-                            categoryColor = Color.parseColor("#A7F3D0"),
-                            actionText = "Full routine >",
-                            statusBadge = "ALL DONE",
-                            contextBadge = "Sem $semester",
-                            title = "You're done for today!",
-                            detail1 = "🎉 Finished all ${todayPeriods.size} scheduled classes",
-                            detail2 = "Have a restful evening",
-                            detail3 = "",
-                            bgDrawableRes = R.drawable.bg_hero_gradient_green,
-                            onClick = { mainActivity?.showMainTab(R.id.nav_academics) }
-                        )
-                    )
-                }
-            }
+        }
         }
 
         heroSlides = slides
@@ -1515,6 +1532,7 @@ class HomeFragment : Fragment() {
     private fun loadTopAlerts() {
         val alerts = mutableListOf<TopAlertItem>()
         val ctx = context ?: return
+        dismissedAlertIds.addAll(AppPreferences(ctx).getDismissedAlertIds())
         val today = LocalDate.now()
 
         // 1. Academic Holidays / Campus Suspensions (strictly active or upcoming, never past)
@@ -1558,55 +1576,97 @@ class HomeFragment : Fragment() {
             }
         }
 
-        // 2. Class Cancellation alerts for today (from routine)
-        val cancelledPeriods = todayPeriods.filter { it.isCancelled }
-        for (c in cancelledPeriods) {
-            val alertId = "cancelled_${c.id.ifBlank { c.subject }}"
-            if (dismissedAlertIds.contains(alertId)) continue
-            alerts.add(
-                TopAlertItem(
-                    id = alertId,
-                    type = TopAlertType.NOTICE,
-                    title = "⚠️ Class Cancelled: ${c.subject}",
-                    subtitle = "${c.startTime} - ${c.endTime} · ${c.teacher.ifBlank { "Faculty" }} (Room ${c.room.ifBlank { "-" }})",
-                    timeTag = "Today",
-                    bgDrawableRes = R.drawable.bg_alert_banner_red,
-                    iconRes = R.drawable.ic_close,
-                    onClick = {
-                        (activity as? MainActivity)?.showMainTab(R.id.nav_academics)
-                    },
-                    onDismiss = {
-                        dismissTopAlert(alertId)
-                    }
-                )
-            )
-        }
+        val appPrefs = AppPreferences(ctx)
+        val userDept = appPrefs.getUserDepartment().trim()
+        val userDeptId = appPrefs.getUserDepartmentId().trim()
 
         val noticeRepo = NoticeRepository.getInstance(ctx)
         viewLifecycleOwner.lifecycleScope.launch {
             try {
-                val notices = noticeRepo.getNoticesLocal()
+                var notices = noticeRepo.getNoticesLocal()
+                if (notices.isEmpty()) {
+                    try { noticeRepo.syncFromFirestore(com.google.firebase.firestore.Source.DEFAULT) } catch (_: Exception) {}
+                    notices = noticeRepo.getNoticesLocal()
+                }
                 val activeNotices = notices.filter { !dismissedAlertIds.contains(it.id) }
 
-                // 3. Campus Notices (excluding past deadlines/expired notices)
-                for (n in activeNotices.take(4)) {
-                    val isPast = if (n.submissionDate.isNotBlank()) {
-                        parseDaysRemaining(n.submissionDate) < 0L
-                    } else false
-                    if (isPast) continue
+                val nowMs = System.currentTimeMillis()
+                val sevenDaysMs = 7L * 24 * 60 * 60 * 1000L
 
-                    val isUrgent = n.priority.equals("urgent", ignoreCase = true) || n.isCancel
+                // 2. Central Global Notice Hub (strictly <= 7 days old, latest first):
+                // A) Super Admin (VC) notices: University-wide public circulars. Visible to all students.
+                // B) Department Chairman (Admin) notices: Public department circulars (targetBatch = all). Visible ONLY to students of that department.
+                // CR notices are strictly excluded. Any notice older than 7 days is strictly excluded.
+                val eligibleNotices = activeNotices.filter { n ->
+                    if (n.isCancel || n.isSub) return@filter false
+
+                    val noticeTime = n.createdAt?.toDate()?.time ?: n.timestamp?.toDate()?.time ?: 0L
+                    val isWithin7Days = noticeTime in (nowMs - sevenDaysMs)..nowMs
+                    if (!isWithin7Days) return@filter false
+
+                    // Super Admin (VC) central notice
+                    val isSuperAdminCentral = n.isSuperAdminNotice &&
+                        (n.department.isBlank() || n.department.equals("all", ignoreCase = true)) &&
+                        (n.targetBatch.isBlank() || n.targetBatch.equals("all", ignoreCase = true))
+
+                    // Department Chairman (Admin) public notice
+                    val hasUserDept = userDept.isNotBlank() || userDeptId.isNotBlank()
+                    val isChairmanOrAdmin = !n.authorRole.equals("cr", ignoreCase = true) &&
+                        (n.authorRole.equals("admin", ignoreCase = true) ||
+                         n.authorRole.equals("chairman", ignoreCase = true) ||
+                         n.postedBy.contains("Chairman", ignoreCase = true) ||
+                         n.createdByName.contains("Chairman", ignoreCase = true) ||
+                         n.postedBy.contains("Admin", ignoreCase = true) ||
+                         n.createdByName.contains("Admin", ignoreCase = true))
+
+                    val isDeptNoticeScope = (n.targetBatch.isBlank() || n.targetBatch.equals("all", ignoreCase = true))
+                    val isUserDeptMatch = hasUserDept && (
+                        n.department.equals(userDept, ignoreCase = true) ||
+                        (userDeptId.isNotBlank() && n.departmentId.equals(userDeptId, ignoreCase = true)) ||
+                        (userDept.isNotBlank() && n.department.contains(userDept, ignoreCase = true)) ||
+                        (userDept.isNotBlank() && userDept.contains(n.department, ignoreCase = true))
+                    )
+                    val isChairmanDeptNotice = isChairmanOrAdmin && isDeptNoticeScope && isUserDeptMatch
+
+                    isSuperAdminCentral || isChairmanDeptNotice
+                }.sortedByDescending { it.createdAt?.toDate()?.time ?: it.timestamp?.toDate()?.time ?: 0L }
+
+                for (n in eligibleNotices.take(3)) {
+                    val isUrgent = n.priority.equals("urgent", ignoreCase = true)
+                    val isDeptNotice = !n.isSuperAdminNotice && n.department.isNotBlank() && !n.department.equals("all", ignoreCase = true)
+
+                    val titlePrefix = if (isDeptNotice) {
+                        val deptCode = if (n.department.length <= 6) n.department.uppercase() else {
+                            n.department.split(" ", "&", "-")
+                                .filter { it.isNotBlank() && it.first().isLetter() }
+                                .map { it.first().uppercaseChar() }
+                                .joinToString("")
+                                .take(5)
+                                .ifBlank { n.department.take(5).uppercase() }
+                        }
+                        "🏢 [$deptCode] "
+                    } else {
+                        "🏛️ "
+                    }
+
+                    val bannerBg = when {
+                        isUrgent -> R.drawable.bg_alert_banner_orange
+                        isDeptNotice -> R.drawable.bg_alert_banner_blue
+                        else -> R.drawable.bg_alert_banner_purple
+                    }
+
                     alerts.add(
                         TopAlertItem(
                             id = n.id,
                             type = TopAlertType.NOTICE,
-                            title = n.title.ifBlank { "Campus Notice" },
+                            title = "$titlePrefix${n.title.ifBlank { if (isDeptNotice) "Department Notice" else "University Notice" }}",
                             subtitle = n.body.take(65) + if (n.body.length > 65) "..." else "",
                             timeTag = formatTimeAgo(n.createdAt?.toDate()?.time ?: System.currentTimeMillis()),
-                            bgDrawableRes = if (isUrgent) R.drawable.bg_alert_banner_orange else R.drawable.bg_alert_banner_purple,
+                            bgDrawableRes = bannerBg,
                             iconRes = R.drawable.ic_notice,
                             onClick = {
-                                (activity as? MainActivity)?.openChildDestination(R.id.nav_home, R.id.nav_notices)
+                                com.shuaib.classmate.utils.NotificationRouter.pendingNoticeId = n.id
+                                (activity as? MainActivity)?.openChildDestination(R.id.nav_campus, R.id.nav_notices)
                             },
                             onDismiss = {
                                 dismissTopAlert(n.id)
@@ -1616,10 +1676,10 @@ class HomeFragment : Fragment() {
                 }
             } catch (_: Exception) {}
 
-            // 4. Real urgent blood requests from Firestore (Red banner)
-            bloodRequestRepo.getActiveRequests(3) { bloodRequests: List<BloodRequest> ->
-                if (_binding == null) return@getActiveRequests
-                for (req in bloodRequests) {
+            // 3. Urgent blood requests from Firestore (Red banner - campus-wide reach)
+            bloodRequestRepo.getAllActiveRequests { bloodRequests ->
+                if (_binding == null) return@getAllActiveRequests
+                for (req in bloodRequests.take(2)) {
                     if (dismissedAlertIds.contains(req.id)) continue
                     val bagsText = if (req.bagsNeeded > 1) "${req.bagsNeeded} bags" else "1 bag"
                     val subText = "${req.hospitalName} · $bagsText · ${req.urgencyNote.ifBlank { "Contact: " + req.contactPhone }}"
@@ -1627,7 +1687,7 @@ class HomeFragment : Fragment() {
                         TopAlertItem(
                             id = req.id,
                             type = TopAlertType.BLOOD,
-                            title = "Urgent ${req.bloodGroup} Blood Needed",
+                            title = "🩸 Urgent ${req.bloodGroup} Blood Needed",
                             subtitle = subText,
                             timeTag = formatTimeAgo(req.timestamp?.toDate()?.time ?: System.currentTimeMillis()),
                             bgDrawableRes = R.drawable.bg_alert_banner_red,
@@ -1647,15 +1707,20 @@ class HomeFragment : Fragment() {
                     )
                 }
 
-                // 5. Lost & Found items (Blue banner - within 15 days, excluding deleted)
+                // 4. Lost & Found items (Blue banner - within 15 days, campus-wide reach)
                 AppPreferences(ctx).getDeletedLostFoundIds().forEach { id ->
                     LostFoundRepository.markDeletedLocally(id)
                 }
-                lostFoundRepo.getRecentActiveItems(3) { lfItems ->
+                lostFoundRepo.getRecentActiveItems(2) { lfItems ->
                     if (_binding == null) return@getRecentActiveItems
                     for (item in lfItems) {
                         if (dismissedAlertIds.contains(item.id)) continue
-                        val prefix = if (item.type.equals("found", ignoreCase = true)) "Found: " else "Lost: "
+                        val prefix = when {
+                            item.isItemGiven -> "✅ Handed Over: "
+                            item.isItemFound -> "🎉 Recovered: "
+                            item.type.equals("found", ignoreCase = true) -> "🔍 Found: "
+                            else -> "🔍 Lost: "
+                        }
                         val titleText = if (item.title.startsWith("Found", ignoreCase = true) || item.title.startsWith("Lost", ignoreCase = true)) {
                             item.title
                         } else {
@@ -1690,6 +1755,9 @@ class HomeFragment : Fragment() {
 
     private fun dismissTopAlert(id: String) {
         dismissedAlertIds.add(id)
+        context?.let { ctx ->
+            AppPreferences(ctx).addDismissedAlertId(id)
+        }
         val idx = topAlerts.indexOfFirst { it.id == id }
         if (idx != -1) {
             topAlerts.removeAt(idx)
@@ -1715,6 +1783,8 @@ class HomeFragment : Fragment() {
             if (topAlerts.size > 1) {
                 val initialPos = (1000 / 2) * topAlerts.size
                 binding.vpTopAlerts.setCurrentItem(initialPos, false)
+                topAlertHandler.removeCallbacks(topAlertRunnable)
+                topAlertHandler.postDelayed(topAlertRunnable, 5000)
             }
             setupTopAlertDots(topAlerts.size)
         }

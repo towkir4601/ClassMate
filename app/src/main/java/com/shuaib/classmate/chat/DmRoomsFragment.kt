@@ -18,6 +18,7 @@ import com.shuaib.classmate.activities.MainActivity
 import com.shuaib.classmate.databinding.FragmentDmRoomsBinding
 import com.shuaib.classmate.utils.applyComposerBounceAnimation
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 class DmRoomsFragment : Fragment() {
@@ -45,14 +46,24 @@ class DmRoomsFragment : Fragment() {
                     parent?.switchToTab(1)
                     (parent?.childFragmentManager?.findFragmentByTag("f1") as? GroupChatFragment)?.refreshRoom()
                 } else {
-                    (requireActivity() as MainActivity).openChildDestination(R.id.nav_chat,
-                        R.id.fragment_dm_chat,
-                        bundleOf(
-                            "roomId" to item.room.id,
-                            "otherUserName" to item.room.otherUserName,
-                            "otherUserId" to item.room.otherUserId
-                        )
+                    val bundle = bundleOf(
+                        "roomId" to item.room.id,
+                        "otherUserName" to item.room.otherUserName,
+                        "otherUserId" to item.room.otherUserId
                     )
+                    try {
+                        findNavController().navigate(R.id.action_chat_to_dm_chat, bundle)
+                    } catch (_: Exception) {
+                        try {
+                            findNavController().navigate(R.id.fragment_dm_chat, bundle)
+                        } catch (_: Exception) {
+                            (requireActivity() as? MainActivity)?.openChildDestination(
+                                R.id.nav_chat,
+                                R.id.fragment_dm_chat,
+                                bundle
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -62,13 +73,21 @@ class DmRoomsFragment : Fragment() {
 
         binding.fabNewChat.setOnClickListener { view ->
             view.applyComposerBounceAnimation {
-                (requireActivity() as MainActivity).openChildDestination(R.id.nav_chat, R.id.fragment_dm_list)
+                try {
+                    findNavController().navigate(R.id.action_chat_to_dm_list)
+                } catch (_: Exception) {
+                    try {
+                        findNavController().navigate(R.id.fragment_dm_list)
+                    } catch (_: Exception) {
+                        (requireActivity() as? MainActivity)?.openChildDestination(R.id.nav_chat, R.id.fragment_dm_list)
+                    }
+                }
             }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.rooms.collectLatest { rooms ->
+                combine(viewModel.rooms, viewModel.onlineUsers) { rooms, onlineIds ->
                     val groupRoom = rooms.firstOrNull { it.type == "group" }
                     val dmRooms = rooms.filter { it.type == "direct" }
                         .sortedByDescending { it.lastTimestamp }
@@ -98,13 +117,15 @@ class DmRoomsFragment : Fragment() {
                                 subtitle = room.lastMessage.ifBlank { "Started a chat" },
                                 avatarUrl = room.otherUserAvatar,
                                 isGroup = false,
-                                isOnline = viewModel.onlineUsers.value.contains(room.otherUserId),
+                                isOnline = onlineIds.contains(room.otherUserId),
                                 otherUserId = room.otherUserId,
                                 isPinned = false
                             )
                         )
                     }
 
+                    items
+                }.collectLatest { items ->
                     if (items.isEmpty()) {
                         binding.layoutEmptyState.isVisible = true
                         adapter?.submitList(emptyList())

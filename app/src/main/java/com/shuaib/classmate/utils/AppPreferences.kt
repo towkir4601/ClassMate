@@ -43,6 +43,15 @@ class AppPreferences(context: Context) {
         return com.shuaib.classmate.models.User.slugifyDepartment(dept)
     }
 
+    fun getUserBloodGroup(): String =
+        prefs.getString("user_blood_group", "") ?: ""
+
+    fun setUserBloodGroup(bloodGroup: String) {
+        prefs.edit()
+            .putString("user_blood_group", bloodGroup)
+            .apply()
+    }
+
     fun getTestRoleOverride(): String? {
         if (!BuildConfig.DEBUG) return null
         return prefs.getString("test_role_override", null)?.takeIf { it.isNotBlank() }
@@ -219,6 +228,17 @@ class AppPreferences(context: Context) {
             prefs.edit().putString("campus_guest_id", gid).apply()
         }
         return gid
+    }
+
+    fun getDismissedAlertIds(): Set<String> =
+        prefs.getStringSet("dismissed_alert_ids", emptySet()) ?: emptySet()
+
+    fun addDismissedAlertId(id: String) {
+        val current = getDismissedAlertIds().toMutableSet()
+        current.add(id)
+        prefs.edit()
+            .putStringSet("dismissed_alert_ids", current)
+            .apply()
     }
 }
 
