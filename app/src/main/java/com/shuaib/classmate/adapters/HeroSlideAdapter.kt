@@ -45,6 +45,14 @@ class HeroSlideAdapter(
         b.tvDetail2.text = slide.detail2
         b.tvDetail3.text = slide.detail3
 
+        if (slide.secondaryTitle.isNotBlank()) {
+            b.layoutSecondaryClass.visibility = android.view.View.VISIBLE
+            b.tvSecondaryClassTitle.text = slide.secondaryTitle
+            b.tvSecondaryClassDetail.text = slide.secondaryDetail
+        } else {
+            b.layoutSecondaryClass.visibility = android.view.View.GONE
+        }
+
         b.cardSlideRoot.setOnClickListener {
             slide.onClick()
         }

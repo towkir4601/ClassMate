@@ -10,7 +10,9 @@ data class HeroSlide(
     val title: String,
     val detail1: String,
     val detail2: String,
-    val detail3: String,
+    val detail3: String = "",
+    val secondaryTitle: String = "",
+    val secondaryDetail: String = "",
     val bgDrawableRes: Int,
     val onClick: () -> Unit
 )

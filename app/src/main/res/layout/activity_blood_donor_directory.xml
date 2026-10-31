@@ -350,7 +350,7 @@
         </FrameLayout>
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <!-- Bottom Actions Container -->
+    <!-- Bottom Action Container -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -364,31 +364,15 @@
         android:paddingTop="10dp">
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnUpdateMyBlood"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:layout_marginEnd="6dp"
-            android:text="My Group"
-            android:textColor="@color/cm_text_primary"
-            app:cornerRadius="24dp"
-            app:strokeColor="@color/cm_border"
-            app:backgroundTint="@color/cm_card"
-            app:icon="@drawable/ic_blood_drop"
-            app:iconTint="@color/cm_error" />
-
-        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnRequestBlood"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1.3"
-            android:layout_marginStart="6dp"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
             android:text="🚨 Request Blood"
             android:textColor="#FFFFFF"
+            android:textSize="15sp"
             android:textStyle="bold"
             app:backgroundTint="@color/cm_error"
-            app:cornerRadius="24dp" />
+            app:cornerRadius="25dp" />
     </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

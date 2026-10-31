@@ -522,12 +522,32 @@ class TimetableFragment : Fragment() {
     private fun applyBatchFilterAndRender() {
         if (_binding == null) return
         val ctx = context ?: return
+
+        val isTeacher = com.shuaib.classmate.utils.AppPreferences(ctx).getUserRole().equals("teacher", ignoreCase = true)
+        val teacherUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
+        val teacherName = currentUserProfile?.name?.ifBlank { currentUserProfile?.fullName } ?: com.shuaib.classmate.utils.AppPreferences(ctx).getUserName()
+        val homeDept = com.shuaib.classmate.utils.AppPreferences(ctx).getUserDepartment().trim().lowercase()
+        val homeDeptId = com.shuaib.classmate.utils.AppPreferences(ctx).getUserDepartmentId().trim().lowercase()
+
         var filtered = currentPeriods.filter { period ->
-            val deptMatches = com.shuaib.classmate.utils.GuestUserHelper.doesPeriodMatchUserDepartment(
-                ctx,
-                period.departmentId,
-                period.department
-            )
+            val deptMatches = if (isTeacher) {
+                val pDept = period.department.trim().lowercase()
+                val pDeptId = period.departmentId.trim().lowercase()
+                val isHomeDept = (homeDept.isNotBlank() && (pDept == homeDept || pDept.contains(homeDept) || homeDept.contains(pDept))) ||
+                                 (homeDeptId.isNotBlank() && (pDeptId == homeDeptId || pDeptId.contains(homeDeptId) || homeDeptId.contains(pDeptId))) ||
+                                 (homeDept.isBlank() && homeDeptId.isBlank())
+                val isMyClass = (teacherUid.isNotBlank() && period.teacherUid == teacherUid) ||
+                                (teacherName.isNotBlank() && period.teacher.equals(teacherName, ignoreCase = true))
+
+                // Teacher sees full routine of their home department; in other departments they ONLY see their own class!
+                isHomeDept || isMyClass
+            } else {
+                com.shuaib.classmate.utils.GuestUserHelper.doesPeriodMatchUserDepartment(
+                    ctx,
+                    period.departmentId,
+                    period.department
+                )
+            }
             if (!deptMatches) return@filter false
 
             if (currentBatchFilter == "All") {
@@ -1265,10 +1285,33 @@ class TimetableFragment : Fragment() {
         val myTimeLabel = "${myPeriod.startTime} - ${myPeriod.endTime}" + if (myPeriod.room.isNotBlank()) " · Room ${myPeriod.room}" else ""
         dialogBinding.tvMyClassTimeRoom.text = myTimeLabel
 
-        // Candidate classes from today (excluding my own class)
-        val candidatePeriods = currentPeriods.filter { it.id != myPeriod.id && !it.isCancelled }
+        val homeDept = com.shuaib.classmate.utils.AppPreferences(ctx).getUserDepartment().trim().lowercase()
+        val homeDeptId = com.shuaib.classmate.utils.AppPreferences(ctx).getUserDepartmentId().trim().lowercase()
+        val myDept = myPeriod.department.trim().lowercase()
+        val myDeptId = myPeriod.departmentId.trim().lowercase()
+
+        val isMyClassInHomeDept = (homeDept.isNotBlank() && (myDept == homeDept || myDept.contains(homeDept) || homeDept.contains(myDept))) ||
+                                  (homeDeptId.isNotBlank() && (myDeptId == homeDeptId || myDeptId.contains(homeDeptId) || homeDeptId.contains(myDeptId))) ||
+                                  (homeDept.isBlank() && homeDeptId.isBlank())
+
+        if (!isMyClassInHomeDept) {
+            Toast.makeText(ctx, "Class swap is only permitted between teachers of your home department ($homeDept).", Toast.LENGTH_LONG).show()
+            dialog.dismiss()
+            return
+        }
+
+        // Candidate classes from today (excluding my own class AND strictly from the same home department)
+        val candidatePeriods = currentPeriods.filter { p ->
+            if (p.id == myPeriod.id || p.isCancelled) return@filter false
+            val pDept = p.department.trim().lowercase()
+            val pDeptId = p.departmentId.trim().lowercase()
+            val isTargetInHomeDept = (homeDept.isNotBlank() && (pDept == homeDept || pDept.contains(homeDept) || homeDept.contains(pDept))) ||
+                                     (homeDeptId.isNotBlank() && (pDeptId == homeDeptId || pDeptId.contains(homeDeptId) || homeDeptId.contains(pDeptId))) ||
+                                     (homeDept.isBlank() && homeDeptId.isBlank())
+            isTargetInHomeDept
+        }
         if (candidatePeriods.isEmpty()) {
-            Toast.makeText(ctx, "No other active classes found today to swap with", Toast.LENGTH_SHORT).show()
+            Toast.makeText(ctx, "No other active classes found today in your department to swap with", Toast.LENGTH_SHORT).show()
             dialog.dismiss()
             return
         }

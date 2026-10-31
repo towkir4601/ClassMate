@@ -171,12 +171,20 @@ class BloodDonorDirectoryActivity : AppCompatActivity() {
             binding.rvBloodRequests.visibility = View.GONE
             binding.scrollRequestFilter.visibility = View.GONE
             binding.scrollBloodChips.visibility = View.VISIBLE
-            updateRequestFilterButtonState()
         }
         applyFilters()
     }
 
     private fun setupFilterChips() {
+        binding.chipRequestMyGroup.setOnLongClickListener {
+            if (com.shuaib.classmate.utils.GuestUserHelper.isGuest(this)) {
+                com.shuaib.classmate.utils.GuestUserHelper.promptLogin(this, "update your blood group")
+                return@setOnLongClickListener true
+            }
+            showUpdateBloodGroupDialog()
+            true
+        }
+
         binding.chipGroupRequestFilter.setOnCheckedStateChangeListener { _, checkedIds ->
             val checkedId = checkedIds.firstOrNull() ?: R.id.chipRequestAll
             if (checkedId == R.id.chipRequestMyGroup) {
@@ -189,7 +197,6 @@ class BloodDonorDirectoryActivity : AppCompatActivity() {
             } else {
                 requestFilterMode = "all"
             }
-            updateRequestFilterButtonState()
             applyFilters()
         }
 
@@ -222,57 +229,6 @@ class BloodDonorDirectoryActivity : AppCompatActivity() {
     }
 
     private fun setupActionButtons() {
-        binding.btnUpdateMyBlood.setOnClickListener {
-            if (com.shuaib.classmate.utils.GuestUserHelper.isGuest(this)) {
-                com.shuaib.classmate.utils.GuestUserHelper.promptLogin(this, "filter by your blood group")
-                return@setOnClickListener
-            }
-
-            if (currentTab == "requests") {
-                if (currentUserBloodGroup.isBlank()) {
-                    showSetBloodGroupPrompt()
-                    return@setOnClickListener
-                }
-                if (requestFilterMode == "all") {
-                    requestFilterMode = "my_group"
-                    binding.chipRequestMyGroup.isChecked = true
-                    Toast.makeText(this, "Showing urgent requests for $currentUserBloodGroup blood", Toast.LENGTH_SHORT).show()
-                } else {
-                    requestFilterMode = "all"
-                    binding.chipRequestAll.isChecked = true
-                    Toast.makeText(this, "Showing all emergency blood requests", Toast.LENGTH_SHORT).show()
-                }
-                updateRequestFilterButtonState()
-                applyFilters()
-            } else {
-                if (currentUserBloodGroup.isBlank()) {
-                    showUpdateBloodGroupDialog()
-                } else {
-                    when (currentUserBloodGroup) {
-                        "A+" -> binding.chipAPos.isChecked = true
-                        "A-" -> binding.chipANeg.isChecked = true
-                        "B+" -> binding.chipBPos.isChecked = true
-                        "B-" -> binding.chipBNeg.isChecked = true
-                        "O+" -> binding.chipOPos.isChecked = true
-                        "O-" -> binding.chipONeg.isChecked = true
-                        "AB+" -> binding.chipAbPos.isChecked = true
-                        "AB-" -> binding.chipAbNeg.isChecked = true
-                        else -> binding.chipAll.isChecked = true
-                    }
-                    Toast.makeText(this, "Filtered donors matching $currentUserBloodGroup", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-
-        binding.btnUpdateMyBlood.setOnLongClickListener {
-            if (com.shuaib.classmate.utils.GuestUserHelper.isGuest(this)) {
-                com.shuaib.classmate.utils.GuestUserHelper.promptLogin(this, "update your blood group")
-                return@setOnLongClickListener true
-            }
-            showUpdateBloodGroupDialog()
-            true
-        }
-
         binding.btnRequestBlood.setOnClickListener { view ->
             if (com.shuaib.classmate.utils.GuestUserHelper.isGuest(this)) {
                 com.shuaib.classmate.utils.GuestUserHelper.promptLogin(this, "post a blood request")
@@ -506,27 +462,6 @@ class BloodDonorDirectoryActivity : AppCompatActivity() {
     private fun updateRequestFilterChipsAndButton() {
         val myGroupLabel = if (currentUserBloodGroup.isNotBlank()) "🩸 My Group (${currentUserBloodGroup})" else "🩸 My Blood Group"
         binding.chipRequestMyGroup.text = myGroupLabel
-        updateRequestFilterButtonState()
-    }
-
-    private fun updateRequestFilterButtonState() {
-        if (currentTab == "requests") {
-            if (requestFilterMode == "my_group") {
-                binding.btnUpdateMyBlood.text = "🌐 All Requests"
-                binding.btnUpdateMyBlood.setIconResource(R.drawable.ic_notice)
-                binding.btnUpdateMyBlood.strokeColor = ColorStateList.valueOf(Color.parseColor("#EF4444"))
-            } else {
-                val label = if (currentUserBloodGroup.isNotBlank()) "🩸 My Group (${currentUserBloodGroup})" else "🩸 My Group"
-                binding.btnUpdateMyBlood.text = label
-                binding.btnUpdateMyBlood.setIconResource(R.drawable.ic_blood_drop)
-                binding.btnUpdateMyBlood.strokeColor = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.cm_border))
-            }
-        } else {
-            val label = if (currentUserBloodGroup.isNotBlank()) "🩸 Donors (${currentUserBloodGroup})" else "🩸 My Group"
-            binding.btnUpdateMyBlood.text = label
-            binding.btnUpdateMyBlood.setIconResource(R.drawable.ic_blood_drop)
-            binding.btnUpdateMyBlood.strokeColor = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.cm_border))
-        }
     }
 
     private fun loadActiveEmergencyBanner() {

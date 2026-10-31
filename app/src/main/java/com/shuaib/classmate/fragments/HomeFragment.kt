@@ -21,6 +21,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.Lifecycle
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.bumptech.glide.Glide
@@ -29,6 +31,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.shuaib.classmate.R
+import com.shuaib.classmate.models.RoutineSwapRequest
+import com.shuaib.classmate.repositories.RoutineSwapRepository
 import com.shuaib.classmate.utils.applyCardClickAnimation
 import com.shuaib.classmate.utils.applyFloatingPostAnimation
 import com.shuaib.classmate.utils.launchActivityWithCardAnimation
@@ -102,6 +106,7 @@ class HomeFragment : Fragment() {
     private var userAssignments = listOf<Assignment>()
     private var cachedNotices = listOf<Notice>()
     private var allDeadlineItems = listOf<DeadlineItem>()
+    private var teacherSwapRequestsJob: kotlinx.coroutines.Job? = null
 
     // Top dynamic alert banner carousel (Pic 2, 3, 4, 5)
     private val topAlerts = mutableListOf<TopAlertItem>()
@@ -178,11 +183,13 @@ class HomeFragment : Fragment() {
         setupTopAlerts()
         setupHeroCarousel()
         setupNotificationBadgeListener()
+        observeTeacherClassSwapRequests()
         loadData()
 
         binding.swipeRefresh.setOnRefreshListener {
             loadData()
             setupNotificationBadgeListener()
+            observeTeacherClassSwapRequests()
             viewLifecycleOwner.lifecycleScope.launch {
                 kotlinx.coroutines.delay(1000)
                 _binding?.swipeRefresh?.isRefreshing = false
@@ -672,9 +679,27 @@ class HomeFragment : Fragment() {
                 val periods = TimetableRepository.getInstance(appContext).getPeriodsForDay(todayStr)
                 if (_binding == null) return@launch
 
+                val isTeacher = AppPreferences(appContext).getUserRole().equals("teacher", ignoreCase = true)
+                val teacherUid = auth.currentUser?.uid.orEmpty()
+                val teacherName = AppPreferences(appContext).getUserName().trim()
+                val homeDept = AppPreferences(appContext).getUserDepartment().trim().lowercase()
+                val homeDeptId = AppPreferences(appContext).getUserDepartmentId().trim().lowercase()
+
                 val isRoutineAdded = com.shuaib.classmate.utils.GuestUserHelper.isDepartmentRoutineAdded(appContext)
 
-                todayPeriods = if (!isRoutineAdded) {
+                todayPeriods = if (isTeacher) {
+                    periods.filter { period ->
+                        val pDept = period.department.trim().lowercase()
+                        val pDeptId = period.departmentId.trim().lowercase()
+                        val isHomeDept = (homeDept.isNotBlank() && (pDept == homeDept || pDept.contains(homeDept) || homeDept.contains(pDept))) ||
+                                         (homeDeptId.isNotBlank() && (pDeptId == homeDeptId || pDeptId.contains(homeDeptId) || homeDeptId.contains(pDeptId))) ||
+                                         (homeDept.isBlank() && homeDeptId.isBlank())
+                        val isMyClass = (teacherUid.isNotBlank() && period.teacherUid == teacherUid) ||
+                                        (teacherName.isNotBlank() && period.teacher.equals(teacherName, ignoreCase = true))
+
+                        isMyClass || isHomeDept
+                    }.sortedBy { DateHelper.parseTimeToMinutes(it.startTime) }
+                } else if (!isRoutineAdded) {
                     emptyList()
                 } else {
                     periods.filter { period ->
@@ -1241,7 +1266,7 @@ class HomeFragment : Fragment() {
                 )
             )
         } else {
-            // 1. Live Class (if any is active right now)
+            // 1. Core Card 1: Today's Next Classes (Emerald/Teal Theme)
             val livePeriod = todayPeriods.firstOrNull { period ->
                 if (period.isCancelled) return@firstOrNull false
                 val startSec = parseTimeToSeconds(period.startTime)
@@ -1249,12 +1274,20 @@ class HomeFragment : Fragment() {
                 nowSec in startSec..endSec
             }
 
+            val upcomingClassesToday = todayPeriods.filter { period ->
+                if (period.isCancelled) return@filter false
+                val startSec = parseTimeToSeconds(period.startTime)
+                nowSec < startSec
+            }
+
             if (livePeriod != null) {
                 val endSec = parseTimeToSeconds(livePeriod.endTime)
                 val remainingMins = Math.max(1, (endSec - nowSec) / 60)
+                val nextUpcoming = upcomingClassesToday.firstOrNull()
+
                 slides.add(
                     HeroSlide(
-                        categoryTitle = "🔴 LIVE CLASS NOW",
+                        categoryTitle = "🔴 LIVE & UPCOMING CLASSES",
                         categoryIconRes = R.drawable.ic_clock,
                         categoryColor = Color.parseColor("#FBBF24"),
                         actionText = "Full routine >",
@@ -1264,21 +1297,16 @@ class HomeFragment : Fragment() {
                         detail1 = if (livePeriod.room.isNotBlank()) "📍 Room ${livePeriod.room}" else "📍 Hall",
                         detail2 = "🕒 ${livePeriod.startTime} - ${livePeriod.endTime}",
                         detail3 = "👤 ${livePeriod.teacher.ifBlank { "Faculty" }}",
+                        secondaryTitle = if (nextUpcoming != null) "Next: ${nextUpcoming.subject}" else "",
+                        secondaryDetail = if (nextUpcoming != null) "${nextUpcoming.startTime} · ${if (nextUpcoming.room.isNotBlank()) "Rm " + nextUpcoming.room else "Hall"}" else "",
                         bgDrawableRes = R.drawable.bg_hero_gradient_purple,
                         onClick = { mainActivity?.showMainTab(R.id.nav_academics) }
                     )
                 )
-            }
+            } else if (upcomingClassesToday.isNotEmpty()) {
+                val nextPeriod = upcomingClassesToday.first()
+                val secondPeriod = upcomingClassesToday.getOrNull(1)
 
-            // 2. Next Upcoming Class and other upcoming classes today
-            val upcomingClassesToday = todayPeriods.filter { period ->
-                if (period.isCancelled) return@filter false
-                val startSec = parseTimeToSeconds(period.startTime)
-                nowSec < startSec
-            }
-
-            val nextPeriod = upcomingClassesToday.firstOrNull()
-            if (nextPeriod != null) {
                 val startSec = parseTimeToSeconds(nextPeriod.startTime)
                 val diffSec = Math.max(0, startSec - nowSec)
                 val diffMins = diffSec / 60
@@ -1290,9 +1318,10 @@ class HomeFragment : Fragment() {
                     mins == 0 -> "in ${hours}h"
                     else -> "in ${hours}h ${mins}m"
                 }
+
                 slides.add(
                     HeroSlide(
-                        categoryTitle = "⏳ NEXT UPCOMING CLASS",
+                        categoryTitle = "⏳ TODAY'S NEXT CLASSES",
                         categoryIconRes = R.drawable.ic_clock,
                         categoryColor = Color.parseColor("#67E8F9"),
                         actionText = "Full routine >",
@@ -1302,40 +1331,87 @@ class HomeFragment : Fragment() {
                         detail1 = if (nextPeriod.room.isNotBlank()) "📍 Room ${nextPeriod.room}" else "📍 Hall",
                         detail2 = "🕒 ${nextPeriod.startTime} - ${nextPeriod.endTime}",
                         detail3 = "👤 ${nextPeriod.teacher.ifBlank { "Faculty" }}",
+                        secondaryTitle = if (secondPeriod != null) "2. ${secondPeriod.subject}" else "",
+                        secondaryDetail = if (secondPeriod != null) "${secondPeriod.startTime} · ${if (secondPeriod.room.isNotBlank()) "Rm " + secondPeriod.room else "Hall"}" else "",
                         bgDrawableRes = R.drawable.bg_hero_next_class,
                         onClick = { mainActivity?.showMainTab(R.id.nav_academics) }
                     )
                 )
+            }
 
-                // Other upcoming classes today
-                for (uClass in upcomingClassesToday.drop(1).take(2)) {
-                    val uStartSec = parseTimeToSeconds(uClass.startTime)
-                    val uDiffSec = Math.max(0, uStartSec - nowSec)
-                    val uDiffMins = uDiffSec / 60
-                    val uHours = uDiffMins / 60
-                    val uMins = uDiffMins % 60
-                    val uCountdown = when {
-                        uDiffMins < 60 -> "in ${uDiffMins}m"
-                        uMins == 0 -> "in ${uHours}h"
-                        else -> "in ${uHours}h ${uMins}m"
-                    }
-                    slides.add(
-                        HeroSlide(
-                            categoryTitle = "🕒 UPCOMING CLASS TODAY",
-                            categoryIconRes = R.drawable.ic_clock,
-                            categoryColor = Color.parseColor("#93C5FD"),
-                            actionText = "Full routine >",
-                            statusBadge = uCountdown,
-                            contextBadge = "Starts at ${uClass.startTime}",
-                            title = uClass.subject,
-                            detail1 = if (uClass.room.isNotBlank()) "📍 Room ${uClass.room}" else "📍 Scheduled",
-                            detail2 = "🕒 ${uClass.startTime} - ${uClass.endTime}",
-                            detail3 = "👤 ${uClass.teacher.ifBlank { "Faculty" }}",
-                            bgDrawableRes = R.drawable.bg_hero_gradient_purple,
-                            onClick = { mainActivity?.showMainTab(R.id.nav_academics) }
-                        )
-                    )
+            // 2. Core Card 2: CR & Department/Teacher Notice (Amber/Purple Theme)
+            val userDept = AppPreferences(appContext).getUserDepartment().trim().lowercase()
+            val userDeptId = AppPreferences(appContext).getUserDepartmentId().trim().lowercase()
+
+            val classNotices = cachedNotices.filter { n ->
+                val noticeDept = n.department.trim().lowercase()
+                val noticeDeptId = n.departmentId.trim().lowercase()
+                val isDeptMatch = (userDept.isNotBlank() && (noticeDept == userDept || noticeDept.contains(userDept) || userDept.contains(noticeDept))) ||
+                                  (userDeptId.isNotBlank() && (noticeDeptId == userDeptId || noticeDeptId.contains(userDeptId) || userDeptId.contains(noticeDeptId))) ||
+                                  (userDept.isBlank() && userDeptId.isBlank())
+
+                val isBatchMatch = n.targetBatch.isBlank() || n.targetBatch.equals("all", ignoreCase = true) || n.targetBatch == semester
+
+                val isClassRole = n.authorRole.equals("cr", ignoreCase = true) ||
+                                  n.authorRole.equals("teacher", ignoreCase = true) ||
+                                  n.authorRole.equals("admin", ignoreCase = true) ||
+                                  n.authorRole.equals("chairman", ignoreCase = true) ||
+                                  n.isCancel || n.isSub
+
+                !n.isSuperAdminNotice && isDeptMatch && isBatchMatch && isClassRole
+            }.sortedByDescending { it.createdAt?.toDate()?.time ?: it.timestamp?.toDate()?.time ?: 0L }
+
+            val latestClassNotice = classNotices.firstOrNull()
+            if (latestClassNotice != null) {
+                val roleTag = when {
+                    latestClassNotice.authorRole.equals("cr", ignoreCase = true) -> "[CR BATCH NOTICE]"
+                    latestClassNotice.authorRole.equals("teacher", ignoreCase = true) -> "[FACULTY NOTICE]"
+                    else -> "[DEPARTMENT NOTICE]"
                 }
+                val noticeStatus = when {
+                    latestClassNotice.isCancel -> "CANCELLED"
+                    latestClassNotice.isSub -> "SUBSTITUTE"
+                    latestClassNotice.priority.equals("urgent", ignoreCase = true) -> "URGENT"
+                    else -> "CLASS NOTE"
+                }
+                val timeLabel = formatTimeAgo(latestClassNotice.createdAt?.toDate()?.time ?: latestClassNotice.timestamp?.toDate()?.time ?: System.currentTimeMillis())
+
+                slides.add(
+                    HeroSlide(
+                        categoryTitle = "📢 $roleTag",
+                        categoryIconRes = R.drawable.ic_notice,
+                        categoryColor = Color.parseColor("#FDE047"),
+                        actionText = "All notices >",
+                        statusBadge = noticeStatus,
+                        contextBadge = timeLabel,
+                        title = latestClassNotice.title.ifBlank { "Class Update" },
+                        detail1 = latestClassNotice.body.take(65) + if (latestClassNotice.body.length > 65) "..." else "",
+                        detail2 = if (latestClassNotice.postedBy.isNotBlank()) "👤 By: " + latestClassNotice.postedBy else "Tap to read note",
+                        detail3 = "",
+                        bgDrawableRes = R.drawable.bg_hero_gradient_purple,
+                        onClick = {
+                            com.shuaib.classmate.utils.NotificationRouter.pendingNoticeId = latestClassNotice.id
+                            (activity as? MainActivity)?.openChildDestination(R.id.nav_campus, R.id.nav_notices)
+                        }
+                    )
+                )
+            } else if (upcomingClassesToday.isNotEmpty() || livePeriod != null) {
+                slides.add(
+                    HeroSlide(
+                        categoryTitle = "📢 CLASS & DEPT NOTICE",
+                        categoryIconRes = R.drawable.ic_notice,
+                        categoryColor = Color.parseColor("#C4B5FD"),
+                        actionText = "Notices >",
+                        statusBadge = "ALL CLEAR",
+                        contextBadge = "Today",
+                        title = "All classes running on schedule",
+                        detail1 = "👍 No cancellations or class shifts reported",
+                        detail2 = "CR and faculty updates will appear here",
+                        detail3 = "",
+                        bgDrawableRes = R.drawable.bg_hero_gradient_indigo,
+                        onClick = { (activity as? MainActivity)?.openChildDestination(R.id.nav_campus, R.id.nav_notices) }
+                    )
+                )
             }
         }
 
@@ -1594,9 +1670,8 @@ class HomeFragment : Fragment() {
                 val sevenDaysMs = 7L * 24 * 60 * 60 * 1000L
 
                 // 2. Central Global Notice Hub (strictly <= 7 days old, latest first):
-                // A) Super Admin (VC) notices: University-wide public circulars. Visible to all students.
-                // B) Department Chairman (Admin) notices: Public department circulars (targetBatch = all). Visible ONLY to students of that department.
-                // CR notices are strictly excluded. Any notice older than 7 days is strictly excluded.
+                // Strictly Super Admin (VC/Registrar) university-wide official circulars.
+                // Department & Class level notices (Chairman, Teachers, CR) are hosted in Tier 2 Academic Hub.
                 val eligibleNotices = activeNotices.filter { n ->
                     if (n.isCancel || n.isSub) return@filter false
 
@@ -1604,62 +1679,21 @@ class HomeFragment : Fragment() {
                     val isWithin7Days = noticeTime in (nowMs - sevenDaysMs)..nowMs
                     if (!isWithin7Days) return@filter false
 
-                    // Super Admin (VC) central notice
-                    val isSuperAdminCentral = n.isSuperAdminNotice &&
+                    // Super Admin (VC) central university notice only
+                    n.isSuperAdminNotice &&
                         (n.department.isBlank() || n.department.equals("all", ignoreCase = true)) &&
                         (n.targetBatch.isBlank() || n.targetBatch.equals("all", ignoreCase = true))
-
-                    // Department Chairman (Admin) public notice
-                    val hasUserDept = userDept.isNotBlank() || userDeptId.isNotBlank()
-                    val isChairmanOrAdmin = !n.authorRole.equals("cr", ignoreCase = true) &&
-                        (n.authorRole.equals("admin", ignoreCase = true) ||
-                         n.authorRole.equals("chairman", ignoreCase = true) ||
-                         n.postedBy.contains("Chairman", ignoreCase = true) ||
-                         n.createdByName.contains("Chairman", ignoreCase = true) ||
-                         n.postedBy.contains("Admin", ignoreCase = true) ||
-                         n.createdByName.contains("Admin", ignoreCase = true))
-
-                    val isDeptNoticeScope = (n.targetBatch.isBlank() || n.targetBatch.equals("all", ignoreCase = true))
-                    val isUserDeptMatch = hasUserDept && (
-                        n.department.equals(userDept, ignoreCase = true) ||
-                        (userDeptId.isNotBlank() && n.departmentId.equals(userDeptId, ignoreCase = true)) ||
-                        (userDept.isNotBlank() && n.department.contains(userDept, ignoreCase = true)) ||
-                        (userDept.isNotBlank() && userDept.contains(n.department, ignoreCase = true))
-                    )
-                    val isChairmanDeptNotice = isChairmanOrAdmin && isDeptNoticeScope && isUserDeptMatch
-
-                    isSuperAdminCentral || isChairmanDeptNotice
                 }.sortedByDescending { it.createdAt?.toDate()?.time ?: it.timestamp?.toDate()?.time ?: 0L }
 
-                for (n in eligibleNotices.take(3)) {
+                for (n in eligibleNotices.take(2)) {
                     val isUrgent = n.priority.equals("urgent", ignoreCase = true)
-                    val isDeptNotice = !n.isSuperAdminNotice && n.department.isNotBlank() && !n.department.equals("all", ignoreCase = true)
-
-                    val titlePrefix = if (isDeptNotice) {
-                        val deptCode = if (n.department.length <= 6) n.department.uppercase() else {
-                            n.department.split(" ", "&", "-")
-                                .filter { it.isNotBlank() && it.first().isLetter() }
-                                .map { it.first().uppercaseChar() }
-                                .joinToString("")
-                                .take(5)
-                                .ifBlank { n.department.take(5).uppercase() }
-                        }
-                        "🏢 [$deptCode] "
-                    } else {
-                        "🏛️ "
-                    }
-
-                    val bannerBg = when {
-                        isUrgent -> R.drawable.bg_alert_banner_orange
-                        isDeptNotice -> R.drawable.bg_alert_banner_blue
-                        else -> R.drawable.bg_alert_banner_purple
-                    }
+                    val bannerBg = if (isUrgent) R.drawable.bg_alert_banner_orange else R.drawable.bg_alert_banner_purple
 
                     alerts.add(
                         TopAlertItem(
                             id = n.id,
                             type = TopAlertType.NOTICE,
-                            title = "$titlePrefix${n.title.ifBlank { if (isDeptNotice) "Department Notice" else "University Notice" }}",
+                            title = "🏛️ ${n.title.ifBlank { "University Notice" }}",
                             subtitle = n.body.take(65) + if (n.body.length > 65) "..." else "",
                             timeTag = formatTimeAgo(n.createdAt?.toDate()?.time ?: System.currentTimeMillis()),
                             bgDrawableRes = bannerBg,
@@ -1679,7 +1713,7 @@ class HomeFragment : Fragment() {
             // 3. Urgent blood requests from Firestore (Red banner - campus-wide reach)
             bloodRequestRepo.getAllActiveRequests { bloodRequests ->
                 if (_binding == null) return@getAllActiveRequests
-                for (req in bloodRequests.take(2)) {
+                for (req in bloodRequests.take(1)) {
                     if (dismissedAlertIds.contains(req.id)) continue
                     val bagsText = if (req.bagsNeeded > 1) "${req.bagsNeeded} bags" else "1 bag"
                     val subText = "${req.hospitalName} · $bagsText · ${req.urgencyNote.ifBlank { "Contact: " + req.contactPhone }}"
@@ -1711,7 +1745,7 @@ class HomeFragment : Fragment() {
                 AppPreferences(ctx).getDeletedLostFoundIds().forEach { id ->
                     LostFoundRepository.markDeletedLocally(id)
                 }
-                lostFoundRepo.getRecentActiveItems(2) { lfItems ->
+                lostFoundRepo.getRecentActiveItems(1) { lfItems ->
                     if (_binding == null) return@getRecentActiveItems
                     for (item in lfItems) {
                         if (dismissedAlertIds.contains(item.id)) continue
@@ -1808,9 +1842,105 @@ class HomeFragment : Fragment() {
         return DateHelper.parseTimeToSeconds(timeStr)
     }
 
+    private fun observeTeacherClassSwapRequests() {
+        val ctx = context ?: return
+        val prefs = AppPreferences(ctx)
+        val isTeacher = prefs.getUserRole().equals("teacher", ignoreCase = true)
+        if (!isTeacher) {
+            _binding?.cardPendingClassSwapBento?.visibility = View.GONE
+            teacherSwapRequestsJob?.cancel()
+            teacherSwapRequestsJob = null
+            return
+        }
+
+        val teacherUid = auth.currentUser?.uid
+        if (teacherUid.isNullOrBlank()) {
+            _binding?.cardPendingClassSwapBento?.visibility = View.GONE
+            return
+        }
+
+        val todayStr = DateHelper.today()
+        teacherSwapRequestsJob?.cancel()
+        teacherSwapRequestsJob = viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                RoutineSwapRepository.getInstance().observePendingRequestsForTeacher(teacherUid, todayStr)
+                    .collect { requests ->
+                        if (_binding == null) return@collect
+                        val pending = requests.firstOrNull()
+                        if (pending != null) {
+                            renderTeacherClassSwapBento(pending)
+                        } else {
+                            binding.cardPendingClassSwapBento.visibility = View.GONE
+                            binding.layoutHeroBannerContainer.visibility = View.VISIBLE
+                        }
+                    }
+            }
+        }
+    }
+
+    private fun renderTeacherClassSwapBento(req: RoutineSwapRequest) {
+        if (_binding == null) return
+        val ctx = context ?: return
+
+        binding.cardPendingClassSwapBento.visibility = View.VISIBLE
+        binding.layoutHeroBannerContainer.visibility = View.GONE
+
+        binding.tvSwapHeaderTitle.text = "🔄 CLASS SWAP REQUEST"
+        val noteText = if (req.note.isNotBlank()) "Note: \"${req.note}\"" else "Requested class time swap for today"
+        binding.tvSwapNote.text = "From: ${req.requesterName} (${req.department.ifBlank { "Department" }}) · $noteText"
+
+        // Left Bento: Your Current Class
+        binding.tvSwapMySubject.text = req.targetSubject
+        val myRoom = if (req.targetRoom.isNotBlank()) " · Rm ${req.targetRoom}" else ""
+        binding.tvSwapMyTimeRoom.text = "${req.targetStartTime} - ${req.targetEndTime}$myRoom"
+
+        // Right Bento: Requested Swap
+        binding.tvSwapTargetSubject.text = req.requesterSubject
+        val targetRoom = if (req.requesterRoom.isNotBlank()) " · Rm ${req.requesterRoom}" else ""
+        binding.tvSwapTargetTimeRoom.text = "${req.requesterStartTime} - ${req.requesterEndTime}$targetRoom"
+
+        // Accept Action
+        binding.btnAcceptClassSwap.setOnClickListener {
+            binding.btnAcceptClassSwap.isEnabled = false
+            binding.btnDeclineClassSwap.isEnabled = false
+            RoutineSwapRepository.getInstance().acceptSwapRequest(req, ctx) { success, error ->
+                if (_binding == null) return@acceptSwapRequest
+                binding.btnAcceptClassSwap.isEnabled = true
+                binding.btnDeclineClassSwap.isEnabled = true
+                if (success) {
+                    Toast.makeText(ctx, "Class swap accepted! Timetable updated for today.", Toast.LENGTH_SHORT).show()
+                    binding.cardPendingClassSwapBento.visibility = View.GONE
+                    binding.layoutHeroBannerContainer.visibility = View.VISIBLE
+                    loadUpcomingClasses()
+                } else {
+                    Toast.makeText(ctx, error ?: "Failed to accept swap request", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        // Decline Action
+        binding.btnDeclineClassSwap.setOnClickListener {
+            binding.btnAcceptClassSwap.isEnabled = false
+            binding.btnDeclineClassSwap.isEnabled = false
+            RoutineSwapRepository.getInstance().rejectSwapRequest(req.id) { success, error ->
+                if (_binding == null) return@rejectSwapRequest
+                binding.btnAcceptClassSwap.isEnabled = true
+                binding.btnDeclineClassSwap.isEnabled = true
+                if (success) {
+                    Toast.makeText(ctx, "Class swap request declined", Toast.LENGTH_SHORT).show()
+                    binding.cardPendingClassSwapBento.visibility = View.GONE
+                    binding.layoutHeroBannerContainer.visibility = View.VISIBLE
+                } else {
+                    Toast.makeText(ctx, error ?: "Failed to decline swap request", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         if (_binding != null) {
+            observeTeacherClassSwapRequests()
             if (heroSlides.size > 1 && !isHeroManuallyPaused) {
                 restartHeroTimer()
             }
@@ -1914,6 +2044,8 @@ class HomeFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        teacherSwapRequestsJob?.cancel()
+        teacherSwapRequestsJob = null
         calendarExceptionsListener?.remove()
         calendarExceptionsListener = null
         homeFeedListener?.remove()

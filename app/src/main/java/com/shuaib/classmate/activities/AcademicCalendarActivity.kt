@@ -4,7 +4,10 @@ import android.app.DatePickerDialog
 import android.app.Dialog
 import android.app.TimePickerDialog
 import android.os.Bundle
+import android.util.TypedValue
+import android.view.GestureDetector
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.Window
 import android.widget.ArrayAdapter
@@ -18,6 +21,7 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.auth.FirebaseAuth
@@ -115,14 +119,14 @@ class AcademicCalendarActivity : AppCompatActivity() {
 
         // Month Navigation
         binding.btnPrevMonth.setOnClickListener {
-            currentYearMonth = currentYearMonth.minusMonths(1)
-            updateCalendarUi()
+            goToPrevMonth()
         }
 
         binding.btnNextMonth.setOnClickListener {
-            currentYearMonth = currentYearMonth.plusMonths(1)
-            updateCalendarUi()
+            goToNextMonth()
         }
+
+        setupCalendarSwipeGestures()
 
         // Today Jump Button
         binding.btnToday.setOnClickListener {
@@ -151,6 +155,179 @@ class AcademicCalendarActivity : AppCompatActivity() {
                 showAddChoiceDialog()
             }
         }
+    }
+
+    private fun goToPrevMonth() {
+        currentYearMonth = currentYearMonth.minusMonths(1)
+        syncSelectedDateToMonth()
+        animateMonthTransition(isNext = false)
+        updateCalendarUi()
+    }
+
+    private fun goToNextMonth() {
+        currentYearMonth = currentYearMonth.plusMonths(1)
+        syncSelectedDateToMonth()
+        animateMonthTransition(isNext = true)
+        updateCalendarUi()
+    }
+
+    private fun syncSelectedDateToMonth() {
+        selectedDate = if (currentYearMonth == YearMonth.now()) {
+            LocalDate.now()
+        } else {
+            currentYearMonth.atDay(1)
+        }
+    }
+
+    private fun animateMonthTransition(isNext: Boolean) {
+        val slideOffset = if (isNext) 100f else -100f
+        binding.rvCalendarGrid.translationX = slideOffset
+        binding.rvCalendarGrid.alpha = 0.3f
+        binding.rvCalendarGrid.animate()
+            .translationX(0f)
+            .alpha(1f)
+            .setDuration(220)
+            .setInterpolator(android.view.animation.DecelerateInterpolator())
+            .start()
+
+        binding.tvMonthYear.alpha = 0.3f
+        binding.tvMonthYear.animate()
+            .alpha(1f)
+            .setDuration(200)
+            .start()
+    }
+
+    private fun setupCalendarSwipeGestures() {
+        val thresholdPx = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            50f,
+            resources.displayMetrics
+        )
+        val velocityThresholdPx = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            100f,
+            resources.displayMetrics
+        )
+
+        var startX = 0f
+        var startY = 0f
+        var hasHandledSwipe = false
+
+        val gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDown(e: MotionEvent): Boolean {
+                hasHandledSwipe = false
+                return true
+            }
+
+            override fun onFling(
+                e1: MotionEvent?,
+                e2: MotionEvent,
+                velocityX: Float,
+                velocityY: Float
+            ): Boolean {
+                if (hasHandledSwipe || e1 == null) return false
+                val diffX = e2.x - e1.x
+                val diffY = e2.y - e1.y
+                if (kotlin.math.abs(diffX) > kotlin.math.abs(diffY) &&
+                    kotlin.math.abs(diffX) > thresholdPx &&
+                    kotlin.math.abs(velocityX) > velocityThresholdPx
+                ) {
+                    hasHandledSwipe = true
+                    if (diffX < 0) {
+                        goToNextMonth()
+                    } else {
+                        goToPrevMonth()
+                    }
+                    return true
+                }
+                return false
+            }
+        })
+
+        val touchListener = View.OnTouchListener { v, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    startX = event.x
+                    startY = event.y
+                    hasHandledSwipe = false
+                    v.parent?.requestDisallowInterceptTouchEvent(true)
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = kotlin.math.abs(event.x - startX)
+                    val dy = kotlin.math.abs(event.y - startY)
+                    if (dx > dy && dx > 20) {
+                        v.parent?.requestDisallowInterceptTouchEvent(true)
+                    }
+                }
+                MotionEvent.ACTION_UP -> {
+                    if (!hasHandledSwipe) {
+                        val diffX = event.x - startX
+                        val diffY = kotlin.math.abs(event.y - startY)
+                        if (kotlin.math.abs(diffX) > diffY && kotlin.math.abs(diffX) > thresholdPx) {
+                            hasHandledSwipe = true
+                            if (diffX < 0) {
+                                goToNextMonth()
+                            } else {
+                                goToPrevMonth()
+                            }
+                        }
+                    }
+                }
+            }
+            gestureDetector.onTouchEvent(event)
+            false
+        }
+
+        binding.layoutCalendarMonthCard.setOnTouchListener(touchListener)
+
+        binding.rvCalendarGrid.addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {
+            override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
+                when (e.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        startX = e.x
+                        startY = e.y
+                        hasHandledSwipe = false
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        val dx = kotlin.math.abs(e.x - startX)
+                        val dy = kotlin.math.abs(e.y - startY)
+                        if (dx > dy && dx > 20) {
+                            rv.parent?.requestDisallowInterceptTouchEvent(true)
+                            if (!hasHandledSwipe && dx > thresholdPx) {
+                                hasHandledSwipe = true
+                                if (e.x - startX < 0) {
+                                    goToNextMonth()
+                                } else {
+                                    goToPrevMonth()
+                                }
+                                return true
+                            }
+                        }
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        if (!hasHandledSwipe) {
+                            val diffX = e.x - startX
+                            val diffY = kotlin.math.abs(e.y - startY)
+                            if (kotlin.math.abs(diffX) > diffY && kotlin.math.abs(diffX) > thresholdPx) {
+                                hasHandledSwipe = true
+                                if (diffX < 0) {
+                                    goToNextMonth()
+                                } else {
+                                    goToPrevMonth()
+                                }
+                                return true
+                            }
+                        }
+                    }
+                }
+                gestureDetector.onTouchEvent(e)
+                return false
+            }
+
+            override fun onTouchEvent(rv: RecyclerView, e: MotionEvent) {
+                gestureDetector.onTouchEvent(e)
+            }
+        })
     }
 
     private fun fetchUserRole() {
