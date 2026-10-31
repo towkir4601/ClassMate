@@ -11,10 +11,14 @@ import com.shuaib.classmate.models.User
 object UserRoleHelper {
 
     /**
-     * Returns the currently active role. If a test role override has been selected
-     * in the Profile screen, it takes precedence. Otherwise falls back to [docRole] or "student".
+     * Returns the currently active role. If the user is a guest, returns "guest".
+     * If a test role override has been selected in the Profile screen, it takes precedence.
+     * Otherwise falls back to [docRole] or "student".
      */
     fun getEffectiveRole(context: Context, docRole: String? = null): String {
+        if (GuestUserHelper.isGuest(context)) {
+            return "guest"
+        }
         val testRole = AppPreferences(context).getTestRoleOverride()
         if (!testRole.isNullOrBlank()) {
             return testRole.trim().lowercase()

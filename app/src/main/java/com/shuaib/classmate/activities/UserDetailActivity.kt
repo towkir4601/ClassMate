@@ -47,7 +47,10 @@ class UserDetailActivity : AppCompatActivity() {
                 createdAt = doc.getTimestamp("createdAt"),
                 updatedAt = doc.getTimestamp("updatedAt"),
                 oneSignalPlayerId = doc.getString("oneSignalPlayerId") ?: "",
-                permissions = (doc.get("permissions") as? Map<String, Boolean>) ?: User.DEFAULT_PERMISSIONS
+                permissions = (doc.get("permissions") as? Map<String, Boolean>) ?: User.DEFAULT_PERMISSIONS,
+                isVerified = doc.getBoolean("isVerified") ?: false,
+                eduMail = doc.getString("eduMail") ?: "",
+                eduMailVerificationStatus = doc.getString("eduMailVerificationStatus") ?: ""
             )
         } catch (e: Exception) {
             null
@@ -150,6 +153,16 @@ class UserDetailActivity : AppCompatActivity() {
         binding.tvAddress.text = field("Address", targetUser.address)
         binding.tvAuthProvider.text = field("Auth Provider", targetUser.authProvider)
 
+        val eduMailDisplay = if (targetUser.eduMail.isNotBlank()) {
+            val status = if (targetUser.eduMailVerificationStatus.isNotBlank()) " (${targetUser.eduMailVerificationStatus.uppercase()})" else ""
+            "${targetUser.eduMail}$status"
+        } else {
+            "Not provided"
+        }
+        binding.tvEduMailDetail.text = field("Educational Mail", eduMailDisplay)
+        val verifiedStatusText = if (targetUser.isBlueVerified) "Verified (Blue Badge Active) ✅" else "Unverified"
+        binding.tvVerificationDetail.text = field("Badge Status", verifiedStatusText)
+
         binding.radioGroupRole.setOnCheckedChangeListener(null)
         when (targetUser.role.lowercase()) {
             "superadmin" -> binding.radioSuperadmin.isChecked = true
@@ -193,6 +206,9 @@ class UserDetailActivity : AppCompatActivity() {
         }
         val isSuperadmin = currentUser.role == "superadmin"
         val canEditRole = isSuperadmin || currentUser.canManageUsers() || currentUser.canManageAdmins()
+        binding.switchVerifiedBadge.visibility = if (canEditRole) View.VISIBLE else View.GONE
+        binding.switchVerifiedBadge.isChecked = targetUser.isVerified
+
         binding.tvPermissionHint.visibility = if (visibleCount == 0) View.VISIBLE else View.GONE
         binding.btnSave.isEnabled = canEditRole || visibleCount > 0
     }
@@ -210,6 +226,10 @@ class UserDetailActivity : AppCompatActivity() {
         if (canEditRole) {
             val role = selectedRole()
             updates["role"] = role
+            updates["isVerified"] = binding.switchVerifiedBadge.isChecked
+            if (binding.switchVerifiedBadge.isChecked && targetUser.eduMail.isNotBlank()) {
+                updates["eduMailVerificationStatus"] = "approved"
+            }
             // Align permissions automatically with the role to prevent security issues
             val alignedPermissions = when (role) {
                 "superadmin" -> User.DEFAULT_PERMISSIONS.mapValues { true }

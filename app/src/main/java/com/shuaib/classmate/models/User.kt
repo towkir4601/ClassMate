@@ -39,7 +39,9 @@ data class User(
     val assignedClubId: String = "",
     val assignedClubName: String = "",
     val demoRole: String = "",
-    val isVerified: Boolean = false
+    val isVerified: Boolean = false,
+    val eduMail: String = "",
+    val eduMailVerificationStatus: String = "" // "none", "pending", "approved", "rejected"
 ) {
     @get:com.google.firebase.firestore.Exclude
     val activeRole: String
@@ -198,8 +200,15 @@ data class User(
 
     @com.google.firebase.firestore.Exclude
     fun hasEduMail(): Boolean {
-        val em = email.trim().lowercase()
-        return em.endsWith(".edu.bd") || em.endsWith("@gstu.ac.bd") || em.contains(".gstu.ac.bd")
+        fun isEduFormat(mail: String): Boolean {
+            val em = mail.trim().lowercase()
+            return em.endsWith("@gstu.edu.bd") || em.contains(".gstu.edu.bd") || em.endsWith(".edu.bd") ||
+                   em.endsWith("@gstu.ac.bd") || em.contains(".gstu.ac.bd")
+        }
+        val isEmailEdu = isEduFormat(email)
+        val isSecondaryEduApproved = isEduFormat(eduMail) &&
+                (eduMailVerificationStatus.equals("approved", ignoreCase = true) || isVerified)
+        return isEmailEdu || isSecondaryEduApproved
     }
 
     @get:com.google.firebase.firestore.Exclude

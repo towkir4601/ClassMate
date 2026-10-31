@@ -217,20 +217,21 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupHeader() {
-        val user = auth.currentUser
-        val name = user?.displayName?.split(" ")?.firstOrNull() ?: "Student"
+        val ctx = context
+        val isGuest = ctx?.let { com.shuaib.classmate.utils.GuestUserHelper.isGuest(it) } ?: true
+        val user = if (isGuest) null else auth.currentUser
+        val name = if (isGuest) "Guest" else (user?.displayName?.split(" ")?.firstOrNull() ?: "Student")
         binding.tvUserGreeting.text = "Welcome, $name"
 
         val uid = user?.uid
-        val ctx = context
         if (ctx != null) {
-            val cachedRole = UserRoleHelper.getEffectiveRole(ctx)
+            val cachedRole = if (isGuest) "guest" else UserRoleHelper.getEffectiveRole(ctx)
             val r = cachedRole.trim().lowercase()
-            isAdminUser = (r == "superadmin" || r == "admin" || r == "university_admin")
+            isAdminUser = !isGuest && (r == "superadmin" || r == "admin" || r == "university_admin")
             updateCampusFeedVisibility(isAdminUser, uid ?: "", name)
         }
 
-        if (uid != null) {
+        if (uid != null && !isGuest) {
             firestore.collection("users").document(uid).get()
                 .addOnSuccessListener { doc ->
                     if (_binding == null) return@addOnSuccessListener
@@ -249,6 +250,12 @@ class HomeFragment : Fragment() {
 
                     // Check role: superadmin / admin get the Live CampusFeed Preview
                     val safeCtx = context ?: return@addOnSuccessListener
+                    val stillGuest = com.shuaib.classmate.utils.GuestUserHelper.isGuest(safeCtx)
+                    if (stillGuest) {
+                        isAdminUser = false
+                        updateCampusFeedVisibility(false, "", name)
+                        return@addOnSuccessListener
+                    }
                     val docRole = doc.getString("role")
                     val effectiveRole = UserRoleHelper.getEffectiveRole(safeCtx, docRole)
                     val r = effectiveRole.trim().lowercase()
@@ -258,11 +265,20 @@ class HomeFragment : Fragment() {
                 .addOnFailureListener {
                     if (_binding == null) return@addOnFailureListener
                     val safeCtx = context ?: return@addOnFailureListener
+                    val stillGuest = com.shuaib.classmate.utils.GuestUserHelper.isGuest(safeCtx)
+                    if (stillGuest) {
+                        isAdminUser = false
+                        updateCampusFeedVisibility(false, "", name)
+                        return@addOnFailureListener
+                    }
                     val cachedRole = UserRoleHelper.getEffectiveRole(safeCtx)
                     val r = cachedRole.trim().lowercase()
                     isAdminUser = (r == "superadmin" || r == "admin" || r == "university_admin")
                     updateCampusFeedVisibility(isAdminUser, uid, name)
                 }
+        } else {
+            isAdminUser = false
+            updateCampusFeedVisibility(false, "", name)
         }
     }
 
@@ -305,10 +321,20 @@ class HomeFragment : Fragment() {
         }
 
         // Quick Access Tiles (Matching Pic 3)
-        // Row 1
+        // Row 1: 1. Club & Event 2. Blood Bank 3. Lost & Found 4. Transport
         binding.tileClubEvent.setOnClickListener { view ->
             val ctx = context ?: return@setOnClickListener
             view.launchActivityWithCardAnimation(Intent(ctx, EventsClubsActivity::class.java))
+        }
+
+        binding.tileBloodBank.setOnClickListener { view ->
+            val ctx = context ?: return@setOnClickListener
+            view.launchActivityWithCardAnimation(Intent(ctx, BloodDonorDirectoryActivity::class.java))
+        }
+
+        binding.tileLostFound.setOnClickListener { view ->
+            val ctx = context ?: return@setOnClickListener
+            view.launchActivityWithCardAnimation(Intent(ctx, LostFoundActivity::class.java))
         }
 
         binding.tileTransport.setOnClickListener { view ->
@@ -317,26 +343,15 @@ class HomeFragment : Fragment() {
             }
         }
 
-        binding.tileLostFound.setOnClickListener { view ->
-            val ctx = context ?: return@setOnClickListener
-            view.launchActivityWithCardAnimation(Intent(ctx, LostFoundActivity::class.java))
-        }
-
-        binding.tileBloodBank.setOnClickListener { view ->
-            val ctx = context ?: return@setOnClickListener
-            view.launchActivityWithCardAnimation(Intent(ctx, BloodDonorDirectoryActivity::class.java))
-        }
-
-        // Row 2
-        binding.tileRoutine.setOnClickListener { view ->
-            view.applyCardClickAnimation {
-                mainActivity?.showMainTab(R.id.nav_academics)
-            }
-        }
-
+        // Row 2: 1. Cover Page 2. Calendar 3. Notice 4. More
         binding.tileCoverPage.setOnClickListener { view ->
             val ctx = context ?: return@setOnClickListener
             view.launchActivityWithCardAnimation(Intent(ctx, CoverPageActivity::class.java))
+        }
+
+        binding.tileCalendar.setOnClickListener { view ->
+            val ctx = context ?: return@setOnClickListener
+            view.launchActivityWithCardAnimation(Intent(ctx, AcademicCalendarActivity::class.java))
         }
 
         binding.tileNotice.setOnClickListener { view ->
@@ -1218,7 +1233,10 @@ class HomeFragment : Fragment() {
                     detail2 = "📍 Department synchronized",
                     detail3 = "",
                     bgDrawableRes = R.drawable.bg_hero_gradient_indigo,
-                    onClick = { mainActivity?.showMainTab(R.id.nav_profile) }
+                    onClick = {
+                        com.shuaib.classmate.fragments.ProfileFragment.shouldScrollToContact = true
+                        mainActivity?.showMainTab(R.id.nav_profile)
+                    }
                 )
             )
             slides.add(
@@ -1234,7 +1252,10 @@ class HomeFragment : Fragment() {
                     detail2 = "✨ We will configure your department timetable",
                     detail3 = "",
                     bgDrawableRes = R.drawable.bg_hero_gradient_purple,
-                    onClick = { mainActivity?.showMainTab(R.id.nav_profile) }
+                    onClick = {
+                        com.shuaib.classmate.fragments.ProfileFragment.shouldScrollToContact = true
+                        mainActivity?.showMainTab(R.id.nav_profile)
+                    }
                 )
             )
         } else {
@@ -1956,7 +1977,27 @@ class HomeFragment : Fragment() {
                 holidayFlipperHandler.postDelayed(holidayFlipperRunnable, 5000)
             }
             setupNotificationBadgeListener()
+            refreshCampusFeedRole()
         }
+    }
+
+    private fun refreshCampusFeedRole() {
+        val ctx = context ?: return
+        val isGuest = com.shuaib.classmate.utils.GuestUserHelper.isGuest(ctx)
+        val user = if (isGuest) null else auth.currentUser
+        val name = if (isGuest) "Guest" else (user?.displayName?.split(" ")?.firstOrNull() ?: "Student")
+        val uid = user?.uid
+
+        if (isGuest || uid == null) {
+            isAdminUser = false
+            updateCampusFeedVisibility(false, "", name)
+            return
+        }
+
+        val cachedRole = UserRoleHelper.getEffectiveRole(ctx)
+        val r = cachedRole.trim().lowercase()
+        isAdminUser = (r == "superadmin" || r == "admin" || r == "university_admin")
+        updateCampusFeedVisibility(isAdminUser, uid, name)
     }
 
     override fun onPause() {

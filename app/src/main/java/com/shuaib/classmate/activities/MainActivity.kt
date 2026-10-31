@@ -446,30 +446,19 @@ class MainActivity : AppCompatActivity() {
                     val r = effectiveRole.trim().lowercase()
                     isAdmin = (r in listOf("superadmin", "admin", "university_admin", "teacher", "club_admin", "cr") || permissions.values.any { it == true })
 
-                    // Verify approval status for non-admin accounts
-                    val approvedVal = doc.get("approved")
-                    val isApproved = when (approvedVal) {
-                        is Boolean -> approvedVal
-                        is String -> approvedVal.toBoolean()
-                        else -> false
-                    }
-                    if (r != "superadmin" && r != "admin" && r != "university_admin" && !isApproved && !com.shuaib.classmate.utils.UserRoleHelper.isTestRoleActive(this@MainActivity)) {
-                        val intent = Intent(this@MainActivity, PendingApprovalActivity::class.java).apply {
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                        }
-                        startActivity(intent)
-                        finish()
-                        return@addOnSuccessListener
-                    }
-                    
+                    // Cache profile details for fast future launches
+                    val prefs = AppPreferences(this@MainActivity)
+                    val fullName = doc.getString("fullName") ?: doc.getString("name") ?: ""
+                    if (fullName.isNotBlank()) prefs.setUserName(fullName)
+                    prefs.setUserRole(r)
+                    if (batch.isNotBlank()) prefs.setUserBatch(batch)
+                    val dept = doc.getString("department") ?: ""
+                    if (dept.isNotBlank()) prefs.setUserDepartment(dept)
+
                     try {
                         com.onesignal.OneSignal.User.addTag("uid", uid)
                         com.onesignal.OneSignal.User.addTag("role", r)
                         com.onesignal.OneSignal.User.addTag("batch", batch)
-                        val prefs = AppPreferences(this@MainActivity)
-                        prefs.setUserBatch(batch)
-                        prefs.setUserRole(r)
-                        val dept = doc.getString("department") ?: ""
                         if (dept.isNotBlank()) {
                             com.onesignal.OneSignal.User.addTag("department", dept)
                         }

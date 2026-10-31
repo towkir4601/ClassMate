@@ -12,7 +12,7 @@ data class ChatUser(
     val isBlueVerified: Boolean
         get() {
             val em = email.trim().lowercase()
-            return isVerified || em.endsWith(".edu.bd") || em.endsWith("@gstu.ac.bd") || em.contains(".gstu.ac.bd") ||
+            return isVerified || em.endsWith("@gstu.edu.bd") || em.contains(".gstu.edu.bd") || em.endsWith(".edu.bd") || em.endsWith("@gstu.ac.bd") || em.contains(".gstu.ac.bd") ||
                     role.lowercase() in listOf("teacher", "admin", "superadmin", "university_admin")
         }
 }

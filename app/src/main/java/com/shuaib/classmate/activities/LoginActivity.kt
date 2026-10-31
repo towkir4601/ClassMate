@@ -256,8 +256,20 @@ class LoginActivity : AppCompatActivity() {
                 Log.d("AuthTrace", "3. FirebaseAuth signIn success")
                 Log.d("AuthTrace", "4. currentUser uid: ${auth.currentUser?.uid.orEmpty()}")
                 AuthDebug.d("Email login success uid=${auth.currentUser?.uid.orEmpty()}")
-                auth.currentUser?.uid?.let { uid ->
-                    normalizeUserProfile(uid)
+                val uid = auth.currentUser?.uid
+                if (uid != null) {
+                    val prefs = AppPreferences(this)
+                    val cachedRole = prefs.getUserRole()
+                    val cachedName = prefs.getUserName()
+
+                    if (cachedRole.isNotBlank() && cachedName.isNotBlank()) {
+                        Log.d("AuthTrace", "Fast login via local cache")
+                        triggerBackgroundSync(uid)
+                        setupPushNotifications(uid, cachedRole, prefs.getUserBatch())
+                        navigateToMain()
+                    } else {
+                        normalizeUserProfile(uid, isRegistrationOrFirstLogin = false)
+                    }
                 }
             }
             .addOnFailureListener {
@@ -269,8 +281,8 @@ class LoginActivity : AppCompatActivity() {
             }
     }
 
-    private fun normalizeUserProfile(uid: String) {
-        Log.d("AuthTrace", "5. users/{uid} profile normalization started")
+    private fun normalizeUserProfile(uid: String, isRegistrationOrFirstLogin: Boolean = false) {
+        Log.d("AuthTrace", "5. users/{uid} single profile fetch started")
         val userRef = firestore.collection("users").document(uid)
         val firebaseUser = auth.currentUser
 
@@ -294,52 +306,104 @@ class LoginActivity : AppCompatActivity() {
                     "createdAt" to FieldValue.serverTimestamp(),
                     "updatedAt" to FieldValue.serverTimestamp()
                 )
-                logFirestoreWrite("users/$uid", uid, profile)
+                // Write profile non-blocking in background
                 userRef.set(profile)
-                    .addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            Log.d("FirestoreDebug", "Write success: users/$uid")
-                        } else {
-                            task.exception?.let { logFirestoreFailure(it) }
-                        }
-                        identifyUserAndNavigate(uid, "student", "")
-                    }
+                cacheUserProfile("student", fullName, "", "")
+                setupPushNotifications(uid, "student", "")
+
+                // New account without profile document: needs admin approval at registration
+                setLoading(false)
+                startActivity(Intent(this, PendingApprovalActivity::class.java))
+                finishAffinity()
                 return@addOnSuccessListener
             }
 
             val existingData = doc.data ?: emptyMap<String, Any>()
-            val isGoogleUser = firebaseUser?.providerData?.any { it.providerId == "google.com" } == true
             val role = existingData["role"] as? String ?: "student"
-            val profileUpdate = hashMapOf<String, Any>()
-            if (isGoogleUser) {
-                profileUpdate["name"] = firebaseUser?.displayName ?: ""
-                profileUpdate["fullName"] = firebaseUser?.displayName ?: ""
-                profileUpdate["email"] = firebaseUser?.email ?: ""
-                profileUpdate["photoUrl"] = firebaseUser?.photoUrl?.toString() ?: ""
-                profileUpdate["updatedAt"] = FieldValue.serverTimestamp()
-            }
+            val name = (existingData["fullName"] ?: existingData["name"] ?: firebaseUser?.displayName ?: "Student").toString()
+            val batch = (existingData["batch"] ?: "").toString()
+            val department = (existingData["department"] ?: "").toString()
 
-            fun finishNormalization() {
-                identifyUserAndNavigate(uid, role, existingData["batch"] as? String ?: "")
-            }
+            // 1. Cache User Profile Locally (AppPreferences)
+            cacheUserProfile(role, name, batch, department)
 
-            if (profileUpdate.isNotEmpty()) {
-                logFirestoreWrite("users/$uid", uid, profileUpdate)
-                userRef.set(profileUpdate, SetOptions.merge())
-                    .addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            Log.d("FirestoreDebug", "Write success: users/$uid")
-                        } else {
-                            task.exception?.let { logFirestoreFailure(it) }
-                        }
-                        finishNormalization()
-                    }
+            // Non-blocking background sync for avatar/name/timestamps
+            triggerBackgroundSync(uid)
+
+            // Non-blocking OneSignal registration
+            setupPushNotifications(uid, role, batch)
+
+            // 2. Approval Check:
+            // "only at registration time it will take admin approval. Once after registration,
+            // user should be able to login anytime with his/her mail, pass without admin approval."
+            if (isRegistrationOrFirstLogin) {
+                val approvedVal = existingData["approved"]
+                val approved = when (approvedVal) {
+                    is Boolean -> approvedVal
+                    is String -> approvedVal.toBoolean()
+                    else -> false
+                }
+                val r = role.trim().lowercase()
+                if (r == "superadmin" || r == "admin" || approved) {
+                    navigateToMain()
+                } else {
+                    setLoading(false)
+                    startActivity(Intent(this, PendingApprovalActivity::class.java))
+                    finishAffinity()
+                }
             } else {
-                finishNormalization()
+                // Regular login bypasses admin approval
+                navigateToMain()
             }
         }.addOnFailureListener {
             Log.d("AuthTrace", "6. profile fetch failure: ${it.message}")
             navigateToMain()
+        }
+    }
+
+    private fun cacheUserProfile(role: String, name: String, batch: String, department: String) {
+        val prefs = AppPreferences(this)
+        prefs.setUserRole(role)
+        if (name.isNotBlank()) prefs.setUserName(name)
+        if (batch.isNotBlank()) prefs.setUserBatch(batch)
+        if (department.isNotBlank()) prefs.setUserDepartment(department)
+    }
+
+    private fun triggerBackgroundSync(uid: String) {
+        val firebaseUser = auth.currentUser ?: return
+        val userRef = firestore.collection("users").document(uid)
+        val isGoogleUser = firebaseUser.providerData.any { it.providerId == "google.com" }
+        val profileUpdate = hashMapOf<String, Any>()
+
+        if (isGoogleUser) {
+            val dName = firebaseUser.displayName.orEmpty()
+            if (dName.isNotBlank()) {
+                profileUpdate["name"] = dName
+                profileUpdate["fullName"] = dName
+            }
+            val email = firebaseUser.email.orEmpty()
+            if (email.isNotBlank()) profileUpdate["email"] = email
+            val photo = firebaseUser.photoUrl?.toString().orEmpty()
+            if (photo.isNotBlank()) profileUpdate["photoUrl"] = photo
+            profileUpdate["updatedAt"] = FieldValue.serverTimestamp()
+        }
+
+        if (profileUpdate.isNotEmpty()) {
+            userRef.set(profileUpdate, SetOptions.merge())
+        }
+    }
+
+    private fun setupPushNotifications(uid: String, role: String, batch: String) {
+        try {
+            OneSignal.login(uid)
+            OneSignal.User.addTag("role", role)
+            OneSignal.User.addTag("uid", uid)
+            if (batch.isNotBlank()) {
+                OneSignal.User.addTag("batch", batch)
+            }
+            OneSignal.User.pushSubscription.optIn()
+        } catch (_: Exception) {
+            Log.w("LoginActivity", "OneSignal not configured, skipping push setup")
         }
     }
 
@@ -356,74 +420,6 @@ class LoginActivity : AppCompatActivity() {
         Log.e("FirestoreDebug", "FULL ERROR: ${e.message}")
         Log.e("FirestoreDebug", "ERROR CLASS: ${e.javaClass.name}")
         Log.e("FirestoreDebug", "CAUSE: ${e.cause?.message}")
-    }
-
-    private fun identifyUserAndNavigate(uid: String, role: String, batch: String = "") {
-        ensureRoleDefaults(uid)
-        try {
-            OneSignal.login(uid)
-            OneSignal.User.addTag("role", role)
-            OneSignal.User.addTag("uid", uid)
-            if (batch.isNotBlank()) {
-                OneSignal.User.addTag("batch", batch)
-            }
-            OneSignal.User.pushSubscription.optIn()
-        } catch (_: Exception) {
-            Log.w("LoginActivity", "OneSignal not configured, skipping push setup")
-        }
-
-        // Check if user is approved
-        if (role.trim().lowercase() == "superadmin" || role.trim().lowercase() == "admin") {
-            navigateToMain()
-            return
-        }
-
-        firestore.collection("users").document(uid).get()
-            .addOnSuccessListener { doc ->
-                val approvedVal = doc.get("approved")
-                val approved = when (approvedVal) {
-                    is Boolean -> approvedVal
-                    is String -> approvedVal.toBoolean()
-                    else -> false
-                }
-                
-                val currentUser = FirebaseAuth.getInstance().currentUser
-                val isGoogleAuth = currentUser?.providerData?.any { it.providerId == "google.com" } == true
-                
-                if (approved) {
-                    navigateToMain()
-                } else {
-                    // User not approved - show pending screen
-                    setLoading(false)
-                    startActivity(Intent(this, PendingApprovalActivity::class.java))
-                    finishAffinity()
-                }
-            }
-            .addOnFailureListener {
-                // If we can't check, let them in (fail open)
-                navigateToMain()
-            }
-    }
-
-    private fun ensureRoleDefaults(uid: String) {
-        val userRef = FirebaseFirestore.getInstance().document("users/$uid")
-        userRef.get()
-            .addOnSuccessListener { doc ->
-                if (!doc.exists() || !doc.contains("role")) {
-                    val roleDefaults = hashMapOf<String, Any>(
-                        "role" to "student",
-                        "permissions" to User.DEFAULT_PERMISSIONS,
-                        "updatedAt" to FieldValue.serverTimestamp()
-                    )
-                    userRef.set(roleDefaults, SetOptions.merge())
-                        .addOnFailureListener { e ->
-                            Log.e("AuthDebug", "Role defaults merge failed: ${e.message}", e)
-                        }
-                }
-            }
-            .addOnFailureListener { e ->
-                Log.e("AuthDebug", "Role defaults check failed: ${e.message}", e)
-            }
     }
 
     private fun signInWithGoogle() {
@@ -459,13 +455,24 @@ class LoginActivity : AppCompatActivity() {
         auth.signInWithCredential(firebaseCredential)
             .addOnSuccessListener { result ->
                 val user = result.user ?: return@addOnSuccessListener
+                val isNewUser = result.additionalUserInfo?.isNewUser == true
                 Log.d("AuthTrace", "6. Firebase credential success")
                 Log.d("AuthTrace", "7. uid: ${user.uid}")
-                Log.d("AuthTrace", "8. isNewUser: ${result.additionalUserInfo?.isNewUser == true}")
-                AuthDebug.d("Google signin Firebase auth success uid=${user.uid} isNewUser=${result.additionalUserInfo?.isNewUser == true}")
-                
-                // Always normalize Google users to ensure they have permissions/role structure
-                normalizeUserProfile(user.uid)
+                Log.d("AuthTrace", "8. isNewUser: $isNewUser")
+                AuthDebug.d("Google signin Firebase auth success uid=${user.uid} isNewUser=$isNewUser")
+
+                val prefs = AppPreferences(this)
+                val cachedRole = prefs.getUserRole()
+                val cachedName = prefs.getUserName()
+
+                if (!isNewUser && cachedRole.isNotBlank() && cachedName.isNotBlank()) {
+                    Log.d("AuthTrace", "Fast Google login via local cache")
+                    triggerBackgroundSync(user.uid)
+                    setupPushNotifications(user.uid, cachedRole, prefs.getUserBatch())
+                    navigateToMain()
+                } else {
+                    normalizeUserProfile(user.uid, isRegistrationOrFirstLogin = isNewUser)
+                }
             }
             .addOnFailureListener {
                 Log.d("AuthTrace", "6. Firebase credential failure: ${it.message}")

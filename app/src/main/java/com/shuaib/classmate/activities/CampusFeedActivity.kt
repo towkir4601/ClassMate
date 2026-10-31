@@ -100,10 +100,11 @@ class CampusFeedActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Security Guard: Live CampusFeed is only viewable to superadmin and admin levels
-        val role = UserRoleHelper.getEffectiveRole(this)
+        // Security Guard: Live CampusFeed is strictly only viewable to superadmin and admin levels
+        val isGuest = com.shuaib.classmate.utils.GuestUserHelper.isGuest(this)
+        val role = com.shuaib.classmate.utils.UserRoleHelper.getEffectiveRole(this)
         val r = role.trim().lowercase()
-        val isAdmin = (r == "superadmin" || r == "admin" || r == "university_admin")
+        val isAdmin = !isGuest && (r == "superadmin" || r == "admin" || r == "university_admin")
 
         if (!isAdmin) {
             Toast.makeText(this, "CampusFeed is currently in closed beta for admins.", Toast.LENGTH_SHORT).show()

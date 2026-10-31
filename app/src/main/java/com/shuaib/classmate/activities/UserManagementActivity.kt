@@ -50,7 +50,10 @@ class UserManagementActivity : AppCompatActivity() {
                 createdAt = doc.getTimestamp("createdAt"),
                 updatedAt = doc.getTimestamp("updatedAt"),
                 oneSignalPlayerId = doc.getString("oneSignalPlayerId") ?: "",
-                permissions = (doc.get("permissions") as? Map<String, Boolean>) ?: User.DEFAULT_PERMISSIONS
+                permissions = (doc.get("permissions") as? Map<String, Boolean>) ?: User.DEFAULT_PERMISSIONS,
+                isVerified = doc.getBoolean("isVerified") ?: false,
+                eduMail = doc.getString("eduMail") ?: "",
+                eduMailVerificationStatus = doc.getString("eduMailVerificationStatus") ?: ""
             )
         } catch (e: Exception) {
             null
@@ -191,6 +194,17 @@ class UserManagementActivity : AppCompatActivity() {
             }
         }
 
+        if (isSuperadmin || currUser.canManageUsers()) {
+            if (targetUser.eduMailVerificationStatus.equals("pending", ignoreCase = true)) {
+                optionsList.add("Approve Educational Email (${targetUser.eduMail})")
+                optionsList.add("Reject Educational Email")
+            } else if (!targetUser.isVerified && !targetUser.hasEduMail()) {
+                optionsList.add("Grant Blue Verified Badge")
+            } else if (targetUser.isVerified) {
+                optionsList.add("Revoke Blue Verified Badge")
+            }
+        }
+
         if (isSuperadmin || currUser.canManageAdmins()) {
             optionsList.add("Change Role")
         }
@@ -210,14 +224,54 @@ class UserManagementActivity : AppCompatActivity() {
         MaterialAlertDialogBuilder(this, R.style.Theme_ClassMate_Dialog)
             .setTitle("Manage ${targetUser.fullName.ifBlank { targetUser.name }}")
             .setItems(options) { _, which ->
-                when (options[which]) {
-                    "Approve User" -> approveUser(targetUser, true)
-                    "Reject User (Remove Approval)" -> approveUser(targetUser, false)
-                    "Change Role" -> showChangeRoleDialog(targetUser)
-                    "Delete User" -> showDeleteUserConfirmation(targetUser)
+                when {
+                    options[which].startsWith("Approve Educational Email") -> approveEduMail(targetUser, true)
+                    options[which] == "Reject Educational Email" -> approveEduMail(targetUser, false)
+                    options[which] == "Grant Blue Verified Badge" -> setVerifiedBadge(targetUser, true)
+                    options[which] == "Revoke Blue Verified Badge" -> setVerifiedBadge(targetUser, false)
+                    options[which] == "Approve User" -> approveUser(targetUser, true)
+                    options[which] == "Reject User (Remove Approval)" -> approveUser(targetUser, false)
+                    options[which] == "Change Role" -> showChangeRoleDialog(targetUser)
+                    options[which] == "Delete User" -> showDeleteUserConfirmation(targetUser)
                 }
             }
             .show()
+    }
+
+    private fun approveEduMail(targetUser: User, approve: Boolean) {
+        binding.progressBar.visibility = View.VISIBLE
+        val status = if (approve) "approved" else "rejected"
+        val updates = hashMapOf<String, Any>(
+            "eduMailVerificationStatus" to status,
+            "isVerified" to approve
+        )
+
+        firestore.collection("users").document(targetUser.uid)
+            .update(updates)
+            .addOnSuccessListener {
+                binding.progressBar.visibility = View.GONE
+                val msg = if (approve) "Educational mail approved! Blue badge granted." else "Educational mail request rejected."
+                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener { e ->
+                binding.progressBar.visibility = View.GONE
+                Toast.makeText(this, "Failed to update: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun setVerifiedBadge(targetUser: User, verified: Boolean) {
+        binding.progressBar.visibility = View.VISIBLE
+        firestore.collection("users").document(targetUser.uid)
+            .update("isVerified", verified)
+            .addOnSuccessListener {
+                binding.progressBar.visibility = View.GONE
+                val msg = if (verified) "Blue badge granted!" else "Blue badge revoked."
+                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener { e ->
+                binding.progressBar.visibility = View.GONE
+                Toast.makeText(this, "Failed to update: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
     }
 
     private fun approveUser(targetUser: User, approve: Boolean) {

@@ -152,7 +152,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:hint="Department (e.g. CSE)"
+                    android:hint="Department *"
                     app:endIconMode="custom"
                     app:endIconDrawable="@drawable/ic_arrow_down"
                     app:endIconTint="#FFFFFF">
@@ -171,21 +171,22 @@
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/tilBatch"
-                    style="@style/GlassTextInputLayout"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                    android:theme="@style/GlassTextInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:hint="Batch (e.g. 14)">
+                    android:hint="Batch *"
+                    app:endIconTint="#FFFFFF">
 
-                    <com.google.android.material.textfield.TextInputEditText
+                    <AutoCompleteTextView
                         android:id="@+id/etBatch"
                         android:layout_width="match_parent"
                         android:layout_height="58dp"
                         android:gravity="center_vertical"
-                        android:imeOptions="actionNext"
-                        android:inputType="number"
+                        android:inputType="none"
                         android:textColor="#FFFFFF"
-                        android:textSize="16sp"  />
+                        android:textSize="16sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- Toggle button for optional fields -->
@@ -390,7 +391,9 @@
                     style="@style/GlassTextInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Email">
+                    android:hint="Email"
+                    app:helperText="Use your @gstu.edu.bd educational email to get a verified blue badge"
+                    app:helperTextTextColor="#93C5FD">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etEmail"

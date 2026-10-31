@@ -72,6 +72,12 @@ import kotlinx.coroutines.Job
 
 class ProfileFragment : Fragment() {
 
+    companion object {
+        @Volatile
+        var shouldScrollToContact = false
+    }
+
+
     private var _binding: FragmentProfileBinding? = null
     private val binding get() = _binding!!
 
@@ -100,17 +106,6 @@ class ProfileFragment : Fragment() {
         if (success) tempImageUri?.let { uploadProfilePicture(it) }
     }
 
-    private val requestCameraPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            com.shuaib.classmate.services.ShakeToTorchService.start(requireContext())
-        } else {
-            Toast.makeText(context, "Camera permission is required to turn on the flashlight.", Toast.LENGTH_SHORT).show()
-            binding.switchShakeToTorch.isChecked = false
-        }
-    }
-
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentProfileBinding.inflate(inflater, container, false)
         return binding.root
@@ -125,7 +120,6 @@ class ProfileFragment : Fragment() {
         setupDarkModeToggle()
         setupNotificationsToggle()
         setupAutoMuteToggle()
-        setupShakeToTorchToggle()
         setupAiSettings()
         setupSavedResources()
         listenToFriendsConfig()
@@ -136,7 +130,6 @@ class ProfileFragment : Fragment() {
             binding.switchDarkMode,
             binding.switchNotifications,
             binding.switchAutoMute,
-            binding.switchShakeToTorch,
             binding.switchFriendsPublic
         ).forEach { sw ->
             sw.trackTintList = null
@@ -206,6 +199,11 @@ class ProfileFragment : Fragment() {
             startActivity(Intent(requireContext(), ViewProfileActivity::class.java))
             requireActivity().overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
         }
+
+        binding.layoutMailUs.applyClickAnimation { openMailUs() }
+        binding.layoutWhatsAppUs.applyClickAnimation { openWhatsAppUs() }
+        binding.layoutFeedbackUs.applyClickAnimation { showFeedbackDialog() }
+        binding.layoutSupportUs.applyClickAnimation { showSupportUsDialog() }
 
         binding.layoutSecurityInfo.applyClickAnimation {
             showSecurityInfoDialog()
@@ -495,6 +493,93 @@ class ProfileFragment : Fragment() {
             .show()
     }
 
+    private fun openMailUs() {
+        val intent = Intent(Intent.ACTION_SENDTO).apply {
+            data = Uri.parse("mailto:support@gstu.ac.bd")
+            putExtra(Intent.EXTRA_SUBJECT, "[GSTU Go Support / Routine Request]")
+            putExtra(
+                Intent.EXTRA_TEXT,
+                "Hello GSTU Go Team,\n\nDepartment: ${AppPreferences(requireContext()).getUserDepartment()}\nStudent ID: ${currentUser?.studentId ?: ""}\n\nMessage / Routine Information:\n"
+            )
+        }
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "No email app found to send email", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun openWhatsAppUs() {
+        val number = "8801700000000" // Official GSTU Go Support Desk
+        val text = Uri.encode("Hello GSTU Go Support, I would like to request / sync routine details for my department: ${AppPreferences(requireContext()).getUserDepartment()}")
+        try {
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                data = Uri.parse("https://api.whatsapp.com/send?phone=" + number + "&text=" + text)
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "WhatsApp is not installed on this device", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun showFeedbackDialog() {
+        val input = android.widget.EditText(requireContext()).apply {
+            hint = "Describe your feedback or suggestion..."
+            textSize = 14f
+            setPadding(40, 30, 40, 30)
+            background = androidx.core.content.ContextCompat.getDrawable(context, R.drawable.bg_dialog_input_dark)
+        }
+        val container = android.widget.FrameLayout(requireContext()).apply {
+            setPadding(48, 20, 48, 10)
+            addView(input)
+        }
+
+        MaterialAlertDialogBuilder(requireContext(), R.style.Theme_ClassMate_Dialog)
+            .setTitle("Feedback Us 💬")
+            .setMessage("We'd love to hear how GSTU Go can help you better in your daily university life.")
+            .setView(container)
+            .setPositiveButton("Submit") { _, _ ->
+                val feedbackText = input.text.toString().trim()
+                if (feedbackText.isNotBlank()) {
+                    val uid = auth.currentUser?.uid ?: "anonymous"
+                    val data = hashMapOf(
+                        "userId" to uid,
+                        "userEmail" to (auth.currentUser?.email ?: ""),
+                        "department" to AppPreferences(requireContext()).getUserDepartment(),
+                        "feedback" to feedbackText,
+                        "timestamp" to com.google.firebase.Timestamp.now()
+                    )
+                    firestore.collection("app_feedback").add(data)
+                    Toast.makeText(requireContext(), "Thank you for your valuable feedback!", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showSupportUsDialog() {
+        val message = """
+            🌟 GSTU Go Community Support & Development
+
+            GSTU Go is built with ❤️ for all departments of Gopalganj Science and Technology University.
+
+            🤝 Want your department's routine or batch notes synchronized?
+            • Reach out to your Class Representative (CR).
+            • Connect with us on WhatsApp or Mail.
+            • Submit routine PDFs / schedules directly.
+
+            Together, let's build the ultimate digital campus experience!
+        """.trimIndent()
+
+        MaterialAlertDialogBuilder(requireContext(), R.style.Theme_ClassMate_Dialog)
+            .setTitle("Support Us ❤️")
+            .setMessage(message)
+            .setPositiveButton("Contact via WhatsApp") { _, _ -> openWhatsAppUs() }
+            .setNeutralButton("Mail Us") { _, _ -> openMailUs() }
+            .setNegativeButton("Close", null)
+            .show()
+    }
+
     private fun showSecurityInfoDialog() {
         val message = """
             🛡️ GSTU Go Security & Privacy Architecture:
@@ -734,7 +819,9 @@ class ProfileFragment : Fragment() {
                             assignedClubId = document.getString("assignedClubId") ?: (if (effectiveDemoRole == "club_admin") "club_computer_society" else ""),
                             assignedClubName = document.getString("assignedClubName") ?: (if (effectiveDemoRole == "club_admin") "GSTU Computer Club (GSTUCC)" else ""),
                             demoRole = effectiveDemoRole,
-                            isVerified = document.getBoolean("isVerified") == true || (document.getString("email") ?: "").trim().lowercase().let { it.endsWith(".edu.bd") || it.endsWith("@gstu.ac.bd") || it.contains(".gstu.ac.bd") }
+                            isVerified = document.getBoolean("isVerified") == true || (document.getString("email") ?: "").trim().lowercase().let { 
+                                it.endsWith("@gstu.edu.bd") || it.contains(".gstu.edu.bd") || it.endsWith(".edu.bd") || it.endsWith("@gstu.ac.bd") || it.contains(".gstu.ac.bd") 
+                            }
                         )
                         
                         currentUser = user
@@ -916,28 +1003,13 @@ class ProfileFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-    }
-
-    private fun setupShakeToTorchToggle() {
-        val prefs = AppPreferences(requireContext())
-        binding.switchShakeToTorch.isChecked = prefs.isShakeToTorchEnabled()
-
-        binding.switchShakeToTorch.setOnCheckedChangeListener { _, isChecked ->
-            prefs.setShakeToTorchEnabled(isChecked)
-            if (isChecked) {
-                val hasCameraPermission = androidx.core.content.ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    android.Manifest.permission.CAMERA
-                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                
-                if (hasCameraPermission) {
-                    com.shuaib.classmate.services.ShakeToTorchService.start(requireContext())
-                } else {
-                    requestCameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+        if (shouldScrollToContact) {
+            shouldScrollToContact = false
+            view?.postDelayed({
+                if (_binding != null) {
+                    binding.profileScrollView.smoothScrollTo(0, binding.cardContactSupport.top)
                 }
-            } else {
-                com.shuaib.classmate.services.ShakeToTorchService.stop(requireContext())
-            }
+            }, 300)
         }
     }
 

@@ -169,6 +169,16 @@
                         android:id="@+id/tvAuthProvider"
                         style="@style/UserDetailFieldText"
                         tools:text="Auth Provider: google" />
+
+                    <TextView
+                        android:id="@+id/tvEduMailDetail"
+                        style="@style/UserDetailFieldText"
+                        tools:text="Educational Mail: user@dept.gstu.ac.bd" />
+
+                    <TextView
+                        android:id="@+id/tvVerificationDetail"
+                        style="@style/UserDetailFieldText"
+                        tools:text="Badge: Verified (Blue Badge)" />
                 </LinearLayout>
 
                 <TextView
@@ -308,6 +318,11 @@
                         android:id="@+id/switchManageAdmins"
                         style="@style/UserPermissionSwitch"
                         android:text="Can manage administrators" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchVerifiedBadge"
+                        style="@style/UserPermissionSwitch"
+                        android:text="Grant verified blue badge" />
                 </LinearLayout>
 
                 <Button

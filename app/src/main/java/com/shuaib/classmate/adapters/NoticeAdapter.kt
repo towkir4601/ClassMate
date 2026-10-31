@@ -280,6 +280,7 @@ class NoticeAdapter(
                                 val email = doc.getString("email").orEmpty().lowercase()
                                 val role = doc.getString("role").orEmpty().lowercase()
                                 val verified = doc.getBoolean("isVerified") == true ||
+                                    email.endsWith("@gstu.edu.bd") || email.contains(".gstu.edu.bd") ||
                                     email.endsWith(".edu.bd") || email.endsWith("@gstu.ac.bd") ||
                                     role in listOf("teacher", "admin", "superadmin", "university_admin")
                                 authorVerifiedCache[authorId] = verified

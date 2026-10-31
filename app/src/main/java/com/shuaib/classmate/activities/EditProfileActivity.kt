@@ -81,6 +81,41 @@ class EditProfileActivity : AppCompatActivity() {
                     binding.etPermanentAddress.setText(doc.getString("permanentAddress") ?: "")
                     binding.etDistrict.setText(doc.getString("homeDistrict") ?: "")
                     binding.etBloodGroup.setText(doc.getString("bloodGroup") ?: "")
+
+                    // Educational Mail & Blue Badge setup
+                    val primaryEmail = doc.getString("email") ?: ""
+                    val isPrimaryEdu = primaryEmail.trim().lowercase().let { 
+                        it.endsWith("@gstu.edu.bd") || it.contains(".gstu.edu.bd") || it.endsWith(".edu.bd") || it.endsWith("@gstu.ac.bd") || it.contains(".gstu.ac.bd") 
+                    }
+                    val isVerified = doc.getBoolean("isVerified") == true
+                    val eduMail = doc.getString("eduMail") ?: ""
+                    val eduMailStatus = doc.getString("eduMailVerificationStatus") ?: ""
+
+                    if (isPrimaryEdu || isVerified || eduMailStatus.equals("approved", ignoreCase = true)) {
+                        binding.tvEduMailBadgeStatus.text = "Verified ✅"
+                        binding.tvEduMailBadgeStatus.setBackgroundColor(android.graphics.Color.parseColor("#DCFCE7"))
+                        binding.tvEduMailBadgeStatus.setTextColor(android.graphics.Color.parseColor("#15803D"))
+                        val emailToShow = if (eduMail.isNotBlank()) eduMail else primaryEmail
+                        binding.tvEduMailDescription.text = "Your account is officially verified with blue badge via $emailToShow"
+                        binding.layoutEduMailInput.visibility = android.view.View.GONE
+                    } else if (eduMailStatus.equals("pending", ignoreCase = true)) {
+                        binding.tvEduMailBadgeStatus.text = "Pending Review ⏳"
+                        binding.tvEduMailBadgeStatus.setBackgroundColor(android.graphics.Color.parseColor("#FEF3C7"))
+                        binding.tvEduMailBadgeStatus.setTextColor(android.graphics.Color.parseColor("#D97706"))
+                        binding.tvEduMailDescription.text = "Educational email verification ($eduMail) is submitted. Waiting for admin approval."
+                        binding.layoutEduMailInput.visibility = android.view.View.GONE
+                    } else {
+                        binding.tvEduMailBadgeStatus.text = "Unverified"
+                        binding.tvEduMailDescription.text = "Add educational mail to get blue badge. Once submitted, it will be sent to admins for approval."
+                        binding.layoutEduMailInput.visibility = android.view.View.VISIBLE
+                        if (eduMail.isNotBlank()) {
+                            binding.etEduMail.setText(eduMail)
+                        }
+                    }
+
+                    binding.btnSubmitEduMail.setOnClickListener {
+                        submitEduMailForApproval()
+                    }
                     
                     if (doc.getString("role") == "teacher") {
                         (binding.etStudentId.parent as? android.view.View)?.visibility = android.view.View.GONE
@@ -99,6 +134,47 @@ class EditProfileActivity : AppCompatActivity() {
             }
     }
     
+    private fun submitEduMailForApproval() {
+        val uid = auth.currentUser?.uid ?: return
+        val eduMail = binding.etEduMail.text.toString().trim()
+        val lower = eduMail.lowercase()
+
+        val isEduFormat = lower.endsWith("@gstu.edu.bd") || lower.contains(".gstu.edu.bd") || lower.endsWith(".edu.bd") ||
+                          lower.endsWith("@gstu.ac.bd") || lower.contains(".gstu.ac.bd")
+
+        if (eduMail.isBlank() || !isEduFormat) {
+            binding.tilEduMail.error = "Please enter your university mail (e.g. name@gstu.edu.bd)"
+            return
+        }
+        binding.tilEduMail.error = null
+
+        val updates = hashMapOf<String, Any>(
+            "eduMail" to eduMail,
+            "eduMailVerificationStatus" to "pending",
+            "eduMailRequestedAt" to com.google.firebase.Timestamp.now()
+        )
+
+        binding.btnSubmitEduMail.isEnabled = false
+        binding.btnSubmitEduMail.text = "Submitting..."
+
+        db.collection("users").document(uid).update(updates)
+            .addOnSuccessListener {
+                binding.btnSubmitEduMail.isEnabled = true
+                binding.btnSubmitEduMail.text = "Submit for Approval"
+                binding.tvEduMailBadgeStatus.text = "Pending Review ⏳"
+                binding.tvEduMailBadgeStatus.setBackgroundColor(android.graphics.Color.parseColor("#FEF3C7"))
+                binding.tvEduMailBadgeStatus.setTextColor(android.graphics.Color.parseColor("#D97706"))
+                binding.tvEduMailDescription.text = "Educational email verification ($eduMail) submitted to admin for approval."
+                binding.layoutEduMailInput.visibility = android.view.View.GONE
+                Toast.makeText(this, "Verification request sent to admins! ✅", Toast.LENGTH_LONG).show()
+            }
+            .addOnFailureListener { e ->
+                binding.btnSubmitEduMail.isEnabled = true
+                binding.btnSubmitEduMail.text = "Submit for Approval"
+                Toast.makeText(this, "Failed to submit: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
     private fun saveUserProfile() {
         val uid = auth.currentUser?.uid ?: return
         

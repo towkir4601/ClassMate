@@ -32,9 +32,10 @@ class CampusFeedFeaturesActivity : AppCompatActivity() {
     }
 
     private fun setupAdminAccess() {
+        val isGuest = com.shuaib.classmate.utils.GuestUserHelper.isGuest(this)
         val role = UserRoleHelper.getEffectiveRole(this)
         val r = role.trim().lowercase()
-        val isAdmin = (r == "superadmin" || r == "admin" || r == "university_admin")
+        val isAdmin = !isGuest && (r == "superadmin" || r == "admin" || r == "university_admin")
 
         if (isAdmin) {
             binding.layoutAdminBetaBar.visibility = View.VISIBLE

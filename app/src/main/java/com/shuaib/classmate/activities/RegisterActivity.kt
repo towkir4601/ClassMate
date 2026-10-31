@@ -89,6 +89,7 @@ class RegisterActivity : AppCompatActivity() {
         setupStudentIdFormatting()
         setupRoleToggle()
         setupDepartmentPicker()
+        setupBatchDropdown()
         com.shuaib.classmate.utils.PhoneNumberUtils.attachPhonePrefixWatcher(binding.etPhone)
         com.shuaib.classmate.utils.PhoneNumberUtils.attachPhonePrefixWatcher(binding.etWhatsApp)
         showStep(0, focus = false)
@@ -117,6 +118,15 @@ class RegisterActivity : AppCompatActivity() {
         binding.etDepartment.isClickable = true
         binding.etDepartment.setOnClickListener { openPicker() }
         binding.tilDepartment.setEndIconOnClickListener { openPicker() }
+    }
+
+    private fun setupBatchDropdown() {
+        val batches = (1..50).map { it.toString() }
+        val adapter = android.widget.ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, batches)
+        binding.etBatch.setAdapter(adapter)
+        binding.etBatch.setOnItemClickListener { _, _, _, _ ->
+            binding.tilBatch.error = null
+        }
     }
 
     private fun setupRoleToggle() {
@@ -297,10 +307,10 @@ class RegisterActivity : AppCompatActivity() {
         val whatsapp = com.shuaib.classmate.utils.PhoneNumberUtils.normalize(binding.etWhatsApp.text.toString())
         val phone = com.shuaib.classmate.utils.PhoneNumberUtils.normalize(binding.etPhone.text.toString())
         
-        val batch = if (isTeacher) "" else {
-            val prefix = studentId.take(2).toIntOrNull()
-            if (prefix != null) (prefix - 10).toString() else ""
-        }
+        val prefix = studentId.take(2).toIntOrNull()
+        val inferredBatch = if (prefix != null) (prefix - 10).toString() else ""
+        val typedBatch = binding.etBatch.text.toString().trim()
+        val batch = if (isTeacher) "" else typedBatch.ifBlank { inferredBatch }
         val fatherName = if (isTeacher) "" else binding.etFatherName.text.toString().trim()
         val motherName = if (isTeacher) "" else binding.etMotherName.text.toString().trim()
         val presentAddress = if (isTeacher) "" else binding.etPresentAddress.text.toString().trim()
@@ -661,18 +671,38 @@ class RegisterActivity : AppCompatActivity() {
         var valid = true
         binding.tilName.error = null
         binding.tilStudentId.error = null
+        binding.tilDepartment.error = null
+        binding.tilBatch.error = null
 
         val name = binding.etName.text.toString().trim()
         val studentId = com.shuaib.classmate.utils.StudentIdUtils.normalize(binding.etStudentId.text.toString())
+        val department = binding.etDepartment.text.toString().trim()
+        val batch = binding.etBatch.text.toString().trim()
         val isTeacher = binding.rgRole.checkedRadioButtonId == R.id.rbTeacher
-        
+
         if (name.length < 2) {
             binding.tilName.error = "Name must be at least 2 characters"
             valid = false
         }
-        if (!isTeacher && !com.shuaib.classmate.utils.StudentIdUtils.isValid(studentId)) {
-            binding.tilStudentId.error = "Enter valid student ID"
+
+        // Department selection is mandatory for both student and teacher
+        if (department.isBlank()) {
+            binding.tilDepartment.error = "Please select your department"
             valid = false
+        }
+
+        if (isTeacher) {
+            // Teacher validations
+        } else {
+            // Student validations: student ID and batch are mandatory
+            if (!com.shuaib.classmate.utils.StudentIdUtils.isValid(studentId)) {
+                binding.tilStudentId.error = "Enter valid student ID"
+                valid = false
+            }
+            if (batch.isBlank()) {
+                binding.tilBatch.error = "Please select your batch"
+                valid = false
+            }
         }
         if (!valid) shakeForm()
         return valid

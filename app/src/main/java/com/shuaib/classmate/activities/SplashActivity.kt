@@ -175,7 +175,12 @@ class SplashActivity : AppCompatActivity() {
         } else if (prefs.isGuestMode()) {
             scheduleNavigation(MainActivity::class.java)
         } else if (currentUser != null) {
-            fetchProfileAndRoute(currentUser.uid)
+            // Instant entry for returning logged-in users with cached profile
+            if (prefs.getUserName().isNotBlank() && prefs.getUserRole().isNotBlank()) {
+                scheduleNavigation(MainActivity::class.java)
+            } else {
+                fetchProfileAndRoute(currentUser.uid)
+            }
         } else {
             scheduleNavigation(LoginActivity::class.java)
         }
